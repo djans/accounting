@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Dashboard · Cogitosum Accounting')}"></head>
+<body>
+<div class="portal-shell">
+    <div th:replace="~{fragments/layout :: sidebar('dashboard')}"></div>
+    <main class="portal-main">
+        <div th:replace="~{fragments/layout :: topbar('Dashboard')}"></div>
+        <section class="portal-content">
+
+            <div class="hero-header">
+                <h2>Welcome back</h2>
+                <p>Real-time view of your billing, accounting, and Canadian tax exposure. Everything posts through the general ledger, so what you see here always ties out to your financial statements.</p>
+            </div>
+
+            <div class="stat-grid">
+                <div class="stat-card">
+                    <div class="stat-label">Customers</div>
+                    <div class="stat-value" th:text="${customers}">0</div>
+                    <div class="stat-sub">Active customer records</div>
+                </div>
+                <div class="stat-card is-accent">
+                    <div class="stat-label">Invoices</div>
+                    <div class="stat-value" th:text="${invoices}">0</div>
+                    <div class="stat-sub">All invoices in the system</div>
+                </div>
+                <div class="stat-card is-warning">
+                    <div class="stat-label">Overdue</div>
+                    <div class="stat-value" th:text="${overdue}">0</div>
+                    <div class="stat-sub">Past due date</div>
+                </div>
+                <div class="stat-card is-success">
+                    <div class="stat-label">Open A/R</div>
+                    <div class="stat-value" th:text="${#numbers.formatCurrency(openReceivable)}">$0</div>
+                    <div class="stat-sub">Unpaid balance</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Posted Journals</div>
+                    <div class="stat-value" th:text="${postedJournals}">0</div>
+                    <div class="stat-sub">
+                        <span th:text="${draftJournals}">0</span> drafts pending
+                    </div>
+                </div>
+                <div class="stat-card is-accent">
+                    <div class="stat-label">Trial Balance</div>
+                    <div class="stat-value">
+                        <span th:if="${trialBalance['balanced']}" class="badge-pill paid">Balanced</span>
+                        <span th:unless="${trialBalance['balanced']}" class="badge-pill overdue">Out of balance</span>
+                    </div>
+                    <div class="stat-sub">
+                        Dr <span th:text="${#numbers.formatDecimal(trialBalance['totalDebits'], 1, 'COMMA', 2, 'POINT')}">0</span>
+                        · Cr <span th:text="${#numbers.formatDecimal(trialBalance['totalCredits'], 1, 'COMMA', 2, 'POINT')}">0</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="portal-card">
+                <h3 class="portal-card-title">
+                    Recent Invoices
+                    <a th:href="@{/invoices}" class="btn-portal btn-ghost btn-sm">View all <i class="bi bi-arrow-right"></i></a>
+                </h3>
+                <div th:if="${#lists.isEmpty(recentInvoices)}" class="empty-state">
+                    No invoices yet — <a th:href="@{/invoices/new}">create one</a>.
+                </div>
+                <table th:if="${not #lists.isEmpty(recentInvoices)}" class="table-portal">
+                    <thead>
+                    <tr>
+                        <th>Invoice #</th>
+                        <th>Customer</th>
+                        <th>Date</th>
+                        <th>Status</th>
+                        <th class="num">Total</th>
+                        <th class="num">Paid</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="inv : ${recentInvoices}">
+                        <td>
+                            <a th:href="@{/invoices/{id}(id=${inv.id})}" th:text="${inv.invoiceNumber}">INV-1</a>
+                        </td>
+                        <td th:text="${inv.customer != null ? inv.customer.businessName : '—'}">Acme</td>
+                        <td th:text="${inv.invoiceDate}">2026-01-01</td>
+                        <td>
+                            <span class="badge-pill"
+                                  th:classappend="${' ' + #strings.toLowerCase(inv.status.name())}"
+                                  th:text="${inv.status}">DRAFT</span>
+                        </td>
+                        <td class="num" th:text="${#numbers.formatCurrency(inv.totalAmount)}">$0</td>
+                        <td class="num" th:text="${inv.paidAmount != null ? #numbers.formatCurrency(inv.paidAmount) : '$0.00'}">$0</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+        </section>
+    </main>
+</div>
+</body>
+</html>

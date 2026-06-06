@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Financial Statements')}"></head>
+<body>
+<div class="portal-shell">
+    <div th:replace="~{fragments/layout :: sidebar('accounting-reports')}"></div>
+    <main class="portal-main">
+        <div th:replace="~{fragments/layout :: topbar('Financial Statements')}"></div>
+        <section class="portal-content">
+
+            <div class="portal-card">
+                <h3 class="portal-card-title">
+                    Trial Balance
+                    <span th:if="${trialBalance['balanced']}" class="badge-pill paid">Balanced</span>
+                    <span th:unless="${trialBalance['balanced']}" class="badge-pill overdue">Out of balance</span>
+                </h3>
+                <table class="table-portal">
+                    <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Account</th>
+                        <th>Type</th>
+                        <th class="num">Debit</th>
+                        <th class="num">Credit</th>
+                        <th class="num">Balance</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="entry : ${trialBalance['accounts']}">
+                        <td th:text="${entry.value['accountNumber']}">1010</td>
+                        <td th:text="${entry.value['accountName']}">Cash</td>
+                        <td><span class="badge-pill" th:text="${entry.value['accountType']}">ASSET</span></td>
+                        <td class="num" th:text="${#numbers.formatCurrency(entry.value['debitBalance'])}">$0</td>
+                        <td class="num" th:text="${#numbers.formatCurrency(entry.value['creditBalance'])}">$0</td>
+                        <td class="num" th:text="${#numbers.formatCurrency(entry.value['balance'])}">$0</td>
+                    </tr>
+                    </tbody>
+                    <tfoot>
+                    <tr style="font-weight:600">
+                        <td colspan="3" style="text-align:right">Totals</td>
+                        <td class="num" th:text="${#numbers.formatCurrency(trialBalance['totalDebits'])}">$0</td>
+                        <td class="num" th:text="${#numbers.formatCurrency(trialBalance['totalCredits'])}">$0</td>
+                        <td></td>
+                    </tr>
+                    </tfoot>
+                </table>
+            </div>
+
+            <div class="portal-card">
+                <h3 class="portal-card-title">
+                    Balance Sheet
+                    <span th:if="${balanceSheet['balanced']}" class="badge-pill paid">Balanced</span>
+                    <span th:unless="${balanceSheet['balanced']}" class="badge-pill overdue">Out of balance</span>
+                </h3>
+
+                <h4 style="margin-top:0.5rem;font-size:.95rem;color:var(--portal-muted)">Assets</h4>
+                <table class="table-portal">
+                    <tbody>
+                    <tr th:each="row : ${balanceSheet['assets']}">
+                        <td th:text="${row['accountNumber']}">1010</td>
+                        <td th:text="${row['accountName']}">Cash</td>
+                        <td class="num" th:text="${#numbers.formatCurrency(row['balance'])}">$0</td>
+                    </tr>
+                    <tr style="font-weight:600">
+                        <td colspan="2" style="text-align:right">Total Assets</td>
+                        <td class="num" th:text="${#numbers.formatCurrency(balanceSheet['totalAssets'])}">$0</td>
+                    </tr>
+                    </tbody>
+                </table>
+
+                <h4 style="margin-top:1.5rem;font-size:.95rem;color:var(--portal-muted)">Liabilities</h4>
+                <table class="table-portal">
+                    <tbody>
+                    <tr th:each="row : ${balanceSheet['liabilities']}">
+                        <td th:text="${row['accountNumber']}">2010</td>
+                        <td th:text="${row['accountName']}">A/P</td>
+                        <td class="num" th:text="${#numbers.formatCurrency(row['balance'])}">$0</td>
+                    </tr>
+                    <tr style="font-weight:600">
+                        <td colspan="2" style="text-align:right">Total Liabilities</td>
+                        <td class="num" th:text="${#numbers.formatCurrency(balanceSheet['totalLiabilities'])}">$0</td>
+                    </tr>
+                    </tbody>
+                </table>
+
+                <h4 style="margin-top:1.5rem;font-size:.95rem;color:var(--portal-muted)">Equity</h4>
+                <table class="table-portal">
+                    <tbody>
+                    <tr th:each="row : ${balanceSheet['equity']}">
+                        <td th:text="${row['accountNumber']}">3010</td>
+                        <td th:text="${row['accountName']}">Equity</td>
+                        <td class="num" th:text="${#numbers.formatCurrency(row['balance'])}">$0</td>
+                    </tr>
+                    <tr style="font-weight:600">
+                        <td colspan="2" style="text-align:right">Total Equity</td>
+                        <td class="num" th:text="${#numbers.formatCurrency(balanceSheet['totalEquity'])}">$0</td>
+                    </tr>
+                    <tr style="font-weight:700;background:#f8fafc">
+                        <td colspan="2" style="text-align:right">Total Liabilities + Equity</td>
+                        <td class="num" th:text="${#numbers.formatCurrency(balanceSheet['totalLiabilitiesAndEquity'])}">$0</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="portal-card">
+                <h3 class="portal-card-title">Income Statement</h3>
+
+                <h4 style="margin-top:0.5rem;font-size:.95rem;color:var(--portal-muted)">Revenue</h4>
+                <table class="table-portal">
+                    <tbody>
+                    <tr th:each="row : ${incomeStatement['revenue']}">
+                        <td th:text="${row['accountNumber']}">4010</td>
+                        <td th:text="${row['accountName']}">Sales</td>
+                        <td class="num" th:text="${#numbers.formatCurrency(row['balance'])}">$0</td>
+                    </tr>
+                    <tr style="font-weight:600">
+                        <td colspan="2" style="text-align:right">Total Revenue</td>
+                        <td class="num" th:text="${#numbers.formatCurrency(incomeStatement['totalRevenue'])}">$0</td>
+                    </tr>
+                    </tbody>
+                </table>
+
+                <h4 style="margin-top:1.5rem;font-size:.95rem;color:var(--portal-muted)">Expenses</h4>
+                <table class="table-portal">
+                    <tbody>
+                    <tr th:each="row : ${incomeStatement['expenses']}">
+                        <td th:text="${row['accountNumber']}">5010</td>
+                        <td th:text="${row['accountName']}">Cost</td>
+                        <td class="num" th:text="${#numbers.formatCurrency(row['balance'])}">$0</td>
+                    </tr>
+                    <tr style="font-weight:600">
+                        <td colspan="2" style="text-align:right">Total Expenses</td>
+                        <td class="num" th:text="${#numbers.formatCurrency(incomeStatement['totalExpenses'])}">$0</td>
+                    </tr>
+                    <tr style="font-weight:700;background:#f0fdf4">
+                        <td colspan="2" style="text-align:right">Net Income</td>
+                        <td class="num" th:text="${#numbers.formatCurrency(incomeStatement['netIncome'])}">$0</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+        </section>
+    </main>
+</div>
+</body>
+</html>

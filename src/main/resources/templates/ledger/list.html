@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('General Ledger')}"></head>
+<body>
+<div class="portal-shell">
+    <div th:replace="~{fragments/layout :: sidebar('ledger')}"></div>
+    <main class="portal-main">
+        <div th:replace="~{fragments/layout :: topbar('General Ledger')}"></div>
+        <section class="portal-content">
+            <div class="portal-card">
+                <h3 class="portal-card-title">Account Balances</h3>
+                <div th:if="${#lists.isEmpty(ledgers)}" class="empty-state">
+                    The General Ledger is empty. Create accounts under
+                    <a th:href="@{/accounts}">Chart of Accounts</a>, then post journals to populate balances.
+                </div>
+                <table th:if="${not #lists.isEmpty(ledgers)}" class="table-portal">
+                    <thead>
+                    <tr>
+                        <th>Account #</th>
+                        <th>Account Name</th>
+                        <th>Type</th>
+                        <th class="num">Total Debits</th>
+                        <th class="num">Total Credits</th>
+                        <th class="num">Balance</th>
+                        <th>Last Updated</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="gl : ${ledgers}">
+                        <td th:text="${gl.account.accountNumber}">1010</td>
+                        <td style="font-weight:500" th:text="${gl.account.accountName}">Cash</td>
+                        <td><span class="badge-pill" th:text="${gl.account.accountType}">ASSET</span></td>
+                        <td class="num" th:text="${#numbers.formatCurrency(gl.debitBalance)}">$0</td>
+                        <td class="num" th:text="${#numbers.formatCurrency(gl.creditBalance)}">$0</td>
+                        <td class="num" style="font-weight:600"
+                            th:text="${#numbers.formatCurrency(gl.balance)}">$0</td>
+                        <td th:text="${gl.lastUpdated}">—</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+</div>
+</body>
+</html>

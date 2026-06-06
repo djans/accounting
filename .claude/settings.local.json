@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mvn -q compile)",
+      "Bash(where mvn *)",
+      "Bash(where java *)",
+      "Bash(cmd //c \"where mvn\")",
+      "Bash(cmd //c \"where java\")",
+      "Bash(echo \"PATH=$PATH\" ; ls \"C:/Program Files\" 2>&1 | grep -i -E \"java|maven\" ; ls \"C:/Users/Daniel/IdeaProjects/accounting/build.bat\")",
+      "Bash(ls \"C:/Program Files/Java\" 2>&1 ; echo \"---\" ; ls \"C:/Program Files \\(x86\\)\" 2>&1 | grep -i -E \"java|maven\" ; echo \"---\" ; ls \"C:/ProgramData\" 2>&1 | grep -i maven)",
+      "Bash(./mvnw -q compile)",
+      "Bash(where mvnw *)",
+      "Bash(/c/Windows/System32/where.exe mvn *)",
+      "Bash(/c/Windows/System32/where.exe javac *)",
+      "Read(//c/Program Files/Java//**)",
+      "Read(//c/Program Files/Common Files/**)",
+      "Read(//c/Program Files/JetBrains//**)"
+    ]
+  }
+}

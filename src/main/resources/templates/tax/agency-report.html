@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Agency Report')}"></head>
+<body>
+<div class="portal-shell">
+    <div th:replace="~{fragments/layout :: sidebar('tax-agencies')}"></div>
+    <main class="portal-main">
+        <div th:replace="~{fragments/layout :: topbar(|${agency.code} — ${agency.name}|)}"></div>
+        <section class="portal-content">
+            <div th:replace="~{fragments/layout :: flash}"></div>
+
+            <div class="portal-card">
+                <h3 class="portal-card-title">
+                    <span th:text="${agency.name}">Canada Revenue Agency</span>
+                    <a th:href="@{/tax/agencies}" class="btn-portal btn-ghost btn-sm">Back to agencies</a>
+                </h3>
+                <div class="form-grid">
+                    <div>
+                        <div class="stat-label">Code</div>
+                        <div th:text="${agency.code}">CRA</div>
+                    </div>
+                    <div>
+                        <div class="stat-label">Account # with agency</div>
+                        <div th:text="${agency.accountNumber}">123456789 RT 0001</div>
+                    </div>
+                    <div>
+                        <div class="stat-label">Website</div>
+                        <div>
+                            <a th:if="${agency.website}" th:href="${agency.website}" target="_blank"
+                               th:text="${agency.website}">link</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="report-totals" style="margin:1.25rem 0">
+                <div class="stat-card">
+                    <div class="stat-label">Total Tax Collected</div>
+                    <div class="stat-value" th:text="${#numbers.formatCurrency(totalCollected)}">$0</div>
+                </div>
+                <div class="stat-card is-accent">
+                    <div class="stat-label">Total ITC Claimed</div>
+                    <div class="stat-value" th:text="${#numbers.formatCurrency(totalItc)}">$0</div>
+                </div>
+                <div class="stat-card is-success">
+                    <div class="stat-label">Total Net Owed</div>
+                    <div class="stat-value" th:text="${#numbers.formatCurrency(totalNet)}">$0</div>
+                </div>
+            </div>
+
+            <div class="portal-card">
+                <h3 class="portal-card-title">Filing History</h3>
+                <div th:if="${#lists.isEmpty(periods)}" class="empty-state">
+                    No filing periods recorded for this agency.
+                </div>
+                <table th:if="${not #lists.isEmpty(periods)}" class="table-portal">
+                    <thead>
+                    <tr>
+                        <th>Period</th>
+                        <th>Status</th>
+                        <th class="num">Collected</th>
+                        <th class="num">ITC</th>
+                        <th class="num">Net Owing</th>
+                        <th>Filed</th>
+                        <th>Paid</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="p : ${periods}">
+                        <td>
+                            <a th:href="@{/tax/periods/{id}(id=${p.id})}"
+                               th:text="${p.periodStart + ' → ' + p.periodEnd}">2026-Q1</a>
+                        </td>
+                        <td><span class="badge-pill" th:text="${p.status}">OPEN</span></td>
+                        <td class="num" th:text="${#numbers.formatCurrency(p.taxCollected)}">$0</td>
+                        <td class="num" th:text="${#numbers.formatCurrency(p.taxITC)}">$0</td>
+                        <td class="num" th:text="${#numbers.formatCurrency(p.netOwing)}">$0</td>
+                        <td th:text="${p.filedDate}">—</td>
+                        <td th:text="${p.paidDate}">—</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+</div>
+</body>
+</html>

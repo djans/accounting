@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('General Journal')}"></head>
+<body>
+<div class="portal-shell">
+    <div th:replace="~{fragments/layout :: sidebar('journals')}"></div>
+    <main class="portal-main">
+        <div th:replace="~{fragments/layout :: topbar('General Journal')}"></div>
+        <section class="portal-content">
+            <div th:replace="~{fragments/layout :: flash}"></div>
+
+            <div class="portal-card">
+                <h3 class="portal-card-title">
+                    Journal Entries
+                    <a th:href="@{/journals/new}" class="btn-portal"><i class="bi bi-plus-lg"></i> New Journal</a>
+                </h3>
+                <div th:if="${#lists.isEmpty(journals)}" class="empty-state">
+                    No journal entries yet. <a th:href="@{/journals/new}">Create one</a>.
+                </div>
+                <table th:if="${not #lists.isEmpty(journals)}" class="table-portal">
+                    <thead>
+                    <tr>
+                        <th>Journal #</th>
+                        <th>Date</th>
+                        <th>Narrative</th>
+                        <th>Reference</th>
+                        <th>Status</th>
+                        <th>Posted</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="j : ${journals}">
+                        <td><a th:href="@{/journals/{id}(id=${j.id})}" th:text="${j.journalNumber}">JL-1</a></td>
+                        <td th:text="${j.journalDate}">2026-01-01</td>
+                        <td th:text="${j.narrative}">Sale</td>
+                        <td th:text="${j.reference}">—</td>
+                        <td>
+                            <span class="badge-pill"
+                                  th:classappend="${' ' + #strings.toLowerCase(j.status.name())}"
+                                  th:text="${j.status}">DRAFT</span>
+                        </td>
+                        <td th:text="${j.postedDate} ?: '—'">—</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+</div>
+</body>
+</html>

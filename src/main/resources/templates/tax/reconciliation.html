@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Tax Reconciliation')}"></head>
+<body>
+<div class="portal-shell">
+    <div th:replace="~{fragments/layout :: sidebar('tax-reconciliation')}"></div>
+    <main class="portal-main">
+        <div th:replace="~{fragments/layout :: topbar('Tax Reconciliation')}"></div>
+        <section class="portal-content">
+            <div th:replace="~{fragments/layout :: flash}"></div>
+
+            <div class="portal-card">
+                <h3 class="portal-card-title">Payable Account Balances</h3>
+                <p class="text-muted">
+                    Live balance on each tax payable account in the General Ledger.
+                    This is what you currently owe to each agency from invoices already posted, minus any ITC adjustments or payments.
+                </p>
+                <table class="table-portal">
+                    <thead>
+                    <tr>
+                        <th>Agency</th>
+                        <th>Tax Code</th>
+                        <th>Account</th>
+                        <th class="num">GL Balance</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="row : ${rows}">
+                        <td th:text="${row.agency.code + ' — ' + row.agency.name}">CRA — Canada Revenue Agency</td>
+                        <td th:text="${row.code.code + ' (' + row.code.name + ')'}">TPS</td>
+                        <td th:text="${row.account.accountNumber + ' – ' + row.account.accountName}">2310 – TPS Payable</td>
+                        <td class="num" th:text="${#numbers.formatCurrency(row.glBalance)}">$0</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+</div>
+</body>
+</html>

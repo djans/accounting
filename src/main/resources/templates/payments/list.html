@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Payments')}"></head>
+<body>
+<div class="portal-shell">
+    <div th:replace="~{fragments/layout :: sidebar('payments')}"></div>
+    <main class="portal-main">
+        <div th:replace="~{fragments/layout :: topbar('Payments')}"></div>
+        <section class="portal-content">
+            <div th:replace="~{fragments/layout :: flash}"></div>
+
+            <div class="portal-card">
+                <h3 class="portal-card-title">
+                    All Payments
+                    <a th:href="@{/payments/new}" class="btn-portal"><i class="bi bi-plus-lg"></i> Record Payment</a>
+                </h3>
+                <div th:if="${#lists.isEmpty(payments)}" class="empty-state">
+                    No payments yet.
+                </div>
+                <table th:if="${not #lists.isEmpty(payments)}" class="table-portal">
+                    <thead>
+                    <tr>
+                        <th>Transaction</th>
+                        <th>Invoice</th>
+                        <th>Date</th>
+                        <th>Method</th>
+                        <th>Status</th>
+                        <th class="num">Amount</th>
+                        <th></th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="p : ${payments}">
+                        <td th:text="${p.transactionId}">TXN-1</td>
+                        <td>
+                            <a th:href="@{/invoices/{id}(id=${p.invoice.id})}"
+                               th:text="${p.invoice.invoiceNumber}">INV-1</a>
+                        </td>
+                        <td th:text="${p.paymentDate}">2026-01-01</td>
+                        <td th:text="${p.paymentMethod}">CASH</td>
+                        <td>
+                            <span class="badge-pill"
+                                  th:classappend="${' ' + #strings.toLowerCase(p.status.name())}"
+                                  th:text="${p.status}"></span>
+                        </td>
+                        <td class="num" th:text="${#numbers.formatCurrency(p.amount)}">$0</td>
+                        <td style="text-align:right; white-space:nowrap;">
+                            <form th:if="${p.status.name() == 'PENDING'}"
+                                  th:action="@{/payments/{id}/complete(id=${p.id})}" method="post" style="display:inline">
+                                <button class="btn-portal btn-success btn-sm"><i class="bi bi-check2"></i></button>
+                            </form>
+                            <form th:if="${p.status.name() == 'COMPLETED'}"
+                                  th:action="@{/payments/{id}/refund(id=${p.id})}" method="post" style="display:inline">
+                                <button class="btn-portal btn-ghost btn-sm" onclick="return confirm('Refund this payment?')">
+                                    <i class="bi bi-arrow-counterclockwise"></i> Refund
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+</div>
+</body>
+</html>

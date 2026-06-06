@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Chart of Accounts')}"></head>
+<body>
+<div class="portal-shell">
+    <div th:replace="~{fragments/layout :: sidebar('accounts')}"></div>
+    <main class="portal-main">
+        <div th:replace="~{fragments/layout :: topbar('Chart of Accounts')}"></div>
+        <section class="portal-content">
+            <div th:replace="~{fragments/layout :: flash}"></div>
+
+            <div class="portal-card">
+                <h3 class="portal-card-title">
+                    GL Accounts
+                    <a th:href="@{/accounts/new}" class="btn-portal"><i class="bi bi-plus-lg"></i> New Account</a>
+                </h3>
+                <div th:if="${#lists.isEmpty(accounts)}" class="empty-state">
+                    No accounts yet. <a th:href="@{/accounts/new}">Add the first GL account</a>.
+                </div>
+                <table th:if="${not #lists.isEmpty(accounts)}" class="table-portal">
+                    <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Account Name</th>
+                        <th>Type</th>
+                        <th>Description</th>
+                        <th>Status</th>
+                        <th></th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="a : ${accounts}">
+                        <td th:text="${a.accountNumber}">1010</td>
+                        <td style="font-weight:500" th:text="${a.accountName}">Cash</td>
+                        <td><span class="badge-pill" th:text="${a.accountType}">ASSET</span></td>
+                        <td th:text="${a.description}">…</td>
+                        <td>
+                            <span class="badge-pill"
+                                  th:classappend="${a.active} ? ' paid' : ' cancelled'"
+                                  th:text="${a.active} ? 'Active' : 'Inactive'"></span>
+                        </td>
+                        <td style="text-align:right; white-space:nowrap;">
+                            <a th:href="@{/accounts/{id}/edit(id=${a.id})}" class="btn-portal btn-ghost btn-sm">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                            <form th:action="@{/accounts/{id}/delete(id=${a.id})}" method="post" style="display:inline">
+                                <button class="btn-portal btn-danger btn-sm"
+                                        onclick="return confirm('Delete this account?')">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+</div>
+</body>
+</html>

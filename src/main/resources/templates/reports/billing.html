@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Billing Reports')}"></head>
+<body>
+<div class="portal-shell">
+    <div th:replace="~{fragments/layout :: sidebar('billing-reports')}"></div>
+    <main class="portal-main">
+        <div th:replace="~{fragments/layout :: topbar('Billing Reports')}"></div>
+        <section class="portal-content">
+
+            <div class="portal-card">
+                <form th:action="@{/reports/billing}" method="get">
+                    <div class="form-grid">
+                        <div class="form-field">
+                            <label>Start Date</label>
+                            <input type="date" name="startDate" th:value="${startDate}"/>
+                        </div>
+                        <div class="form-field">
+                            <label>End Date</label>
+                            <input type="date" name="endDate" th:value="${endDate}"/>
+                        </div>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn-portal"><i class="bi bi-funnel"></i> Apply</button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="stat-grid">
+                <div class="stat-card">
+                    <div class="stat-label">Total Revenue</div>
+                    <div class="stat-value" th:text="${#numbers.formatCurrency(revenue['totalRevenue'])}">$0</div>
+                </div>
+                <div class="stat-card is-success">
+                    <div class="stat-label">Total Paid</div>
+                    <div class="stat-value" th:text="${#numbers.formatCurrency(revenue['totalPaid'])}">$0</div>
+                </div>
+                <div class="stat-card is-warning">
+                    <div class="stat-label">Outstanding</div>
+                    <div class="stat-value" th:text="${#numbers.formatCurrency(revenue['totalOutstanding'])}">$0</div>
+                </div>
+                <div class="stat-card is-accent">
+                    <div class="stat-label">Invoices in Period</div>
+                    <div class="stat-value" th:text="${revenue['invoiceCount']}">0</div>
+                </div>
+            </div>
+
+            <div class="portal-card">
+                <h3 class="portal-card-title">A/R Aging</h3>
+                <table class="table-portal">
+                    <thead>
+                    <tr>
+                        <th>Bucket</th>
+                        <th class="num">Outstanding</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td>Current (not yet due)</td>
+                        <td class="num" th:text="${#numbers.formatCurrency(aging['current'])}">$0</td>
+                    </tr>
+                    <tr>
+                        <td>1–30 days past due</td>
+                        <td class="num" th:text="${#numbers.formatCurrency(aging['30Days'])}">$0</td>
+                    </tr>
+                    <tr>
+                        <td>31–60 days past due</td>
+                        <td class="num" th:text="${#numbers.formatCurrency(aging['60Days'])}">$0</td>
+                    </tr>
+                    <tr>
+                        <td>61+ days past due</td>
+                        <td class="num" th:text="${#numbers.formatCurrency(aging['90DaysPlus'])}">$0</td>
+                    </tr>
+                    </tbody>
+                    <tfoot>
+                    <tr style="font-weight:600">
+                        <td>Total Outstanding</td>
+                        <td class="num" th:text="${#numbers.formatCurrency(aging['totalOutstanding'])}">$0</td>
+                    </tr>
+                    </tfoot>
+                </table>
+            </div>
+
+            <div class="portal-card">
+                <h3 class="portal-card-title">Sales Tax Summary (TPS / TVQ / HST)</h3>
+                <div class="report-totals">
+                    <div class="stat-card">
+                        <div class="stat-label">TPS / GST</div>
+                        <div class="stat-value" th:text="${#numbers.formatCurrency(tax['totalGst'])}">$0</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">TVQ / QST</div>
+                        <div class="stat-value" th:text="${#numbers.formatCurrency(tax['totalQst'])}">$0</div>
+                    </div>
+                    <div class="stat-card is-accent">
+                        <div class="stat-label">HST</div>
+                        <div class="stat-value" th:text="${#numbers.formatCurrency(tax['totalHst'])}">$0</div>
+                    </div>
+                    <div class="stat-card is-success">
+                        <div class="stat-label">Total Tax</div>
+                        <div class="stat-value" th:text="${#numbers.formatCurrency(tax['totalTax'])}">$0</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="portal-card">
+                <h3 class="portal-card-title">Invoice Status Summary</h3>
+                <table class="table-portal">
+                    <thead>
+                    <tr>
+                        <th>Status</th>
+                        <th class="num">Count</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr><td>Draft</td><td class="num" th:text="${statusSummary['draft']}">0</td></tr>
+                    <tr><td>Sent</td><td class="num" th:text="${statusSummary['sent']}">0</td></tr>
+                    <tr><td>Viewed</td><td class="num" th:text="${statusSummary['viewed']}">0</td></tr>
+                    <tr><td>Partially Paid</td><td class="num" th:text="${statusSummary['partiallyPaid']}">0</td></tr>
+                    <tr><td>Paid</td><td class="num" th:text="${statusSummary['paid']}">0</td></tr>
+                    <tr><td>Overdue</td><td class="num" th:text="${statusSummary['overdue']}">0</td></tr>
+                    <tr><td>Cancelled</td><td class="num" th:text="${statusSummary['cancelled']}">0</td></tr>
+                    <tr><td>Refunded</td><td class="num" th:text="${statusSummary['refunded']}">0</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+        </section>
+    </main>
+</div>
+</body>
+</html>

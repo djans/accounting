@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Tax Agencies')}"></head>
+<body>
+<div class="portal-shell">
+    <div th:replace="~{fragments/layout :: sidebar('tax-agencies')}"></div>
+    <main class="portal-main">
+        <div th:replace="~{fragments/layout :: topbar('Tax Agencies')}"></div>
+        <section class="portal-content">
+            <div th:replace="~{fragments/layout :: flash}"></div>
+
+            <div class="portal-card">
+                <h3 class="portal-card-title">Configured Agencies</h3>
+                <table class="table-portal">
+                    <thead>
+                    <tr>
+                        <th>Code</th>
+                        <th>Name</th>
+                        <th>Account #</th>
+                        <th>Website</th>
+                        <th></th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="a : ${agencies}">
+                        <td th:text="${a.code}">CRA</td>
+                        <td th:text="${a.name}">Canada Revenue Agency</td>
+                        <td th:text="${a.accountNumber}">—</td>
+                        <td><a th:if="${a.website}" th:href="${a.website}" target="_blank" th:text="${a.website}">link</a></td>
+                        <td>
+                            <a th:href="@{/tax/agencies/{id}/report(id=${a.id})}" class="btn-portal btn-ghost btn-sm">
+                                <i class="bi bi-file-earmark-text"></i> Report
+                            </a>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="portal-card">
+                <h3 class="portal-card-title">Add / Update Agency</h3>
+                <form th:action="@{/tax/agencies}" method="post">
+                    <div class="form-grid">
+                        <div class="form-field">
+                            <label>Short Code</label>
+                            <input type="text" name="code" required placeholder="CRA, RQ, etc."/>
+                        </div>
+                        <div class="form-field">
+                            <label>Name</label>
+                            <input type="text" name="name" required placeholder="Canada Revenue Agency"/>
+                        </div>
+                        <div class="form-field">
+                            <label>Business / Account Number</label>
+                            <input type="text" name="accountNumber" placeholder="123456789 RT 0001"/>
+                        </div>
+                        <div class="form-field">
+                            <label>Website</label>
+                            <input type="url" name="website" placeholder="https://..."/>
+                        </div>
+                        <div class="form-field full">
+                            <label>Address</label>
+                            <input type="text" name="address"/>
+                        </div>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn-portal"><i class="bi bi-check2"></i> Save</button>
+                    </div>
+                </form>
+            </div>
+        </section>
+    </main>
+</div>
+</body>
+</html>

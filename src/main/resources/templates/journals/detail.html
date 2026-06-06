@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Journal')}"></head>
+<body>
+<div class="portal-shell">
+    <div th:replace="~{fragments/layout :: sidebar('journals')}"></div>
+    <main class="portal-main">
+        <div th:replace="~{fragments/layout :: topbar(|Journal ${journal.journalNumber}|)}"></div>
+        <section class="portal-content">
+            <div th:replace="~{fragments/layout :: flash}"></div>
+
+            <div class="portal-card">
+                <h3 class="portal-card-title">
+                    <span>
+                        <span th:text="${journal.journalNumber}">JL-1</span>
+                        <span class="badge-pill"
+                              th:classappend="${' ' + #strings.toLowerCase(journal.status.name())}"
+                              th:text="${journal.status}"></span>
+                    </span>
+                    <span>
+                        <form th:if="${journal.status.name() == 'DRAFT'}"
+                              th:action="@{/journals/{id}/post(id=${journal.id})}" method="post" style="display:inline">
+                            <input type="hidden" name="postedBy" value="portal-user"/>
+                            <button class="btn-portal btn-success btn-sm"
+                                    onclick="return confirm('Post to General Ledger? This updates account balances.')">
+                                <i class="bi bi-check2-circle"></i> Post to GL
+                            </button>
+                        </form>
+                        <button th:if="${journal.status.name() == 'POSTED'}"
+                                class="btn-portal btn-ghost btn-sm"
+                                onclick="document.getElementById('reverseDialog').style.display='block'">
+                            <i class="bi bi-arrow-counterclockwise"></i> Reverse
+                        </button>
+                        <form th:if="${journal.status.name() == 'DRAFT'}"
+                              th:action="@{/journals/{id}/delete(id=${journal.id})}" method="post" style="display:inline">
+                            <button class="btn-portal btn-danger btn-sm"
+                                    onclick="return confirm('Delete this draft?')">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </form>
+                    </span>
+                </h3>
+
+                <div id="reverseDialog" style="display:none;margin-bottom:1rem">
+                    <form th:action="@{/journals/{id}/reverse(id=${journal.id})}" method="post" class="portal-card" style="border-style:dashed">
+                        <div class="form-field">
+                            <label>Reversal reason</label>
+                            <input type="text" name="reason" required placeholder="Why are you reversing this journal?"/>
+                        </div>
+                        <div class="form-actions">
+                            <button type="button" class="btn-portal btn-ghost" onclick="document.getElementById('reverseDialog').style.display='none'">Cancel</button>
+                            <button type="submit" class="btn-portal">Reverse</button>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="form-grid">
+                    <div>
+                        <div class="stat-label">Date</div>
+                        <div th:text="${journal.journalDate}">2026-01-01</div>
+                    </div>
+                    <div>
+                        <div class="stat-label">Posted</div>
+                        <div>
+                            <span th:if="${journal.postedDate}" th:text="${journal.postedDate}"></span>
+                            <span th:unless="${journal.postedDate}" class="text-muted">—</span>
+                            <span th:if="${journal.postedBy}"> by <strong th:text="${journal.postedBy}"></strong></span>
+                        </div>
+                    </div>
+                    <div class="full" style="grid-column:1/-1">
+                        <div class="stat-label">Narrative</div>
+                        <div th:text="${journal.narrative}">…</div>
+                    </div>
+                    <div th:if="${journal.reference}" class="full" style="grid-column:1/-1">
+                        <div class="stat-label">Reference</div>
+                        <div th:text="${journal.reference}">…</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="portal-card">
+                <h3 class="portal-card-title">Lines</h3>
+                <table class="table-portal">
+                    <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Account</th>
+                        <th>Description</th>
+                        <th class="num">Debit</th>
+                        <th class="num">Credit</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="e : ${journal.entries}">
+                        <td th:text="${e.lineNumber}">1</td>
+                        <td th:text="${e.account.accountNumber + ' — ' + e.account.accountName}">1010</td>
+                        <td th:text="${e.description}">…</td>
+                        <td class="num"
+                            th:text="${e.debit != null and e.debit.signum() != 0 ? #numbers.formatCurrency(e.debit) : ''}">
+                        </td>
+                        <td class="num"
+                            th:text="${e.credit != null and e.credit.signum() != 0 ? #numbers.formatCurrency(e.credit) : ''}">
+                        </td>
+                    </tr>
+                    </tbody>
+                    <tfoot>
+                    <tr style="font-weight:600">
+                        <td colspan="3" style="text-align:right">Totals</td>
+                        <td class="num" th:text="${#numbers.formatCurrency(totalDr)}">$0</td>
+                        <td class="num" th:text="${#numbers.formatCurrency(totalCr)}">$0</td>
+                    </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </section>
+    </main>
+</div>
+</body>
+</html>

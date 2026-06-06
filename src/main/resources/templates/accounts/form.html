@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Account')}"></head>
+<body>
+<div class="portal-shell">
+    <div th:replace="~{fragments/layout :: sidebar('accounts')}"></div>
+    <main class="portal-main">
+        <div th:replace="~{fragments/layout :: topbar(${isNew} ? 'New Account' : 'Edit Account')}"></div>
+        <section class="portal-content">
+            <div th:replace="~{fragments/layout :: flash}"></div>
+
+            <div class="portal-card">
+                <form th:action="${isNew} ? @{/accounts} : @{/accounts/{id}(id=${account.id})}"
+                      th:object="${account}" method="post">
+                    <div class="form-grid">
+                        <div class="form-field">
+                            <label>Account Number</label>
+                            <input type="text" th:field="*{accountNumber}" placeholder="e.g. 1010" required/>
+                        </div>
+                        <div class="form-field">
+                            <label>Account Name</label>
+                            <input type="text" th:field="*{accountName}" placeholder="e.g. Cash" required/>
+                        </div>
+                        <div class="form-field">
+                            <label>Type</label>
+                            <select th:field="*{accountType}" required>
+                                <option th:each="t : ${types}" th:value="${t}" th:text="${t}">ASSET</option>
+                            </select>
+                        </div>
+                        <div class="form-field">
+                            <label>Active</label>
+                            <select th:field="*{active}">
+                                <option th:value="true">Yes</option>
+                                <option th:value="false">No</option>
+                            </select>
+                        </div>
+                        <div class="form-field full">
+                            <label>Description</label>
+                            <textarea th:field="*{description}" rows="2" required></textarea>
+                        </div>
+                    </div>
+
+                    <div class="form-actions">
+                        <a th:href="@{/accounts}" class="btn-portal btn-ghost">Cancel</a>
+                        <button type="submit" class="btn-portal">
+                            <i class="bi bi-check2"></i>
+                            <span th:text="${isNew} ? 'Create Account' : 'Save Changes'"></span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </section>
+    </main>
+</div>
+</body>
+</html>

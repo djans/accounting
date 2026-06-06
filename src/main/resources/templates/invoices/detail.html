@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Invoice')}"></head>
+<body>
+<div class="portal-shell">
+    <div th:replace="~{fragments/layout :: sidebar('invoices')}"></div>
+    <main class="portal-main">
+        <div th:replace="~{fragments/layout :: topbar(|Invoice ${invoice.invoiceNumber}|)}"></div>
+        <section class="portal-content">
+            <div th:replace="~{fragments/layout :: flash}"></div>
+
+            <div class="portal-card">
+                <h3 class="portal-card-title">
+                    <span>
+                        <span th:text="${invoice.invoiceNumber}">INV-1</span>
+                        <span class="badge-pill"
+                              th:classappend="${' ' + #strings.toLowerCase(invoice.status.name())}"
+                              th:text="${invoice.status}"></span>
+                    </span>
+                    <span>
+                        <form th:action="@{/invoices/{id}/send(id=${invoice.id})}" method="post" style="display:inline"
+                              th:if="${invoice.status.name() == 'DRAFT'}">
+                            <button class="btn-portal btn-sm"><i class="bi bi-send"></i> Mark as Sent</button>
+                        </form>
+                        <form th:action="@{/invoices/{id}/cancel(id=${invoice.id})}" method="post" style="display:inline"
+                              th:if="${invoice.status.name() != 'CANCELLED' and invoice.status.name() != 'PAID'}">
+                            <button class="btn-portal btn-ghost btn-sm" onclick="return confirm('Cancel this invoice?')">
+                                <i class="bi bi-x-circle"></i> Cancel
+                            </button>
+                        </form>
+                        <a th:href="@{/payments/new(invoiceId=${invoice.id})}" class="btn-portal btn-success btn-sm">
+                            <i class="bi bi-cash-coin"></i> Record Payment
+                        </a>
+                    </span>
+                </h3>
+
+                <div class="form-grid">
+                    <div>
+                        <div class="stat-label">Customer</div>
+                        <div style="font-weight:600" th:text="${invoice.customer.businessName}">Acme</div>
+                        <div class="text-muted" th:text="${invoice.customer.name + ' · ' + invoice.customer.email}">contact</div>
+                        <div class="text-muted" th:text="${invoice.customer.address + ', ' + invoice.customer.city + ', ' + invoice.customer.province + ' ' + invoice.customer.postalCode}">address</div>
+                    </div>
+                    <div>
+                        <div class="stat-label">Dates</div>
+                        <div>Issued: <span th:text="${invoice.invoiceDate}">2026-01-01</span></div>
+                        <div>Due: <span th:text="${invoice.dueDate}">2026-01-31</span></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="portal-card">
+                <h3 class="portal-card-title">Line Items</h3>
+                <table class="table-portal">
+                    <thead>
+                    <tr>
+                        <th>Description</th>
+                        <th class="num">Qty</th>
+                        <th class="num">Unit Price</th>
+                        <th class="num">Total</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="li : ${invoice.lineItems}">
+                        <td th:text="${li.description}">Service</td>
+                        <td class="num" th:text="${li.quantity}">1</td>
+                        <td class="num" th:text="${#numbers.formatCurrency(li.unitPrice)}">$0</td>
+                        <td class="num" th:text="${#numbers.formatCurrency(li.total)}">$0</td>
+                    </tr>
+                    </tbody>
+                </table>
+
+                <div class="report-totals" style="margin-top:1.25rem">
+                    <div class="stat-card">
+                        <div class="stat-label">Subtotal</div>
+                        <div class="stat-value" th:text="${#numbers.formatCurrency(invoice.subtotal)}">$0</div>
+                    </div>
+                    <div class="stat-card is-accent">
+                        <div class="stat-label">Taxes</div>
+                        <div class="stat-value"
+                             th:text="${#numbers.formatCurrency(invoice.gstAmount.add(invoice.hstAmount).add(invoice.qstAmount))}">$0</div>
+                        <div class="stat-sub">
+                            TPS/GST <span th:text="${#numbers.formatCurrency(invoice.gstAmount)}"></span>
+                            · TVQ/QST <span th:text="${#numbers.formatCurrency(invoice.qstAmount)}"></span>
+                            · HST <span th:text="${#numbers.formatCurrency(invoice.hstAmount)}"></span>
+                        </div>
+                    </div>
+                    <div class="stat-card is-success">
+                        <div class="stat-label">Total</div>
+                        <div class="stat-value" th:text="${#numbers.formatCurrency(invoice.totalAmount)}">$0</div>
+                        <div class="stat-sub">
+                            Paid <span th:text="${invoice.paidAmount != null ? #numbers.formatCurrency(invoice.paidAmount) : '$0.00'}"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div th:if="${invoice.notes}" style="margin-top:1.25rem">
+                    <div class="stat-label">Notes</div>
+                    <div th:text="${invoice.notes}"></div>
+                </div>
+            </div>
+
+            <div class="portal-card">
+                <h3 class="portal-card-title">Payments</h3>
+                <div th:if="${#lists.isEmpty(payments)}" class="empty-state">
+                    No payments recorded for this invoice yet.
+                </div>
+                <table th:if="${not #lists.isEmpty(payments)}" class="table-portal">
+                    <thead>
+                    <tr>
+                        <th>Transaction</th>
+                        <th>Date</th>
+                        <th>Method</th>
+                        <th>Status</th>
+                        <th class="num">Amount</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="p : ${payments}">
+                        <td th:text="${p.transactionId}">TXN-1</td>
+                        <td th:text="${p.paymentDate}">2026-01-01</td>
+                        <td th:text="${p.paymentMethod}">CASH</td>
+                        <td>
+                            <span class="badge-pill"
+                                  th:classappend="${' ' + #strings.toLowerCase(p.status.name())}"
+                                  th:text="${p.status}"></span>
+                        </td>
+                        <td class="num" th:text="${#numbers.formatCurrency(p.amount)}">$0</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div style="text-align:right">
+                <form th:action="@{/invoices/{id}/delete(id=${invoice.id})}" method="post" style="display:inline">
+                    <button class="btn-portal btn-danger btn-sm"
+                            onclick="return confirm('Delete this invoice?')">
+                        <i class="bi bi-trash"></i> Delete invoice
+                    </button>
+                </form>
+            </div>
+        </section>
+    </main>
+</div>
+</body>
+</html>

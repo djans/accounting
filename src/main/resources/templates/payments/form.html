@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Record Payment')}"></head>
+<body>
+<div class="portal-shell">
+    <div th:replace="~{fragments/layout :: sidebar('payments')}"></div>
+    <main class="portal-main">
+        <div th:replace="~{fragments/layout :: topbar('Record Payment')}"></div>
+        <section class="portal-content">
+            <div th:replace="~{fragments/layout :: flash}"></div>
+
+            <div class="portal-card">
+                <form th:action="@{/payments}" method="post">
+                    <div class="form-grid">
+                        <div class="form-field full">
+                            <label>Invoice</label>
+                            <select name="invoiceId" id="invoiceSelect" required>
+                                <option value="">Select an invoice…</option>
+                                <option th:each="inv : ${invoices}"
+                                        th:value="${inv.id}"
+                                        th:selected="${preselectedInvoiceId != null and preselectedInvoiceId == inv.id}"
+                                        th:attr="data-outstanding=${inv.paidAmount == null ? inv.totalAmount : inv.totalAmount.subtract(inv.paidAmount)}"
+                                        th:text="${inv.invoiceNumber + ' — ' + (inv.customer != null ? inv.customer.businessName : '') + ' — ' + #numbers.formatCurrency(inv.totalAmount)}">
+                                    INV-1
+                                </option>
+                            </select>
+                        </div>
+                        <div class="form-field">
+                            <label>Amount</label>
+                            <input type="number" step="0.01" name="amount" id="amountInput" required/>
+                        </div>
+                        <div class="form-field">
+                            <label>Method</label>
+                            <select name="paymentMethod" required>
+                                <option th:each="m : ${methods}" th:value="${m}" th:text="${m}">CASH</option>
+                            </select>
+                        </div>
+                        <div class="form-field">
+                            <label>Compte bancaire</label>
+                            <select name="bankAccountId" required>
+                                <option value="">Sélectionner…</option>
+                                <option th:each="b : ${bankAccounts}"
+                                        th:value="${b.id}"
+                                        th:text="${b.accountNumber + ' – ' + b.accountName}">1000 – Banque</option>
+                            </select>
+                        </div>
+                        <div class="form-field">
+                            <label>Transaction ID</label>
+                            <input type="text" name="transactionId" placeholder="Auto-generated if blank"/>
+                        </div>
+                        <div class="form-field full">
+                            <label>Notes</label>
+                            <textarea name="notes" rows="2"></textarea>
+                        </div>
+                    </div>
+
+                    <div class="form-actions">
+                        <a th:href="@{/payments}" class="btn-portal btn-ghost">Cancel</a>
+                        <button type="submit" class="btn-portal"><i class="bi bi-check2"></i> Record Payment</button>
+                    </div>
+                </form>
+            </div>
+        </section>
+    </main>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const select = document.getElementById('invoiceSelect');
+    const amount = document.getElementById('amountInput');
+
+    function applyDefault() {
+        const opt = select.options[select.selectedIndex];
+        if (!opt || !opt.value) return;
+        const outstanding = parseFloat(opt.dataset.outstanding);
+        if (!isNaN(outstanding)) {
+            amount.value = outstanding.toFixed(2);
+        }
+    }
+
+    select.addEventListener('change', applyDefault);
+    if (select.value) applyDefault();
+});
+</script>
+</body>
+</html>

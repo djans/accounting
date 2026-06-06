@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Tax Codes')}"></head>
+<body>
+<div class="portal-shell">
+    <div th:replace="~{fragments/layout :: sidebar('tax-codes')}"></div>
+    <main class="portal-main">
+        <div th:replace="~{fragments/layout :: topbar('Tax Codes')}"></div>
+        <section class="portal-content">
+            <div th:replace="~{fragments/layout :: flash}"></div>
+
+            <div class="portal-card">
+                <h3 class="portal-card-title">Tax Codes</h3>
+                <table class="table-portal">
+                    <thead>
+                    <tr>
+                        <th>Code</th>
+                        <th>Name</th>
+                        <th>Agency</th>
+                        <th class="num">Rate</th>
+                        <th>Payable Account</th>
+                        <th>Active</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="c : ${codes}">
+                        <td th:text="${c.code}">TPS</td>
+                        <td th:text="${c.name}">Taxe sur les produits…</td>
+                        <td th:text="${c.agency.code}">CRA</td>
+                        <td class="num" th:text="${#numbers.formatPercent(c.rate, 1, 3)}">5%</td>
+                        <td th:text="${c.payableAccount != null ? c.payableAccount.accountNumber + ' – ' + c.payableAccount.accountName : '—'}">2310 – TPS Payable</td>
+                        <td>
+                            <span class="badge-pill" th:classappend="${c.active ? ' paid' : ' overdue'}"
+                                  th:text="${c.active ? 'Active' : 'Inactive'}"></span>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="portal-card">
+                <h3 class="portal-card-title">Add / Update Tax Code</h3>
+                <form th:action="@{/tax/codes}" method="post">
+                    <div class="form-grid">
+                        <div class="form-field">
+                            <label>Code</label>
+                            <input type="text" name="code" required placeholder="TPS, TVQ, HST-ON"/>
+                        </div>
+                        <div class="form-field">
+                            <label>Name</label>
+                            <input type="text" name="name" required/>
+                        </div>
+                        <div class="form-field">
+                            <label>Rate (e.g. 0.05 for 5%)</label>
+                            <input type="number" step="0.00001" name="rate" required/>
+                        </div>
+                        <div class="form-field">
+                            <label>Agency</label>
+                            <select name="agencyId" required>
+                                <option value="">Select an agency…</option>
+                                <option th:each="a : ${agencies}" th:value="${a.id}" th:text="${a.code + ' — ' + a.name}"></option>
+                            </select>
+                        </div>
+                        <div class="form-field full">
+                            <label>Payable Account</label>
+                            <select name="payableAccountId">
+                                <option value="">— none —</option>
+                                <option th:each="acc : ${accounts}" th:value="${acc.id}"
+                                        th:text="${acc.accountNumber + ' – ' + acc.accountName}"></option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn-portal"><i class="bi bi-check2"></i> Save</button>
+                    </div>
+                </form>
+            </div>
+        </section>
+    </main>
+</div>
+</body>
+</html>

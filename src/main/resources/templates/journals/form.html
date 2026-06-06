@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('New Journal Entry')}"></head>
+<body>
+<div class="portal-shell">
+    <div th:replace="~{fragments/layout :: sidebar('journals')}"></div>
+    <main class="portal-main">
+        <div th:replace="~{fragments/layout :: topbar('New Journal Entry')}"></div>
+        <section class="portal-content">
+            <div th:replace="~{fragments/layout :: flash}"></div>
+
+            <div th:if="${#lists.isEmpty(accounts)}" class="flash flash-info">
+                You need at least two active accounts in your Chart of Accounts before posting a journal.
+                <a th:href="@{/accounts/new}">Add one</a>.
+            </div>
+
+            <div class="portal-card">
+                <form th:action="@{/journals}" method="post">
+                    <div class="form-grid">
+                        <div class="form-field full">
+                            <label>Narrative</label>
+                            <input type="text" name="narrative" required
+                                   placeholder="What this transaction records"/>
+                        </div>
+                        <div class="form-field full">
+                            <label>Reference</label>
+                            <input type="text" name="reference"
+                                   placeholder="Optional — e.g. invoice number, contract ID"/>
+                        </div>
+                    </div>
+
+                    <h4 style="margin:1.5rem 0 .5rem;font-size:.95rem;">Journal Lines</h4>
+                    <div class="entries-toolbar">
+                        <small class="text-muted">Total debits must equal total credits.</small>
+                        <button type="button" class="btn-portal btn-ghost btn-sm" onclick="addEntry()">
+                            <i class="bi bi-plus-lg"></i> Add line
+                        </button>
+                    </div>
+                    <table class="table-portal entries-table">
+                        <thead>
+                        <tr>
+                            <th style="width:30%">Account</th>
+                            <th style="width:25%">Description</th>
+                            <th style="width:17%" class="num">Debit</th>
+                            <th style="width:17%" class="num">Credit</th>
+                            <th></th>
+                        </tr>
+                        </thead>
+                        <tbody id="entriesBody">
+                        <tr>
+                            <td>
+                                <select name="accountIds" required>
+                                    <option value="">Select…</option>
+                                    <option th:each="a : ${accounts}" th:value="${a.id}"
+                                            th:text="${a.accountNumber + ' — ' + a.accountName}">1010</option>
+                                </select>
+                            </td>
+                            <td><input type="text" name="descriptions"/></td>
+                            <td><input type="number" step="0.01" name="debits" value="0" class="num"/></td>
+                            <td><input type="number" step="0.01" name="credits" value="0" class="num"/></td>
+                            <td><button type="button" class="btn-portal btn-danger btn-sm" onclick="removeEntry(this)"><i class="bi bi-x"></i></button></td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <select name="accountIds" required>
+                                    <option value="">Select…</option>
+                                    <option th:each="a : ${accounts}" th:value="${a.id}"
+                                            th:text="${a.accountNumber + ' — ' + a.accountName}">1010</option>
+                                </select>
+                            </td>
+                            <td><input type="text" name="descriptions"/></td>
+                            <td><input type="number" step="0.01" name="debits" value="0" class="num"/></td>
+                            <td><input type="number" step="0.01" name="credits" value="0" class="num"/></td>
+                            <td><button type="button" class="btn-portal btn-danger btn-sm" onclick="removeEntry(this)"><i class="bi bi-x"></i></button></td>
+                        </tr>
+                        </tbody>
+                    </table>
+
+                    <div class="form-actions">
+                        <a th:href="@{/journals}" class="btn-portal btn-ghost">Cancel</a>
+                        <button type="submit" class="btn-portal">
+                            <i class="bi bi-check2"></i> Save Draft
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </section>
+    </main>
+</div>
+
+<script th:inline="javascript">
+const accounts = /*[[${accounts}]]*/ [];
+function buildOptions() {
+    let opts = '<option value="">Select…</option>';
+    accounts.forEach(a => {
+        opts += `<option value="${a.id}">${a.accountNumber} — ${a.accountName}</option>`;
+    });
+    return opts;
+}
+function addEntry() {
+    const tbody = document.getElementById('entriesBody');
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+        <td><select name="accountIds" required>${buildOptions()}</select></td>
+        <td><input type="text" name="descriptions"/></td>
+        <td><input type="number" step="0.01" name="debits" value="0" class="num"/></td>
+        <td><input type="number" step="0.01" name="credits" value="0" class="num"/></td>
+        <td><button type="button" class="btn-portal btn-danger btn-sm" onclick="removeEntry(this)"><i class="bi bi-x"></i></button></td>
+    `;
+    tbody.appendChild(tr);
+}
+function removeEntry(btn) {
+    const tbody = document.getElementById('entriesBody');
+    if (tbody.children.length > 2) btn.closest('tr').remove();
+}
+</script>
+</body>
+</html>
