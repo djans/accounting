@@ -14,6 +14,6 @@ spec:
     spec:
       containers:
         - name: accounting
-          image: hub.docker.com/repository/docker/djans/accounting:latest
+          image: djans/accounting:latest
           ports:
             - containerPort: 80
