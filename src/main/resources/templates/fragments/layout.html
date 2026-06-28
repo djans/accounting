@@ -50,7 +50,11 @@
                 if (section && state === 'collapsed') section.classList.add('collapsed');
             });
         }
-n        document.addEventListener('DOMContentLoaded', initSidebar);
+n        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initSidebar);
+        } else {
+            initSidebar();
+        }
     </script>
 </head>
 <body>
