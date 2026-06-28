@@ -27,8 +27,29 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Build Docker image
-        run: docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/accounting:latest .
+      # -------------------------------
+      # Build image with commit SHA tag
+      # -------------------------------
+      - name: Build Docker image (SHA tag)
+        run: docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/accounting:${{ github.sha }} .
 
-      - name: Push Docker image
-        run: docker push ${{ secrets.DOCKERHUB_USERNAME }}/accounting:latest
+      - name: Push Docker image (SHA tag)
+        run: docker push ${{ secrets.DOCKERHUB_USERNAME }}/accounting:${{ github.sha }}
+
+      # -----------------------------------------------------
+      # Update Kubernetes manifest with new image tag (SHA)
+      # -----------------------------------------------------
+      - name: Update deployment manifest
+        run: |
+          sed -i "s|image: .*/accounting:.*|image: ${{ secrets.DOCKERHUB_USERNAME }}/accounting:${{ github.sha }}|" accounting/manifests/deployment.yaml
+
+      # -----------------------------------------
+      # Commit & push updated manifest to GitHub
+      # -----------------------------------------
+      - name: Commit updated manifest
+        run: |
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+          git add accounting/manifests/deployment.yaml
+          git commit -m "Update image tag to ${{ github.sha }}"
+          git push
