@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
         - name: accounting
-          image: djans/accounting:2a41dae22ba695452b78e76d7db47690d723bd50
+          image: djans/accounting:281e266f0cc24152c17f6af6e43e2b4a2bd75920
           ports:
             - containerPort: 80
           env:
