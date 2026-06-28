@@ -1,0 +1,15 @@
+/* Minimal placeholder for bootstrap.min.css
+   Replace this file with the real Bootstrap CSS (production build) to serve locally.
+   This placeholder provides a few base rules to avoid totally unstyled pages while you
+   add the full library. */
+
+:root{--bs-body-font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;}
+html,body{height:100%;}
+body{font-family:var(--bs-body-font-family);margin:0;}
+.container{max-width:1140px;margin-left:auto;margin-right:auto;padding:0 1rem}
+
+/* basic utilities used by portal styles */
+.text-muted{color:#6c757d}
+.btn-portal{display:inline-block;padding:.375rem .75rem;border-radius:.25rem;background:#0d6efd;color:#fff;text-decoration:none}
+.spinner-border{display:inline-block;width:1rem;height:1rem;border:.15em solid rgba(0,0,0,.1);border-top-color:#0d6efd;border-radius:50%;animation:spin .75s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}

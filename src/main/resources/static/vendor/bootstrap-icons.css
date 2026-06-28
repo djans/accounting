@@ -1,0 +1,8 @@
+/* Minimal placeholder for bootstrap-icons.css
+   Replace this with the real bootstrap-icons CSS and SVG fonts locally.
+   For now, provide a tiny helper so icon elements don't break layout. */
+
+.bi{display:inline-block;width:1em;height:1em;vertical-align:-0.125em;fill:currentColor}
+.bi-chevron-down:before{content:'\25BE'}
+.bi-receipt:before{content:'\1F9FE'}
+/* Add additional mappings as needed or add the official icon font files. */
