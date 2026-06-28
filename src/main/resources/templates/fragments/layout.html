@@ -9,6 +9,7 @@
     <link rel="stylesheet" th:href="@{/css/portal.css}"/>
     <script th:src="@{/js/sortable-tables.js}" defer></script>
     <style>
+        :root { --muted: #666; }
         /* Sidebar collapse styles */
         .portal-sidebar .section-toggle { display:flex; align-items:center; justify-content:space-between; width:100%; background:none; border:none; color:inherit; padding:0.35rem 0.6rem; font-weight:700; cursor:pointer; }
         .portal-sidebar .nav-group { padding-left:0.25rem; }
@@ -50,7 +51,8 @@
                 if (section && state === 'collapsed') section.classList.add('collapsed');
             });
         }
-n        if (document.readyState === 'loading') {
+
+        if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', initSidebar);
         } else {
             initSidebar();
