@@ -9,43 +9,43 @@
         <section class="portal-content">
 
             <div class="hero-header">
-                <h2>Welcome back</h2>
-                <p>Real-time view of your billing, accounting, and Canadian tax exposure. Everything posts through the general ledger, so what you see here always ties out to your financial statements.</p>
+                <h2 th:text="#{dashboard.welcome}">Welcome back</h2>
+                <p th:text="#{dashboard.description}">Real-time view of your billing, accounting, and Canadian tax exposure. Everything posts through the general ledger, so what you see here always ties out to your financial statements.</p>
             </div>
 
             <div class="stat-grid">
                 <div class="stat-card">
-                    <div class="stat-label">Customers</div>
+                    <div class="stat-label" th:text="#{stat.customers}">Customers</div>
                     <div class="stat-value" th:text="${customers}">0</div>
-                    <div class="stat-sub">Active customer records</div>
+                    <div class="stat-sub" th:text="#{stat.customers.desc}">Active customer records</div>
                 </div>
                 <div class="stat-card is-accent">
-                    <div class="stat-label">Invoices</div>
+                    <div class="stat-label" th:text="#{stat.invoices}">Invoices</div>
                     <div class="stat-value" th:text="${invoices}">0</div>
-                    <div class="stat-sub">All invoices in the system</div>
+                    <div class="stat-sub" th:text="#{stat.invoices.desc}">All invoices in the system</div>
                 </div>
                 <div class="stat-card is-warning">
-                    <div class="stat-label">Overdue</div>
+                    <div class="stat-label" th:text="#{stat.overdue}">Overdue</div>
                     <div class="stat-value" th:text="${overdue}">0</div>
-                    <div class="stat-sub">Past due date</div>
+                    <div class="stat-sub" th:text="#{stat.overdue.desc}">Past due date</div>
                 </div>
                 <div class="stat-card is-success">
-                    <div class="stat-label">Open A/R</div>
+                    <div class="stat-label" th:text="#{stat.openAR}">Open A/R</div>
                     <div class="stat-value" th:text="${#numbers.formatCurrency(openReceivable)}">$0</div>
-                    <div class="stat-sub">Unpaid balance</div>
+                    <div class="stat-sub" th:text="#{stat.openAR.desc}">Unpaid balance</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-label">Posted Journals</div>
+                    <div class="stat-label" th:text="#{stat.postedJournals}">Posted Journals</div>
                     <div class="stat-value" th:text="${postedJournals}">0</div>
                     <div class="stat-sub">
-                        <span th:text="${draftJournals}">0</span> drafts pending
+                        <span th:text="${draftJournals}">0</span> <span th:text="#{stat.drafts}">drafts pending</span>
                     </div>
                 </div>
                 <div class="stat-card is-accent">
-                    <div class="stat-label">Trial Balance</div>
+                    <div class="stat-label" th:text="#{stat.trialBalance}">Trial Balance</div>
                     <div class="stat-value">
-                        <span th:if="${trialBalance['balanced']}" class="badge-pill paid">Balanced</span>
-                        <span th:unless="${trialBalance['balanced']}" class="badge-pill overdue">Out of balance</span>
+                        <span th:if="${trialBalance['balanced']}" class="badge-pill paid" th:text="#{stat.balanced}">Balanced</span>
+                        <span th:unless="${trialBalance['balanced']}" class="badge-pill overdue" th:text="#{stat.outOfBalance}">Out of balance</span>
                     </div>
                     <div class="stat-sub">
                         Dr <span th:text="${#numbers.formatDecimal(trialBalance['totalDebits'], 1, 'COMMA', 2, 'POINT')}">0</span>
@@ -56,21 +56,21 @@
 
             <div class="portal-card">
                 <h3 class="portal-card-title">
-                    Recent Invoices
-                    <a th:href="@{/invoices}" class="btn-portal btn-ghost btn-sm">View all <i class="bi bi-arrow-right"></i></a>
+                    <span th:text="#{invoices.recentTitle}">Recent Invoices</span>
+                    <a th:href="@{/invoices}" class="btn-portal btn-ghost btn-sm"><span th:text="#{btn.viewAll}">View all</span> <i class="bi bi-arrow-right"></i></a>
                 </h3>
                 <div th:if="${#lists.isEmpty(recentInvoices)}" class="empty-state">
-                    No invoices yet — <a th:href="@{/invoices/new}">create one</a>.
+                    <span th:text="#{invoices.noInvoices}">No invoices yet</span> — <a th:href="@{/invoices/new}" th:text="#{invoices.createOne}">create one</a>.
                 </div>
                 <table th:if="${not #lists.isEmpty(recentInvoices)}" class="table-portal">
                     <thead>
                     <tr>
-                        <th>Invoice #</th>
-                        <th>Customer</th>
-                        <th>Date</th>
-                        <th>Status</th>
-                        <th class="num">Total</th>
-                        <th class="num">Paid</th>
+                        <th th:text="#{table.invoiceNum}">Invoice #</th>
+                        <th th:text="#{table.customer}">Customer</th>
+                        <th th:text="#{table.date}">Date</th>
+                        <th th:text="#{table.status}">Status</th>
+                        <th class="num" th:text="#{table.total}">Total</th>
+                        <th class="num" th:text="#{table.paid}">Paid</th>
                     </tr>
                     </thead>
                     <tbody>

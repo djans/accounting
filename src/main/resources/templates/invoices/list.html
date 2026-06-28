@@ -11,24 +11,24 @@
 
             <div class="portal-card">
                 <h3 class="portal-card-title">
-                    All Invoices
-                    <a th:href="@{/invoices/new}" class="btn-portal"><i class="bi bi-plus-lg"></i> New Invoice</a>
+                    <span th:text="#{invoices.allInvoices}">All Invoices</span>
+                    <a th:href="@{/invoices/new}" class="btn-portal"><i class="bi bi-plus-lg"></i> <span th:text="#{invoices.newInvoice}">New Invoice</span></a>
                 </h3>
                 <div th:if="${#lists.isEmpty(invoices)}" class="empty-state">
-                    No invoices yet. <a th:href="@{/invoices/new}">Create one</a>.
+                    <span th:text="#{invoices.noInvoices}">No invoices yet.</span> <a th:href="@{/invoices/new}" th:text="#{invoices.createOne}">Create one</a>.
                 </div>
                 <table th:if="${not #lists.isEmpty(invoices)}" class="table-portal">
                     <thead>
                     <tr>
-                        <th>Invoice #</th>
-                        <th>Customer</th>
-                        <th>Invoice Date</th>
-                        <th>Due Date</th>
-                        <th>Status</th>
-                        <th class="num">Subtotal</th>
-                        <th class="num">Tax</th>
-                        <th class="num">Total</th>
-                        <th class="num">Paid</th>
+                        <th th:text="#{table.invoiceNum}">Invoice #</th>
+                        <th th:text="#{table.customer}">Customer</th>
+                        <th th:text="#{table.invoiceDate}">Invoice Date</th>
+                        <th th:text="#{table.dueDate}">Due Date</th>
+                        <th th:text="#{table.status}">Status</th>
+                        <th class="num" th:text="#{table.subtotal}">Subtotal</th>
+                        <th class="num" th:text="#{table.tax}">Tax</th>
+                        <th class="num" th:text="#{table.total}">Total</th>
+                        <th class="num" th:text="#{table.paid}">Paid</th>
                     </tr>
                     </thead>
                     <tbody>

@@ -368,6 +368,46 @@ body {
     border-radius: 10px;
     padding: 0.75rem 1rem;
     margin-bottom: 1rem;
+}
+
+/* Language Switcher */
+.language-switcher {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.3rem 0.6rem;
+    border-radius: 6px;
+    background: rgba(0, 0, 0, 0.02);
+    margin-right: 0.75rem;
+}
+
+.btn-lang {
+    padding: 0.3rem 0.6rem;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--portal-muted);
+    text-decoration: none;
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.btn-lang:hover {
+    color: var(--portal-primary);
+    background: rgba(79, 70, 229, 0.08);
+}
+
+.btn-lang.active {
+    color: var(--portal-primary);
+    background: rgba(79, 70, 229, 0.12);
+    font-weight: 700;
+}
+
+.lang-separator {
+    color: var(--portal-border);
+    margin: 0 0.2rem;
+}
+
     border: 1px solid;
     font-size: 0.92rem;
 }
