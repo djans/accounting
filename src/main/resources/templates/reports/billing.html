@@ -7,6 +7,10 @@
     <main class="portal-main">
         <div th:replace="~{fragments/layout :: topbar('Billing Reports')}"></div>
         <section class="portal-content">
+            <div class="d-flex justify-content-end mb-2">
+                <button id="billing-refresh" class="btn-portal btn-sm"><i class="bi bi-arrow-clockwise"></i> Refresh</button>
+                <span id="billing-spinner" class="spinner-border spinner-border-sm ms-2" style="display:none"></span>
+            </div>
 
             <div class="portal-card">
                 <form th:action="@{/reports/billing}" method="get">
@@ -29,19 +33,19 @@
             <div class="stat-grid">
                 <div class="stat-card">
                     <div class="stat-label">Total Revenue</div>
-                    <div class="stat-value" th:text="${#numbers.formatCurrency(revenue['totalRevenue'])}">$0</div>
+                    <div id="totalRevenue" class="stat-value" th:text="${#numbers.formatCurrency(revenue['totalRevenue'])}">$0</div>
                 </div>
                 <div class="stat-card is-success">
                     <div class="stat-label">Total Paid</div>
-                    <div class="stat-value" th:text="${#numbers.formatCurrency(revenue['totalPaid'])}">$0</div>
+                    <div id="totalPaid" class="stat-value" th:text="${#numbers.formatCurrency(revenue['totalPaid'])}">$0</div>
                 </div>
                 <div class="stat-card is-warning">
                     <div class="stat-label">Outstanding</div>
-                    <div class="stat-value" th:text="${#numbers.formatCurrency(revenue['totalOutstanding'])}">$0</div>
+                    <div id="outstanding" class="stat-value" th:text="${#numbers.formatCurrency(revenue['totalOutstanding'])}">$0</div>
                 </div>
                 <div class="stat-card is-accent">
                     <div class="stat-label">Invoices in Period</div>
-                    <div class="stat-value" th:text="${revenue['invoiceCount']}">0</div>
+                    <div id="invoiceCount" class="stat-value" th:text="${revenue['invoiceCount']}">0</div>
                 </div>
             </div>
 
@@ -57,19 +61,19 @@
                     <tbody>
                     <tr>
                         <td>Current (not yet due)</td>
-                        <td class="num" th:text="${#numbers.formatCurrency(aging['current'])}">$0</td>
+                        <td id="aging-current" class="num" th:text="${#numbers.formatCurrency(aging['current'])}">$0</td>
                     </tr>
                     <tr>
                         <td>1–30 days past due</td>
-                        <td class="num" th:text="${#numbers.formatCurrency(aging['30Days'])}">$0</td>
+                        <td id="aging-30" class="num" th:text="${#numbers.formatCurrency(aging['30Days'])}">$0</td>
                     </tr>
                     <tr>
                         <td>31–60 days past due</td>
-                        <td class="num" th:text="${#numbers.formatCurrency(aging['60Days'])}">$0</td>
+                        <td id="aging-60" class="num" th:text="${#numbers.formatCurrency(aging['60Days'])}">$0</td>
                     </tr>
                     <tr>
                         <td>61+ days past due</td>
-                        <td class="num" th:text="${#numbers.formatCurrency(aging['90DaysPlus'])}">$0</td>
+                        <td id="aging-90" class="num" th:text="${#numbers.formatCurrency(aging['90DaysPlus'])}">$0</td>
                     </tr>
                     </tbody>
                     <tfoot>
@@ -86,19 +90,19 @@
                 <div class="report-totals">
                     <div class="stat-card">
                         <div class="stat-label">TPS / GST</div>
-                        <div class="stat-value" th:text="${#numbers.formatCurrency(tax['totalGst'])}">$0</div>
+                        <div id="totalGst" class="stat-value" th:text="${#numbers.formatCurrency(tax['totalGst'])}">$0</div>
                     </div>
                     <div class="stat-card">
                         <div class="stat-label">TVQ / QST</div>
-                        <div class="stat-value" th:text="${#numbers.formatCurrency(tax['totalQst'])}">$0</div>
+                        <div id="totalQst" class="stat-value" th:text="${#numbers.formatCurrency(tax['totalQst'])}">$0</div>
                     </div>
                     <div class="stat-card is-accent">
                         <div class="stat-label">HST</div>
-                        <div class="stat-value" th:text="${#numbers.formatCurrency(tax['totalHst'])}">$0</div>
+                        <div id="totalHst" class="stat-value" th:text="${#numbers.formatCurrency(tax['totalHst'])}">$0</div>
                     </div>
                     <div class="stat-card is-success">
                         <div class="stat-label">Total Tax</div>
-                        <div class="stat-value" th:text="${#numbers.formatCurrency(tax['totalTax'])}">$0</div>
+                        <div id="totalTax" class="stat-value" th:text="${#numbers.formatCurrency(tax['totalTax'])}">$0</div>
                     </div>
                 </div>
             </div>
@@ -113,14 +117,14 @@
                     </tr>
                     </thead>
                     <tbody>
-                    <tr><td>Draft</td><td class="num" th:text="${statusSummary['draft']}">0</td></tr>
-                    <tr><td>Sent</td><td class="num" th:text="${statusSummary['sent']}">0</td></tr>
-                    <tr><td>Viewed</td><td class="num" th:text="${statusSummary['viewed']}">0</td></tr>
-                    <tr><td>Partially Paid</td><td class="num" th:text="${statusSummary['partiallyPaid']}">0</td></tr>
-                    <tr><td>Paid</td><td class="num" th:text="${statusSummary['paid']}">0</td></tr>
-                    <tr><td>Overdue</td><td class="num" th:text="${statusSummary['overdue']}">0</td></tr>
-                    <tr><td>Cancelled</td><td class="num" th:text="${statusSummary['cancelled']}">0</td></tr>
-                    <tr><td>Refunded</td><td class="num" th:text="${statusSummary['refunded']}">0</td></tr>
+                    <tr><td>Draft</td><td id="status-draft" class="num" th:text="${statusSummary['draft']}">0</td></tr>
+                    <tr><td>Sent</td><td id="status-sent" class="num" th:text="${statusSummary['sent']}">0</td></tr>
+                    <tr><td>Viewed</td><td id="status-viewed" class="num" th:text="${statusSummary['viewed']}">0</td></tr>
+                    <tr><td>Partially Paid</td><td id="status-partiallyPaid" class="num" th:text="${statusSummary['partiallyPaid']}">0</td></tr>
+                    <tr><td>Paid</td><td id="status-paid" class="num" th:text="${statusSummary['paid']}">0</td></tr>
+                    <tr><td>Overdue</td><td id="status-overdue" class="num" th:text="${statusSummary['overdue']}">0</td></tr>
+                    <tr><td>Cancelled</td><td id="status-cancelled" class="num" th:text="${statusSummary['cancelled']}">0</td></tr>
+                    <tr><td>Refunded</td><td id="status-refunded" class="num" th:text="${statusSummary['refunded']}">0</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -128,5 +132,6 @@
         </section>
     </main>
 </div>
+<script th:src="@{/reports/billing-refresh.js}" ></script>
 </body>
 </html>

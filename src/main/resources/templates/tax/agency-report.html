@@ -10,10 +10,16 @@
             <div th:replace="~{fragments/layout :: flash}"></div>
 
             <div class="portal-card">
-                <h3 class="portal-card-title">
-                    <span th:text="${agency.name}">Canada Revenue Agency</span>
-                    <a th:href="@{/tax/agencies}" class="btn-portal btn-ghost btn-sm">Back to agencies</a>
-                </h3>
+                <div class="d-flex align-items-center justify-content-between">
+                    <h3 class="portal-card-title">
+                        <span th:text="${agency.name}">Canada Revenue Agency</span>
+                    </h3>
+                    <div>
+                        <button id="agency-refresh" class="btn-portal btn-sm"><i class="bi bi-arrow-clockwise"></i> Refresh</button>
+                        <span id="agency-spinner" class="spinner-border spinner-border-sm ms-2" style="display:none"></span>
+                        <a th:href="@{/tax/agencies}" class="btn-portal btn-ghost btn-sm ms-2">Back to agencies</a>
+                    </div>
+                </div>
                 <div class="form-grid">
                     <div>
                         <div class="stat-label">Code</div>
@@ -33,7 +39,8 @@
                 </div>
             </div>
 
-            <div class="report-totals" style="margin:1.25rem 0">
+            <div id="agency-report" th:attr="data-agency-id=${agency.id}">
+                <div class="report-totals" style="margin:1.25rem 0">
                 <div class="stat-card">
                     <div class="stat-label">Total Tax Collected</div>
                     <div class="stat-value" th:text="${#numbers.formatCurrency(totalCollected)}">$0</div>
@@ -84,5 +91,6 @@
         </section>
     </main>
 </div>
+<script th:src="@{/tax/agency-refresh.js}"></script>
 </body>
 </html>

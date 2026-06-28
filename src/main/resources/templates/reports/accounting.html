@@ -9,11 +9,17 @@
         <section class="portal-content">
 
             <div class="portal-card">
-                <h3 class="portal-card-title">
-                    Trial Balance
-                    <span th:if="${trialBalance['balanced']}" class="badge-pill paid">Balanced</span>
-                    <span th:unless="${trialBalance['balanced']}" class="badge-pill overdue">Out of balance</span>
-                </h3>
+                <div class="d-flex align-items-center justify-content-between">
+                    <h3 class="portal-card-title">
+                        Trial Balance
+                        <span th:if="${trialBalance['balanced']}" class="badge-pill paid">Balanced</span>
+                        <span th:unless="${trialBalance['balanced']}" class="badge-pill overdue">Out of balance</span>
+                    </h3>
+                    <div>
+                        <button id="acct-refresh" class="btn-portal btn-sm"><i class="bi bi-arrow-clockwise"></i> Refresh</button>
+                        <span id="acct-spinner" class="spinner-border spinner-border-sm ms-2" style="display:none"></span>
+                    </div>
+                </div>
                 <table class="table-portal">
                     <thead>
                     <tr>
@@ -25,7 +31,7 @@
                         <th class="num">Balance</th>
                     </tr>
                     </thead>
-                    <tbody>
+                    <tbody id="tb-tbody">
                     <tr th:each="entry : ${trialBalance['accounts']}">
                         <td th:text="${entry.value['accountNumber']}">1010</td>
                         <td th:text="${entry.value['accountName']}">Cash</td>
@@ -55,7 +61,7 @@
 
                 <h4 style="margin-top:0.5rem;font-size:.95rem;color:var(--portal-muted)">Assets</h4>
                 <table class="table-portal">
-                    <tbody>
+                    <tbody id="bs-assets">
                     <tr th:each="row : ${balanceSheet['assets']}">
                         <td th:text="${row['accountNumber']}">1010</td>
                         <td th:text="${row['accountName']}">Cash</td>
@@ -70,7 +76,7 @@
 
                 <h4 style="margin-top:1.5rem;font-size:.95rem;color:var(--portal-muted)">Liabilities</h4>
                 <table class="table-portal">
-                    <tbody>
+                    <tbody id="bs-liabilities">
                     <tr th:each="row : ${balanceSheet['liabilities']}">
                         <td th:text="${row['accountNumber']}">2010</td>
                         <td th:text="${row['accountName']}">A/P</td>
@@ -85,7 +91,7 @@
 
                 <h4 style="margin-top:1.5rem;font-size:.95rem;color:var(--portal-muted)">Equity</h4>
                 <table class="table-portal">
-                    <tbody>
+                    <tbody id="bs-equity">
                     <tr th:each="row : ${balanceSheet['equity']}">
                         <td th:text="${row['accountNumber']}">3010</td>
                         <td th:text="${row['accountName']}">Equity</td>
@@ -108,7 +114,7 @@
 
                 <h4 style="margin-top:0.5rem;font-size:.95rem;color:var(--portal-muted)">Revenue</h4>
                 <table class="table-portal">
-                    <tbody>
+                    <tbody id="is-revenue">
                     <tr th:each="row : ${incomeStatement['revenue']}">
                         <td th:text="${row['accountNumber']}">4010</td>
                         <td th:text="${row['accountName']}">Sales</td>
@@ -123,7 +129,7 @@
 
                 <h4 style="margin-top:1.5rem;font-size:.95rem;color:var(--portal-muted)">Expenses</h4>
                 <table class="table-portal">
-                    <tbody>
+                    <tbody id="is-expenses">
                     <tr th:each="row : ${incomeStatement['expenses']}">
                         <td th:text="${row['accountNumber']}">5010</td>
                         <td th:text="${row['accountName']}">Cost</td>
@@ -144,5 +150,6 @@
         </section>
     </main>
 </div>
+<script th:src="@{/reports/accounting-refresh.js}"></script>
 </body>
 </html>
