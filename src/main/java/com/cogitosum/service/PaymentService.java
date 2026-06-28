@@ -68,6 +68,10 @@ public class PaymentService {
         return paymentRepository.findAll();
     }
 
+    public java.util.List<Payment> getPaymentsByMethod(com.cogitosum.entity.PaymentMethod paymentMethod) {
+        return paymentRepository.findByPaymentMethod(paymentMethod);
+    }
+
     public Payment markPaymentAsCompleted(Long id) {
         Optional<Payment> payment = paymentRepository.findById(id);
         if (payment.isPresent()) {
