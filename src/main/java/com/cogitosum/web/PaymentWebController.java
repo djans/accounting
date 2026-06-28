@@ -31,11 +31,14 @@ public class PaymentWebController {
     }
 
     @GetMapping("/new")
-    public String newForm(@RequestParam(required = false) Long invoiceId, Model model) {
+    public String newForm(@RequestParam(required = false) Long invoiceId,
+                          @RequestParam(required = false) PaymentMethod paymentMethod,
+                          Model model) {
         model.addAttribute("invoices", invoiceService.getAllInvoices());
         model.addAttribute("methods", PaymentMethod.values());
         model.addAttribute("bankAccounts", bankAccountChoices());
         model.addAttribute("preselectedInvoiceId", invoiceId);
+        model.addAttribute("selectedMethod", paymentMethod);
         return "payments/form";
     }
 

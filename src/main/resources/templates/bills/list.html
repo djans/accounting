@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Factures d''achat')}"></head>
+<body>
+<div class="portal-shell">
+    <div th:replace="~{fragments/layout :: sidebar('bills')}"></div>
+    <main class="portal-main">
+        <div th:replace="~{fragments/layout :: topbar('Factures d''achat')}"></div>
+        <section class="portal-content">
+            <div th:replace="~{fragments/layout :: flash}"></div>
+
+            <div class="portal-card">
+                <h3 class="portal-card-title">
+                    Toutes les factures d'achat
+                    <a th:href="@{/bills/new}" class="btn-portal"><i class="bi bi-plus-lg"></i> Nouvelle facture d'achat</a>
+                </h3>
+                <div th:if="${#lists.isEmpty(bills)}" class="empty-state">
+                    Aucune facture d'achat. <a th:href="@{/bills/new}">En créer une</a>.
+                </div>
+                <table th:if="${not #lists.isEmpty(bills)}" class="table-portal">
+                    <thead>
+                    <tr>
+                        <th>No facture</th>
+                        <th>Fournisseur</th>
+                        <th>Date</th>
+                        <th>Échéance</th>
+                        <th>Statut</th>
+                        <th class="num">Sous-total</th>
+                        <th class="num">CTI/RTI</th>
+                        <th class="num">Total</th>
+                        <th class="num">Payé</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="b : ${bills}">
+                        <td><a th:href="@{/bills/{id}(id=${b.id})}" th:text="${b.billNumber}">BILL-1</a></td>
+                        <td th:text="${b.vendor != null ? b.vendor.businessName : '—'}">Vendor</td>
+                        <td th:text="${b.billDate}">2026-01-01</td>
+                        <td th:text="${b.dueDate}">2026-01-31</td>
+                        <td>
+                            <span class="badge-pill"
+                                  th:classappend="${' ' + #strings.toLowerCase(b.status.name())}"
+                                  th:text="${b.status}">DRAFT</span>
+                        </td>
+                        <td class="num" th:text="${#numbers.formatCurrency(b.subtotal)}">$0</td>
+                        <td class="num"
+                            th:text="${#numbers.formatCurrency(b.gstAmount.add(b.hstAmount).add(b.qstAmount))}">$0</td>
+                        <td class="num" th:text="${#numbers.formatCurrency(b.totalAmount)}">$0</td>
+                        <td class="num"
+                            th:text="${b.paidAmount != null ? #numbers.formatCurrency(b.paidAmount) : '$0.00'}">$0</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+</div>
+</body>
+</html>

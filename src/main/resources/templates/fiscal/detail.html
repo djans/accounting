@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Exercice')}"></head>
+<body>
+<div class="portal-shell">
+    <div th:replace="~{fragments/layout :: sidebar('fiscal')}"></div>
+    <main class="portal-main">
+        <div th:replace="~{fragments/layout :: topbar(|${fiscalYear.label}|)}"></div>
+        <section class="portal-content">
+            <div th:replace="~{fragments/layout :: flash}"></div>
+
+            <div class="portal-card">
+                <h3 class="portal-card-title">
+                    <span>
+                        <span th:text="${fiscalYear.label}">Exercice 2026</span>
+                        <span class="badge-pill"
+                              th:classappend="${' ' + #strings.toLowerCase(fiscalYear.status.name())}"
+                              th:text="${fiscalYear.status}">OPEN</span>
+                    </span>
+                    <span>
+                        <form th:action="@{/fiscal/{id}/close(id=${fiscalYear.id})}" method="post" style="display:inline"
+                              th:if="${fiscalYear.status.name() == 'OPEN'}">
+                            <button class="btn-portal btn-sm"
+                                    onclick="return confirm('Clôturer cet exercice ? Les comptes de résultats seront virés aux bénéfices non répartis et les écritures de la période seront verrouillées.')">
+                                <i class="bi bi-lock"></i> Clôturer l'exercice
+                            </button>
+                        </form>
+                        <form th:action="@{/fiscal/{id}/reopen(id=${fiscalYear.id})}" method="post" style="display:inline"
+                              th:if="${fiscalYear.status.name() == 'CLOSED'}">
+                            <button class="btn-portal btn-ghost btn-sm"
+                                    onclick="return confirm('Rouvrir cet exercice ? L''écriture de clôture sera contrepassée.')">
+                                <i class="bi bi-unlock"></i> Rouvrir
+                            </button>
+                        </form>
+                    </span>
+                </h3>
+
+                <div class="report-totals">
+                    <div class="stat-card">
+                        <div class="stat-label">Période</div>
+                        <div class="stat-value" style="font-size:1rem"
+                             th:text="${fiscalYear.startDate + ' → ' + fiscalYear.endDate}">2026</div>
+                    </div>
+                    <div class="stat-card is-success">
+                        <div class="stat-label">Résultat net</div>
+                        <div class="stat-value"
+                             th:text="${fiscalYear.netIncome != null ? #numbers.formatCurrency(fiscalYear.netIncome) : '—'}">—</div>
+                        <div class="stat-sub">
+                            <span th:if="${fiscalYear.closedDate}">Clôturé le <span th:text="${fiscalYear.closedDate}"></span></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="portal-card" th:if="${fiscalYear.closingJournal}">
+                <h3 class="portal-card-title">Écriture de clôture</h3>
+                <p>
+                    <a th:href="@{/journals/{id}(id=${fiscalYear.closingJournal.id})}"
+                       th:text="${fiscalYear.closingJournal.journalNumber}">JL-XXXX</a>
+                    — <span th:text="${fiscalYear.closingJournal.narrative}"></span>
+                </p>
+            </div>
+
+            <div style="text-align:right" th:if="${fiscalYear.status.name() == 'OPEN'}">
+                <form th:action="@{/fiscal/{id}/delete(id=${fiscalYear.id})}" method="post" style="display:inline">
+                    <button class="btn-portal btn-danger btn-sm"
+                            onclick="return confirm('Supprimer cet exercice ?')">
+                        <i class="bi bi-trash"></i> Supprimer l'exercice
+                    </button>
+                </form>
+            </div>
+        </section>
+    </main>
+</div>
+</body>
+</html>

@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Nouvelle facture d''achat')}"></head>
+<body>
+<div class="portal-shell">
+    <div th:replace="~{fragments/layout :: sidebar('bills')}"></div>
+    <main class="portal-main">
+        <div th:replace="~{fragments/layout :: topbar('Nouvelle facture d''achat')}"></div>
+        <section class="portal-content">
+            <div th:replace="~{fragments/layout :: flash}"></div>
+
+            <div class="portal-card">
+                <form th:action="@{/bills}" method="post" id="billForm">
+                    <div class="form-grid">
+                        <div class="form-field">
+                            <label>Fournisseur</label>
+                            <select name="vendorId" id="vendorSelect" required>
+                                <option value="">Choisir un fournisseur…</option>
+                                <option th:each="v : ${vendors}"
+                                        th:value="${v.id}"
+                                        th:attr="data-province=${v.province}"
+                                        th:text="${v.businessName + ' — ' + v.province}">Vendor</option>
+                            </select>
+                        </div>
+                        <div class="form-field">
+                            <label>Régime fiscal</label>
+                            <select name="taxRegime" id="regimeSelect" required>
+                                <option value="">Choisir un régime…</option>
+                                <option th:each="r : ${regimes}"
+                                        th:value="${r.code}"
+                                        th:attr="data-gst=${r.gstRate},data-hst=${r.hstRate},data-qst=${r.qstRate}"
+                                        th:text="${r.label}">QC</option>
+                            </select>
+                        </div>
+                        <div class="form-field full">
+                            <label>Notes</label>
+                            <textarea name="notes" rows="2" placeholder="Notes facultatives"></textarea>
+                        </div>
+                    </div>
+
+                    <h4 style="margin:1.5rem 0 .5rem;font-size:.95rem;">Lignes d'achat</h4>
+                    <div class="entries-toolbar">
+                        <small class="text-muted">Une ligne par dépense. Chaque ligne impute un compte de charge ou d'actif ; les taxes payées sont récupérées en CTI/RTI.</small>
+                        <button type="button" class="btn-portal btn-ghost btn-sm" onclick="addLine()">
+                            <i class="bi bi-plus-lg"></i> Ajouter une ligne
+                        </button>
+                    </div>
+                    <table class="table-portal entries-table">
+                        <thead>
+                        <tr>
+                            <th style="width:34%">Description</th>
+                            <th style="width:26%">Compte</th>
+                            <th style="width:11%">Quantité</th>
+                            <th style="width:14%">Prix unitaire</th>
+                            <th style="width:11%" class="num">Total</th>
+                            <th></th>
+                        </tr>
+                        </thead>
+                        <tbody id="lineItemsBody">
+                        <tr>
+                            <td><input type="text" name="descriptions" required/></td>
+                            <td>
+                                <select class="acct" name="accountIds" required>
+                                    <option value="">Choisir…</option>
+                                    <option th:each="a : ${expenseAccounts}"
+                                            th:value="${a.id}"
+                                            th:text="${a.accountNumber + ' – ' + a.accountName}"></option>
+                                </select>
+                            </td>
+                            <td><input type="number" class="qty" name="quantities" step="0.01" value="1" required/></td>
+                            <td><input type="number" class="price" name="unitPrices" step="0.01" value="0" required/></td>
+                            <td class="num line-total">$0.00</td>
+                            <td>
+                                <button type="button" class="btn-portal btn-danger btn-sm" onclick="removeLine(this)">
+                                    <i class="bi bi-x"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+
+                    <div class="portal-card" style="margin-top:1.25rem;background:#f7f9fc;">
+                        <h3 class="portal-card-title">Aperçu des taxes (CTI/RTI récupérables)</h3>
+                        <div id="taxPreviewEmpty" class="empty-state" style="padding:1rem">
+                            Choisissez un régime fiscal et saisissez au moins une ligne pour voir l'aperçu.
+                        </div>
+                        <div id="taxPreview" style="display:none">
+                            <div class="report-totals">
+                                <div class="stat-card">
+                                    <div class="stat-label">Sous-total</div>
+                                    <div class="stat-value" id="previewSubtotal">$0.00</div>
+                                </div>
+                                <div class="stat-card" id="cardTps" style="display:none">
+                                    <div class="stat-label">TPS / GST <span id="rateTps" class="text-muted"></span></div>
+                                    <div class="stat-value" id="previewTps">$0.00</div>
+                                </div>
+                                <div class="stat-card" id="cardTvq" style="display:none">
+                                    <div class="stat-label">TVQ / QST <span id="rateTvq" class="text-muted"></span></div>
+                                    <div class="stat-value" id="previewTvq">$0.00</div>
+                                </div>
+                                <div class="stat-card is-accent" id="cardHst" style="display:none">
+                                    <div class="stat-label">HST <span id="rateHst" class="text-muted"></span></div>
+                                    <div class="stat-value" id="previewHst">$0.00</div>
+                                </div>
+                                <div class="stat-card is-success">
+                                    <div class="stat-label">Total</div>
+                                    <div class="stat-value" id="previewTotal">$0.00</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-actions">
+                        <a th:href="@{/bills}" class="btn-portal btn-ghost">Annuler</a>
+                        <button type="submit" class="btn-portal">
+                            <i class="bi bi-check2"></i> Créer la facture d'achat
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </section>
+    </main>
+</div>
+
+<script>
+const STORAGE_KEY = 'lastTaxRegime';
+const PROVINCE_TO_REGIME = {
+    'QC': 'QC', 'ON': 'ON',
+    'NS': 'MARITIME', 'NB': 'MARITIME', 'NL': 'MARITIME', 'PE': 'MARITIME',
+    'BC': 'FED', 'AB': 'FED', 'SK': 'FED', 'MB': 'FED', 'YT': 'FED', 'NT': 'FED', 'NU': 'FED'
+};
+
+function fmt(n) {
+    return n.toLocaleString('en-CA', { style: 'currency', currency: 'CAD' });
+}
+
+function pct(rate) {
+    if (!rate || rate <= 0) return '';
+    return '(' + (rate * 100).toLocaleString('fr-CA', { maximumFractionDigits: 3 }) + '%)';
+}
+
+function recalculate() {
+    const regimeSelect = document.getElementById('regimeSelect');
+    const opt = regimeSelect.options[regimeSelect.selectedIndex];
+    const empty = document.getElementById('taxPreviewEmpty');
+    const preview = document.getElementById('taxPreview');
+
+    if (!opt || !opt.value) {
+        preview.style.display = 'none';
+        empty.style.display = 'block';
+        document.querySelectorAll('.line-total').forEach(td => td.textContent = '$0.00');
+        return;
+    }
+
+    const gst = parseFloat(opt.dataset.gst) || 0;
+    const hst = parseFloat(opt.dataset.hst) || 0;
+    const qst = parseFloat(opt.dataset.qst) || 0;
+
+    let subtotal = 0;
+    document.querySelectorAll('#lineItemsBody tr').forEach(tr => {
+        const q = parseFloat(tr.querySelector('.qty').value) || 0;
+        const p = parseFloat(tr.querySelector('.price').value) || 0;
+        const t = q * p;
+        tr.querySelector('.line-total').textContent = fmt(t);
+        subtotal += t;
+    });
+
+    const tps = subtotal * gst;
+    const tvq = subtotal * qst;
+    const hstAmt = subtotal * hst;
+    const total = subtotal + tps + tvq + hstAmt;
+
+    document.getElementById('previewSubtotal').textContent = fmt(subtotal);
+    document.getElementById('previewTps').textContent = fmt(tps);
+    document.getElementById('previewTvq').textContent = fmt(tvq);
+    document.getElementById('previewHst').textContent = fmt(hstAmt);
+    document.getElementById('previewTotal').textContent = fmt(total);
+
+    document.getElementById('rateTps').textContent = pct(gst);
+    document.getElementById('rateTvq').textContent = pct(qst);
+    document.getElementById('rateHst').textContent = pct(hst);
+
+    document.getElementById('cardTps').style.display = gst > 0 ? '' : 'none';
+    document.getElementById('cardTvq').style.display = qst > 0 ? '' : 'none';
+    document.getElementById('cardHst').style.display = hst > 0 ? '' : 'none';
+
+    empty.style.display = 'none';
+    preview.style.display = 'block';
+}
+
+function accountOptionsHtml() {
+    const existing = document.querySelector('#lineItemsBody select.acct');
+    return existing ? existing.innerHTML : '<option value="">Choisir…</option>';
+}
+
+function addLine() {
+    const tbody = document.getElementById('lineItemsBody');
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+        <td><input type="text" name="descriptions" required/></td>
+        <td><select class="acct" name="accountIds" required>${accountOptionsHtml()}</select></td>
+        <td><input type="number" class="qty" name="quantities" step="0.01" value="1" required/></td>
+        <td><input type="number" class="price" name="unitPrices" step="0.01" value="0" required/></td>
+        <td class="num line-total">$0.00</td>
+        <td><button type="button" class="btn-portal btn-danger btn-sm" onclick="removeLine(this)"><i class="bi bi-x"></i></button></td>
+    `;
+    tbody.appendChild(tr);
+    wireLineInputs(tr);
+    recalculate();
+}
+
+function removeLine(btn) {
+    const tbody = document.getElementById('lineItemsBody');
+    if (tbody.children.length > 1) {
+        btn.closest('tr').remove();
+        recalculate();
+    }
+}
+
+function wireLineInputs(row) {
+    row.querySelectorAll('input').forEach(i => i.addEventListener('input', recalculate));
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+    const regimeSelect = document.getElementById('regimeSelect');
+    const vendorSelect = document.getElementById('vendorSelect');
+
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved && [...regimeSelect.options].some(o => o.value === saved)) {
+        regimeSelect.value = saved;
+    }
+
+    regimeSelect.addEventListener('change', function () {
+        if (regimeSelect.value) {
+            localStorage.setItem(STORAGE_KEY, regimeSelect.value);
+        }
+        recalculate();
+    });
+
+    vendorSelect.addEventListener('change', function () {
+        if (regimeSelect.value) return;
+        const opt = vendorSelect.options[vendorSelect.selectedIndex];
+        const province = opt && opt.dataset.province;
+        const suggested = PROVINCE_TO_REGIME[province];
+        if (suggested) {
+            regimeSelect.value = suggested;
+            recalculate();
+        }
+    });
+
+    document.querySelectorAll('#lineItemsBody tr').forEach(wireLineInputs);
+    recalculate();
+});
+</script>
+</body>
+</html>

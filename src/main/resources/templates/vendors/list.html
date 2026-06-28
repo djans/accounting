@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Fournisseurs')}"></head>
+<body>
+<div class="portal-shell">
+    <div th:replace="~{fragments/layout :: sidebar('vendors')}"></div>
+    <main class="portal-main">
+        <div th:replace="~{fragments/layout :: topbar('Fournisseurs')}"></div>
+        <section class="portal-content">
+            <div th:replace="~{fragments/layout :: flash}"></div>
+
+            <div class="portal-card">
+                <h3 class="portal-card-title">
+                    Tous les fournisseurs
+                    <a th:href="@{/vendors/new}" class="btn-portal"><i class="bi bi-plus-lg"></i> Nouveau fournisseur</a>
+                </h3>
+                <div th:if="${#lists.isEmpty(vendors)}" class="empty-state">
+                    Aucun fournisseur. <a th:href="@{/vendors/new}">Ajoutez le premier</a>.
+                </div>
+                <table th:if="${not #lists.isEmpty(vendors)}" class="table-portal">
+                    <thead>
+                    <tr>
+                        <th>Entreprise</th>
+                        <th>Contact</th>
+                        <th>Courriel</th>
+                        <th>Province</th>
+                        <th>No TPS</th>
+                        <th>No TVQ</th>
+                        <th></th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="v : ${vendors}">
+                        <td th:text="${v.businessName}">Business</td>
+                        <td th:text="${v.name}">Name</td>
+                        <td th:text="${v.email}">email</td>
+                        <td th:text="${v.province}">QC</td>
+                        <td th:text="${v.gstNumber}">—</td>
+                        <td th:text="${v.qstNumber}">—</td>
+                        <td style="text-align:right; white-space:nowrap;">
+                            <a th:href="@{/vendors/{id}/edit(id=${v.id})}" class="btn-portal btn-ghost btn-sm">
+                                <i class="bi bi-pencil"></i> Modifier
+                            </a>
+                            <form th:action="@{/vendors/{id}/delete(id=${v.id})}" method="post" style="display:inline">
+                                <button type="submit" class="btn-portal btn-danger btn-sm"
+                                        onclick="return confirm('Supprimer ce fournisseur ?')">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+</div>
+</body>
+</html>

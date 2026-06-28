@@ -29,6 +29,9 @@ public class GeneralJournalService {
     @Autowired
     private GeneralLedgerService generalLedgerService;
 
+    @Autowired
+    private FiscalYearService fiscalYearService;
+
     @Transactional
     public GeneralJournal createJournal(GeneralJournal journal) {
         // Generate unique journal number
@@ -67,6 +70,13 @@ public class GeneralJournalService {
             // Can only post draft journals
             if (!jl.getStatus().equals(JournalStatus.DRAFT)) {
                 throw new IllegalArgumentException("Only DRAFT journals can be posted");
+            }
+
+            // Reject postings dated within a closed fiscal year (period lock).
+            if (fiscalYearService.isLocked(jl.getJournalDate())) {
+                throw new IllegalStateException(
+                    "Impossible de comptabiliser une écriture datée du " + jl.getJournalDate()
+                    + " : l'exercice correspondant est clôturé");
             }
 
             // Validate balance before posting

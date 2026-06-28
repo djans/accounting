@@ -32,7 +32,10 @@
                         <div class="form-field">
                             <label>Method</label>
                             <select name="paymentMethod" required>
-                                <option th:each="m : ${methods}" th:value="${m}" th:text="${m}">CASH</option>
+                                <option th:each="m : ${methods}"
+                                        th:value="${m}"
+                                        th:text="${m}"
+                                        th:selected="${selectedMethod != null and selectedMethod == m}">CASH</option>
                             </select>
                         </div>
                         <div class="form-field">

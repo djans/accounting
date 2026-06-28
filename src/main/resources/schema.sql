@@ -202,3 +202,105 @@ CREATE TABLE IF NOT EXISTS tax_filing_periods (
     CONSTRAINT fk_tax_filing_periods_filing_journal  FOREIGN KEY (filing_journal_id)  REFERENCES general_journals (id),
     CONSTRAINT fk_tax_filing_periods_payment_journal FOREIGN KEY (payment_journal_id) REFERENCES general_journals (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 12. vendors -------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS vendors (
+    id              BIGINT       NOT NULL AUTO_INCREMENT,
+    name            VARCHAR(255) NOT NULL,
+    email           VARCHAR(255) NOT NULL,
+    business_name   VARCHAR(255) NOT NULL,
+    address         VARCHAR(255) NOT NULL,
+    city            VARCHAR(255) NOT NULL,
+    province        VARCHAR(255) NOT NULL,
+    postal_code     VARCHAR(255) NOT NULL,
+    country         VARCHAR(255) NOT NULL,
+    business_number VARCHAR(255) NULL,
+    gst_number      VARCHAR(255) NULL,
+    qst_number      VARCHAR(255) NULL,
+    created_at      DATETIME(6)  NOT NULL,
+    updated_at      DATETIME(6)  NOT NULL,
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_vendors_email (email)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 13. bills ---------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS bills (
+    id           BIGINT         NOT NULL AUTO_INCREMENT,
+    bill_number  VARCHAR(255)   NOT NULL,
+    vendor_id    BIGINT         NOT NULL,
+    bill_date    DATE           NOT NULL,
+    due_date     DATE           NOT NULL,
+    status       VARCHAR(32)    NOT NULL,
+    subtotal     DECIMAL(19, 2) NOT NULL,
+    gst_amount   DECIMAL(19, 2) NOT NULL,
+    hst_amount   DECIMAL(19, 2) NOT NULL,
+    qst_amount   DECIMAL(19, 2) NOT NULL,
+    total_amount DECIMAL(19, 2) NOT NULL,
+    paid_amount  DECIMAL(19, 2) NULL,
+    notes        VARCHAR(1000)  NULL,
+    created_at   DATETIME(6)    NOT NULL,
+    updated_at   DATETIME(6)    NOT NULL,
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_bills_number (bill_number),
+    KEY idx_bills_vendor (vendor_id),
+    KEY idx_bills_status (status),
+    KEY idx_bills_date (bill_date),
+    CONSTRAINT fk_bills_vendor FOREIGN KEY (vendor_id) REFERENCES vendors (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 14. bill_line_items -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS bill_line_items (
+    id                 BIGINT         NOT NULL AUTO_INCREMENT,
+    bill_id            BIGINT         NOT NULL,
+    expense_account_id BIGINT         NULL,
+    description        VARCHAR(255)   NOT NULL,
+    quantity           DECIMAL(19, 2) NOT NULL,
+    unit_price         DECIMAL(19, 2) NOT NULL,
+    total              DECIMAL(19, 2) NOT NULL,
+    PRIMARY KEY (id),
+    KEY idx_bill_line_items_bill (bill_id),
+    KEY idx_bill_line_items_account (expense_account_id),
+    CONSTRAINT fk_bill_line_items_bill    FOREIGN KEY (bill_id)            REFERENCES bills             (id) ON DELETE CASCADE,
+    CONSTRAINT fk_bill_line_items_account FOREIGN KEY (expense_account_id) REFERENCES chart_of_accounts (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 15. bill_payments -------------------------------------------------------
+CREATE TABLE IF NOT EXISTS bill_payments (
+    id              BIGINT         NOT NULL AUTO_INCREMENT,
+    bill_id         BIGINT         NOT NULL,
+    bank_account_id BIGINT         NULL,
+    amount          DECIMAL(19, 2) NOT NULL,
+    payment_date    DATE           NOT NULL,
+    payment_method  VARCHAR(32)    NOT NULL,
+    status          VARCHAR(32)    NOT NULL,
+    transaction_id  VARCHAR(255)   NOT NULL,
+    notes           VARCHAR(500)   NULL,
+    created_at      DATETIME(6)    NOT NULL,
+    updated_at      DATETIME(6)    NOT NULL,
+    PRIMARY KEY (id),
+    KEY idx_bill_payments_bill (bill_id),
+    KEY idx_bill_payments_bank_account (bank_account_id),
+    KEY idx_bill_payments_status (status),
+    KEY idx_bill_payments_date (payment_date),
+    CONSTRAINT fk_bill_payments_bill         FOREIGN KEY (bill_id)         REFERENCES bills             (id),
+    CONSTRAINT fk_bill_payments_bank_account FOREIGN KEY (bank_account_id) REFERENCES chart_of_accounts (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 16. fiscal_years --------------------------------------------------------
+CREATE TABLE IF NOT EXISTS fiscal_years (
+    id                 BIGINT         NOT NULL AUTO_INCREMENT,
+    label              VARCHAR(255)   NOT NULL,
+    start_date         DATE           NOT NULL,
+    end_date           DATE           NOT NULL,
+    status             VARCHAR(32)    NOT NULL,
+    closing_journal_id BIGINT         NULL,
+    closed_date        DATE           NULL,
+    closed_by          VARCHAR(500)   NULL,
+    net_income         DECIMAL(19, 2) NULL,
+    created_at         DATETIME(6)    NOT NULL,
+    updated_at         DATETIME(6)    NOT NULL,
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_fiscal_years_label (label),
+    KEY idx_fiscal_years_status (status),
+    CONSTRAINT fk_fiscal_years_closing_journal FOREIGN KEY (closing_journal_id) REFERENCES general_journals (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

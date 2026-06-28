@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Exercices')}"></head>
+<body>
+<div class="portal-shell">
+    <div th:replace="~{fragments/layout :: sidebar('fiscal')}"></div>
+    <main class="portal-main">
+        <div th:replace="~{fragments/layout :: topbar('Exercices financiers')}"></div>
+        <section class="portal-content">
+            <div th:replace="~{fragments/layout :: flash}"></div>
+
+            <div class="portal-card">
+                <h3 class="portal-card-title">Nouvel exercice</h3>
+                <form th:action="@{/fiscal}" method="post">
+                    <div class="form-grid">
+                        <div class="form-field">
+                            <label>Libellé</label>
+                            <input type="text" name="label" placeholder="Exercice 2026" required/>
+                        </div>
+                        <div class="form-field">
+                            <label>Date de début</label>
+                            <input type="date" name="startDate" required/>
+                        </div>
+                        <div class="form-field">
+                            <label>Date de fin</label>
+                            <input type="date" name="endDate" required/>
+                        </div>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn-portal"><i class="bi bi-plus-lg"></i> Créer l'exercice</button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="portal-card">
+                <h3 class="portal-card-title">Tous les exercices</h3>
+                <div th:if="${#lists.isEmpty(fiscalYears)}" class="empty-state">
+                    Aucun exercice défini.
+                </div>
+                <table th:if="${not #lists.isEmpty(fiscalYears)}" class="table-portal">
+                    <thead>
+                    <tr>
+                        <th>Libellé</th>
+                        <th>Début</th>
+                        <th>Fin</th>
+                        <th>Statut</th>
+                        <th class="num">Résultat net</th>
+                        <th></th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="fy : ${fiscalYears}">
+                        <td><a th:href="@{/fiscal/{id}(id=${fy.id})}" th:text="${fy.label}">Exercice 2026</a></td>
+                        <td th:text="${fy.startDate}">2026-01-01</td>
+                        <td th:text="${fy.endDate}">2026-12-31</td>
+                        <td>
+                            <span class="badge-pill"
+                                  th:classappend="${' ' + #strings.toLowerCase(fy.status.name())}"
+                                  th:text="${fy.status}">OPEN</span>
+                        </td>
+                        <td class="num" th:text="${fy.netIncome != null ? #numbers.formatCurrency(fy.netIncome) : '—'}">—</td>
+                        <td style="text-align:right">
+                            <a th:href="@{/fiscal/{id}(id=${fy.id})}" class="btn-portal btn-ghost btn-sm">
+                                <i class="bi bi-eye"></i> Détails
+                            </a>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+</div>
+</body>
+</html>

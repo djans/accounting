@@ -37,29 +37,34 @@ public class TaxDataSeeder implements CommandLineRunner {
         ensureAccount("1100", "Comptes clients à recevoir", AccountType.ASSET, "Sommes à recevoir des clients");
         ensureAccount("1110", "Provision pour mauvaises créances", AccountType.ASSET, "Estimation des créances douteuses");
         ensureAccount("1200", "Inventaire", AccountType.ASSET, "Stock de produits ou matières premières");
-        ensureAccount("1300", "TPS à recevoir", AccountType.ASSET, "TPS payée sur les achats — récupérable");
-        ensureAccount("1310", "TVQ à recevoir", AccountType.ASSET, "TVQ payée sur les achats — récupérable");
+        ensureAccount("1300", "TPS à recevoir (CTI)", AccountType.ASSET, "Crédit de taxe sur intrants — TPS payée sur les achats, récupérable");
+        ensureAccount("1310", "TVQ à recevoir (RTI)", AccountType.ASSET, "Remboursement de taxe sur intrants — TVQ payée sur les achats, récupérable");
+        ensureAccount("1320", "HST à recevoir (CTI)", AccountType.ASSET, "Crédit de taxe sur intrants — HST payée sur les achats, récupérable");
         ensureAccount("1400", "Charges payées d'avance", AccountType.ASSET, "Loyer, assurances, abonnements payés d'avance");
         ensureAccount("1500", "Immobilisations", AccountType.ASSET, "Équipement, véhicules, bâtiments");
         ensureAccount("1510", "Amortissement cumulé — Immobilisations", AccountType.ASSET, "Amortissement déduit des immobilisations");
 
         ensureAccount("2000", "Comptes fournisseurs", AccountType.LIABILITY, "Sommes à payer aux fournisseurs");
         ensureAccount("2100", "Salaires à payer", AccountType.LIABILITY, "Salaires courus mais non versés");
-        ensureAccount("2200", "TPS à payer", AccountType.LIABILITY, "TPS perçue sur les ventes — à remettre à Revenu Canada");
-        ensureAccount("2210", "TVQ à payer", AccountType.LIABILITY, "TVQ perçue sur les ventes — à remettre à Revenu Québec");
-        ensureAccount("2300", "Impôts fédéraux à payer", AccountType.LIABILITY, "Impôts sur salaires (T4)");
-        ensureAccount("2310", "Impôts provinciaux à payer", AccountType.LIABILITY, "Impôts sur salaires (RL-1)");
-        ensureAccount("2320", "HST Payable", AccountType.LIABILITY, "Harmonized sales tax collected");
-        ensureAccount("2330", "RRQ à payer", AccountType.LIABILITY, "Cotisations RRQ employé+employeur");
 
-        ensureAccount("2340", "AE à payer", AccountType.LIABILITY, "Cotisations AE employé+employeur");
-        ensureAccount("2350", "RQAP à payer", AccountType.LIABILITY, "Cotisations RQAP employé+employeur");
-        ensureAccount("2360", "FSS à payer", AccountType.LIABILITY, "Cotisations FSS — employeur");
+        // Taxes de vente perçues — à remettre aux agences (mouvementés par InvoicePostingService/TaxFilingService).
+        ensureAccount("2310", "TPS à payer", AccountType.LIABILITY, "TPS perçue sur les ventes — à remettre à Revenu Canada");
+        ensureAccount("2320", "TVQ à payer", AccountType.LIABILITY, "TVQ perçue sur les ventes — à remettre à Revenu Québec");
+        ensureAccount("2330", "HST à payer", AccountType.LIABILITY, "HST perçue sur les ventes — à remettre à Revenu Canada");
+
+        // Retenues sur la paie — renumérotées en 24xx pour ne pas chevaucher les taxes de vente.
+        ensureAccount("2400", "Impôts fédéraux à payer", AccountType.LIABILITY, "Impôts sur salaires (T4)");
+        ensureAccount("2410", "Impôts provinciaux à payer", AccountType.LIABILITY, "Impôts sur salaires (RL-1)");
+        ensureAccount("2420", "RRQ à payer", AccountType.LIABILITY, "Cotisations RRQ employé+employeur");
+        ensureAccount("2430", "AE à payer", AccountType.LIABILITY, "Cotisations AE employé+employeur");
+        ensureAccount("2440", "RQAP à payer", AccountType.LIABILITY, "Cotisations RQAP employé+employeur");
+        ensureAccount("2450", "FSS à payer", AccountType.LIABILITY, "Cotisations FSS — employeur");
         ensureAccount("2500", "Emprunt bancaire", AccountType.LIABILITY, "Prêts à plus d'un an");
 
         ensureAccount("3000", "Capital", AccountType.EQUITY, "Investissement initial du ou des propriétaires");
         ensureAccount("3100", "Bénéfices non répartis", AccountType.EQUITY, "Profits cumulés non distribués");
         ensureAccount("3200", "Retraits du propriétaire", AccountType.EQUITY, "Retraits personnels (entreprise individuelle)");
+        ensureAccount("3300", "Sommaire de résultats (clôture)", AccountType.EQUITY, "Compte de regroupement utilisé à la clôture de l'exercice");
 
         ensureAccount("4000", "Ventes de produits", AccountType.REVENUE, "Revenus des ventes de produits");
         ensureAccount("4010", "Ventes de services", AccountType.REVENUE, "Revenus des services rendus");
@@ -107,14 +112,17 @@ public class TaxDataSeeder implements CommandLineRunner {
     private void seedCodes() {
         TaxAgency cra = agencies.findByCode("CRA").orElseThrow();
         TaxAgency rq = agencies.findByCode("RQ").orElseThrow();
-        ChartOfAccount tpsPayable = accounts.findByAccountNumber("2300").orElseThrow();
-        ChartOfAccount tvqPayable = accounts.findByAccountNumber("2310").orElseThrow();
-        ChartOfAccount hstPayable = accounts.findByAccountNumber("2320").orElseThrow();
+        ChartOfAccount tpsPayable = accounts.findByAccountNumber("2310").orElseThrow();
+        ChartOfAccount tvqPayable = accounts.findByAccountNumber("2320").orElseThrow();
+        ChartOfAccount hstPayable = accounts.findByAccountNumber("2330").orElseThrow();
+        ChartOfAccount tpsItc = accounts.findByAccountNumber("1300").orElseThrow();
+        ChartOfAccount tvqItc = accounts.findByAccountNumber("1310").orElseThrow();
+        ChartOfAccount hstItc = accounts.findByAccountNumber("1320").orElseThrow();
 
-        ensureCode("TPS", "Taxe sur les produits et services (5%)", new BigDecimal("0.05000"), cra, tpsPayable);
-        ensureCode("TVQ", "Taxe de vente du Quebec (9.975%)", new BigDecimal("0.09975"), rq, tvqPayable);
-        ensureCode("HST-ON", "Ontario HST (13%)", new BigDecimal("0.13000"), cra, hstPayable);
-        ensureCode("HST-15", "Maritime HST (15%)", new BigDecimal("0.15000"), cra, hstPayable);
+        ensureCode("TPS", "Taxe sur les produits et services (5%)", new BigDecimal("0.05000"), cra, tpsPayable, tpsItc);
+        ensureCode("TVQ", "Taxe de vente du Quebec (9.975%)", new BigDecimal("0.09975"), rq, tvqPayable, tvqItc);
+        ensureCode("HST-ON", "Ontario HST (13%)", new BigDecimal("0.13000"), cra, hstPayable, hstItc);
+        ensureCode("HST-15", "Maritime HST (15%)", new BigDecimal("0.15000"), cra, hstPayable, hstItc);
     }
 
     private void ensureAccount(String number, String name, AccountType type, String description) {
@@ -137,7 +145,8 @@ public class TaxDataSeeder implements CommandLineRunner {
         agencies.save(a);
     }
 
-    private void ensureCode(String code, String name, BigDecimal rate, TaxAgency agency, ChartOfAccount payable) {
+    private void ensureCode(String code, String name, BigDecimal rate, TaxAgency agency,
+                            ChartOfAccount payable, ChartOfAccount itc) {
         if (codes.findByCode(code).isPresent()) return;
         TaxCode c = new TaxCode();
         c.setCode(code);
@@ -145,6 +154,7 @@ public class TaxDataSeeder implements CommandLineRunner {
         c.setRate(rate);
         c.setAgency(agency);
         c.setPayableAccount(payable);
+        c.setItcAccount(itc);
         c.setActive(true);
         codes.save(c);
     }

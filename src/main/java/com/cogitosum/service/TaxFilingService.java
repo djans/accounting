@@ -1,6 +1,7 @@
 package com.cogitosum.service;
 
 import com.cogitosum.entity.*;
+import com.cogitosum.repository.BillRepository;
 import com.cogitosum.repository.ChartOfAccountRepository;
 import com.cogitosum.repository.InvoiceRepository;
 import com.cogitosum.repository.TaxAgencyRepository;
@@ -31,6 +32,9 @@ public class TaxFilingService {
     private InvoiceRepository invoiceRepository;
 
     @Autowired
+    private BillRepository billRepository;
+
+    @Autowired
     private ChartOfAccountRepository accountRepository;
 
     @Autowired
@@ -56,8 +60,10 @@ public class TaxFilingService {
             throw new IllegalStateException("Cannot recalculate a filed or paid period");
         }
         BigDecimal collected = sumTaxCollected(period.getAgency(), period.getPeriodStart(), period.getPeriodEnd());
+        BigDecimal itc = sumItc(period.getAgency(), period.getPeriodStart(), period.getPeriodEnd());
         period.setTaxCollected(collected);
-        period.setNetOwing(collected.subtract(period.getTaxITC() == null ? BigDecimal.ZERO : period.getTaxITC()));
+        period.setTaxITC(itc);
+        period.setNetOwing(collected.subtract(itc));
         period.setStatus(TaxFilingStatus.CALCULATED);
         return periodRepository.save(period);
     }
@@ -70,7 +76,11 @@ public class TaxFilingService {
             throw new IllegalStateException("Period must be OPEN or CALCULATED to file. Current: " + period.getStatus());
         }
         BigDecimal collected = sumTaxCollected(period.getAgency(), period.getPeriodStart(), period.getPeriodEnd());
-        BigDecimal itc = itcAmount == null ? BigDecimal.ZERO : itcAmount;
+        // The provided itcAmount is an optional manual override; otherwise the CTI is derived
+        // automatically from the purchase invoices (bills) of the period.
+        BigDecimal itc = (itcAmount != null && itcAmount.compareTo(BigDecimal.ZERO) > 0)
+            ? itcAmount
+            : sumItc(period.getAgency(), period.getPeriodStart(), period.getPeriodEnd());
         BigDecimal net = collected.subtract(itc);
 
         period.setTaxCollected(collected);
@@ -78,9 +88,10 @@ public class TaxFilingService {
         period.setNetOwing(net);
         period.setFiledDate(LocalDate.now());
 
-        // Post the ITC adjustment if any — moves ITC value out of Tax Payable into Tax Adjustments.
-        if (itc.compareTo(BigDecimal.ZERO) > 0) {
-            GeneralJournal filingJournal = buildItcAdjustmentJournal(period, itc);
+        // Clear the CTI/RTI sitting in the receivable accounts against the tax payable:
+        //   Dr Tax Payable / Cr TPS|TVQ|HST à recevoir, for the amounts accumulated by bills.
+        GeneralJournal filingJournal = buildItcAdjustmentJournal(period);
+        if (filingJournal != null) {
             GeneralJournal saved = journalService.createJournal(filingJournal);
             GeneralJournal posted = journalService.postJournal(saved.getId(), postedBy);
             period.setFilingJournal(posted);
@@ -165,36 +176,87 @@ public class TaxFilingService {
         };
     }
 
-    private GeneralJournal buildItcAdjustmentJournal(TaxFilingPeriod period, BigDecimal itc) {
+    /**
+     * Sums the Input Tax Credits (CTI/RTI) for an agency from the purchase invoices (bills)
+     * of the period. CRA recovers TPS + HST paid; Revenu Quebec recovers TVQ paid.
+     */
+    public BigDecimal sumItc(TaxAgency agency, LocalDate start, LocalDate end) {
+        ItcComponents c = itcComponents(agency, start, end);
+        return c.tps.add(c.hst).add(c.tvq);
+    }
+
+    private ItcComponents itcComponents(TaxAgency agency, LocalDate start, LocalDate end) {
+        ItcComponents c = new ItcComponents();
+        for (Bill bill : billRepository.findByBillDateBetween(start, end)) {
+            if (bill.getStatus() == BillStatus.CANCELLED) continue;
+            BigDecimal gst = bill.getGstAmount() == null ? BigDecimal.ZERO : bill.getGstAmount();
+            BigDecimal hst = bill.getHstAmount() == null ? BigDecimal.ZERO : bill.getHstAmount();
+            BigDecimal qst = bill.getQstAmount() == null ? BigDecimal.ZERO : bill.getQstAmount();
+            switch (agency.getCode()) {
+                case CRA_CODE -> { c.tps = c.tps.add(gst); c.hst = c.hst.add(hst); }
+                case RQ_CODE -> c.tvq = c.tvq.add(qst);
+                default -> { /* no ITC for this agency */ }
+            }
+        }
+        return c;
+    }
+
+    private static class ItcComponents {
+        BigDecimal tps = BigDecimal.ZERO;
+        BigDecimal hst = BigDecimal.ZERO;
+        BigDecimal tvq = BigDecimal.ZERO;
+    }
+
+    private GeneralJournal buildItcAdjustmentJournal(TaxFilingPeriod period) {
+        ItcComponents c = itcComponents(period.getAgency(), period.getPeriodStart(), period.getPeriodEnd());
+        BigDecimal total = c.tps.add(c.hst).add(c.tvq);
+        if (total.compareTo(BigDecimal.ZERO) <= 0) {
+            return null; // nothing to clear
+        }
+
         ChartOfAccount payable = lookupPayableAccount(period.getAgency());
-        ChartOfAccount adjustments = lookupAccount("4900", "Tax Adjustments account (4900) not seeded");
 
         GeneralJournal jl = new GeneralJournal();
         jl.setJournalDate(LocalDate.now());
-        jl.setNarrative("ITC adjustment for " + period.getAgency().getCode()
+        jl.setNarrative("CTI/RTI claimed for " + period.getAgency().getCode()
             + " filing " + period.getPeriodStart() + " to " + period.getPeriodEnd());
         jl.setReference("TAX-FILING-" + period.getId());
 
         List<JournalEntry> entries = new ArrayList<>();
+        int line = 1;
 
+        // Dr the payable for the total CTI claimed.
         JournalEntry dr = new JournalEntry();
         dr.setAccount(payable);
-        dr.setDebit(itc);
+        dr.setDebit(total);
         dr.setCredit(BigDecimal.ZERO);
-        dr.setDescription("ITC claimed for period");
-        dr.setLineNumber(1);
+        dr.setDescription("CTI/RTI claimed for period");
+        dr.setLineNumber(line++);
         entries.add(dr);
 
-        JournalEntry cr = new JournalEntry();
-        cr.setAccount(adjustments);
-        cr.setDebit(BigDecimal.ZERO);
-        cr.setCredit(itc);
-        cr.setDescription("ITC adjustment income");
-        cr.setLineNumber(2);
-        entries.add(cr);
+        // Cr each ITC receivable account for the amount accumulated by bills.
+        if (c.tps.compareTo(BigDecimal.ZERO) > 0) {
+            entries.add(creditItc("1300", "TPS à recevoir (CTI) non semé", c.tps, "TPS récupérée", line++));
+        }
+        if (c.hst.compareTo(BigDecimal.ZERO) > 0) {
+            entries.add(creditItc("1320", "HST à recevoir (CTI) non semé", c.hst, "HST récupérée", line++));
+        }
+        if (c.tvq.compareTo(BigDecimal.ZERO) > 0) {
+            entries.add(creditItc("1310", "TVQ à recevoir (RTI) non semé", c.tvq, "TVQ récupérée", line++));
+        }
 
         jl.setEntries(entries);
         return jl;
+    }
+
+    private JournalEntry creditItc(String accountNumber, String errorMsg, BigDecimal amount, String desc, int line) {
+        JournalEntry cr = new JournalEntry();
+        cr.setAccount(lookupAccount(accountNumber, errorMsg));
+        cr.setDebit(BigDecimal.ZERO);
+        cr.setCredit(amount);
+        cr.setDescription(desc);
+        cr.setLineNumber(line);
+        return cr;
     }
 
     private GeneralJournal buildPaymentJournal(TaxFilingPeriod period, ChartOfAccount bank, LocalDate paymentDate) {

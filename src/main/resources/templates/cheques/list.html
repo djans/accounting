@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Cheques')}"></head>
+<body>
+<div class="portal-shell">
+    <div th:replace="~{fragments/layout :: sidebar('cheques')}"></div>
+    <main class="portal-main">
+        <div th:replace="~{fragments/layout :: topbar('Cheques')}"></div>
+        <section class="portal-content">
+            <div class="portal-card">
+                <h2>Cheques</h2>
+                <p>Placeholder list of cheques.</p>
+            </div>
+        </section>
+    </main>
+</div>
+</body>
+</html>

@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Facture d''achat')}"></head>
+<body>
+<div class="portal-shell">
+    <div th:replace="~{fragments/layout :: sidebar('bills')}"></div>
+    <main class="portal-main">
+        <div th:replace="~{fragments/layout :: topbar(|Facture ${bill.billNumber}|)}"></div>
+        <section class="portal-content">
+            <div th:replace="~{fragments/layout :: flash}"></div>
+
+            <div class="portal-card">
+                <h3 class="portal-card-title">
+                    <span>
+                        <span th:text="${bill.billNumber}">BILL-1</span>
+                        <span class="badge-pill"
+                              th:classappend="${' ' + #strings.toLowerCase(bill.status.name())}"
+                              th:text="${bill.status}"></span>
+                    </span>
+                    <span>
+                        <form th:action="@{/bills/{id}/receive(id=${bill.id})}" method="post" style="display:inline"
+                              th:if="${bill.status.name() == 'DRAFT'}">
+                            <button class="btn-portal btn-sm"><i class="bi bi-inbox"></i> Marquer comme reçue</button>
+                        </form>
+                        <form th:action="@{/bills/{id}/cancel(id=${bill.id})}" method="post" style="display:inline"
+                              th:if="${bill.status.name() != 'CANCELLED' and bill.status.name() != 'PAID'}">
+                            <button class="btn-portal btn-ghost btn-sm" onclick="return confirm('Annuler cette facture d''achat ?')">
+                                <i class="bi bi-x-circle"></i> Annuler
+                            </button>
+                        </form>
+                    </span>
+                </h3>
+
+                <div class="form-grid">
+                    <div>
+                        <div class="stat-label">Fournisseur</div>
+                        <div style="font-weight:600" th:text="${bill.vendor.businessName}">Vendor</div>
+                        <div class="text-muted" th:text="${bill.vendor.name + ' · ' + bill.vendor.email}">contact</div>
+                        <div class="text-muted" th:text="${bill.vendor.address + ', ' + bill.vendor.city + ', ' + bill.vendor.province + ' ' + bill.vendor.postalCode}">address</div>
+                    </div>
+                    <div>
+                        <div class="stat-label">Dates</div>
+                        <div>Facture : <span th:text="${bill.billDate}">2026-01-01</span></div>
+                        <div>Échéance : <span th:text="${bill.dueDate}">2026-01-31</span></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="portal-card">
+                <h3 class="portal-card-title">Lignes d'achat</h3>
+                <table class="table-portal">
+                    <thead>
+                    <tr>
+                        <th>Description</th>
+                        <th>Compte</th>
+                        <th class="num">Qté</th>
+                        <th class="num">Prix unitaire</th>
+                        <th class="num">Total</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="li : ${bill.lineItems}">
+                        <td th:text="${li.description}">Service</td>
+                        <td th:text="${li.expenseAccount != null ? (li.expenseAccount.accountNumber + ' – ' + li.expenseAccount.accountName) : '—'}">5000 – …</td>
+                        <td class="num" th:text="${li.quantity}">1</td>
+                        <td class="num" th:text="${#numbers.formatCurrency(li.unitPrice)}">$0</td>
+                        <td class="num" th:text="${#numbers.formatCurrency(li.total)}">$0</td>
+                    </tr>
+                    </tbody>
+                </table>
+
+                <div class="report-totals" style="margin-top:1.25rem">
+                    <div class="stat-card">
+                        <div class="stat-label">Sous-total</div>
+                        <div class="stat-value" th:text="${#numbers.formatCurrency(bill.subtotal)}">$0</div>
+                    </div>
+                    <div class="stat-card is-accent">
+                        <div class="stat-label">Taxes payées (CTI/RTI)</div>
+                        <div class="stat-value"
+                             th:text="${#numbers.formatCurrency(bill.gstAmount.add(bill.hstAmount).add(bill.qstAmount))}">$0</div>
+                        <div class="stat-sub">
+                            TPS/GST <span th:text="${#numbers.formatCurrency(bill.gstAmount)}"></span>
+                            · TVQ/QST <span th:text="${#numbers.formatCurrency(bill.qstAmount)}"></span>
+                            · HST <span th:text="${#numbers.formatCurrency(bill.hstAmount)}"></span>
+                        </div>
+                    </div>
+                    <div class="stat-card is-success">
+                        <div class="stat-label">Total</div>
+                        <div class="stat-value" th:text="${#numbers.formatCurrency(bill.totalAmount)}">$0</div>
+                        <div class="stat-sub">
+                            Payé <span th:text="${bill.paidAmount != null ? #numbers.formatCurrency(bill.paidAmount) : '$0.00'}"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div th:if="${bill.notes}" style="margin-top:1.25rem">
+                    <div class="stat-label">Notes</div>
+                    <div th:text="${bill.notes}"></div>
+                </div>
+            </div>
+
+            <div class="portal-card" th:if="${bill.status.name() != 'CANCELLED' and bill.status.name() != 'PAID'}">
+                <h3 class="portal-card-title">Enregistrer un paiement</h3>
+                <p class="text-muted">
+                    Choisir un compte bancaire comptabilise l'écriture : Dr Comptes fournisseurs / Cr Banque.
+                </p>
+                <form th:action="@{/bills/{id}/pay(id=${bill.id})}" method="post">
+                    <div class="form-grid">
+                        <div class="form-field">
+                            <label>Montant</label>
+                            <input type="number" step="0.01" name="amount" required/>
+                        </div>
+                        <div class="form-field">
+                            <label>Mode de paiement</label>
+                            <select name="paymentMethod" required>
+                                <option th:each="m : ${methods}" th:value="${m}" th:text="${m}"></option>
+                            </select>
+                        </div>
+                        <div class="form-field">
+                            <label>Compte bancaire</label>
+                            <select name="bankAccountId">
+                                <option value="">— (pas d'écriture) —</option>
+                                <option th:each="acc : ${bankAccounts}"
+                                        th:value="${acc.id}"
+                                        th:text="${acc.accountNumber + ' – ' + acc.accountName}"></option>
+                            </select>
+                        </div>
+                        <div class="form-field">
+                            <label>No de transaction</label>
+                            <input type="text" name="transactionId" placeholder="Auto si vide"/>
+                        </div>
+                        <div class="form-field full">
+                            <label>Notes</label>
+                            <input type="text" name="notes"/>
+                        </div>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn-portal btn-success"><i class="bi bi-cash-coin"></i> Enregistrer le paiement</button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="portal-card">
+                <h3 class="portal-card-title">Paiements</h3>
+                <div th:if="${#lists.isEmpty(payments)}" class="empty-state">
+                    Aucun paiement enregistré pour cette facture.
+                </div>
+                <table th:if="${not #lists.isEmpty(payments)}" class="table-portal">
+                    <thead>
+                    <tr>
+                        <th>Transaction</th>
+                        <th>Date</th>
+                        <th>Mode</th>
+                        <th>Statut</th>
+                        <th class="num">Montant</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="p : ${payments}">
+                        <td th:text="${p.transactionId}">VTXN-1</td>
+                        <td th:text="${p.paymentDate}">2026-01-01</td>
+                        <td th:text="${p.paymentMethod}">CASH</td>
+                        <td>
+                            <span class="badge-pill"
+                                  th:classappend="${' ' + #strings.toLowerCase(p.status.name())}"
+                                  th:text="${p.status}"></span>
+                        </td>
+                        <td class="num" th:text="${#numbers.formatCurrency(p.amount)}">$0</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div style="text-align:right">
+                <form th:action="@{/bills/{id}/delete(id=${bill.id})}" method="post" style="display:inline">
+                    <button class="btn-portal btn-danger btn-sm"
+                            onclick="return confirm('Supprimer cette facture d''achat ?')">
+                        <i class="bi bi-trash"></i> Supprimer la facture
+                    </button>
+                </form>
+            </div>
+        </section>
+    </main>
+</div>
+</body>
+</html>

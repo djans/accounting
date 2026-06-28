@@ -148,13 +148,23 @@ public class InvoiceService {
     }
 
     void calculateInvoiceTotals(Invoice invoice, String regimeCode) {
+        String province = invoice.getCustomer() != null ? invoice.getCustomer().getProvince() : null;
+        TaxRegime regime = resolveRegime(province, regimeCode);
+        invoice.calculateTotals(regime.gstRate(), regime.hstRate(), regime.qstRate());
+    }
+
+    /**
+     * Resolves the effective tax rates: an explicit regime code wins, otherwise rates are
+     * derived from the province. Shared with the purchase side (bills) so a single source
+     * of truth governs Canadian sales-tax rates.
+     */
+    public TaxRegime resolveRegime(String province, String regimeCode) {
         TaxRegime regime = findRegime(regimeCode);
         if (regime != null) {
-            invoice.calculateTotals(regime.gstRate(), regime.hstRate(), regime.qstRate());
-            return;
+            return regime;
         }
-        String province = invoice.getCustomer() != null ? invoice.getCustomer().getProvince() : null;
-        invoice.calculateTotals(gstRateFor(province), hstRateFor(province), qstRateFor(province));
+        return new TaxRegime(province == null ? "AUTO" : province, "Auto — " + province,
+            gstRateFor(province), hstRateFor(province), qstRateFor(province));
     }
 
     private BigDecimal gstRateFor(String province) {

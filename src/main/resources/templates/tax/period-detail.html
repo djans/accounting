@@ -55,14 +55,16 @@
                 <h3 class="portal-card-title">File Return</h3>
                 <p class="text-muted">
                     Submit the totals to <span th:text="${period.agency.name}"></span>.
-                    Enter any input tax credits (ITC for TPS/GST, ITR for TVQ) you are claiming for this period.
-                    Filing posts an ITC adjustment journal entry to the General Ledger.
+                    Le CTI/RTI est calculé automatiquement à partir des factures d'achat de la période
+                    (pré-rempli ci-dessous). Vous pouvez le remplacer manuellement au besoin. La production
+                    comptabilise l'écriture : Dr taxe à payer / Cr taxe à recevoir.
                 </p>
                 <form th:action="@{/tax/periods/{id}/file(id=${period.id})}" method="post">
                     <div class="form-grid">
                         <div class="form-field">
-                            <label>ITC / ITR Amount</label>
-                            <input type="number" step="0.01" name="itcAmount" value="0" required/>
+                            <label>Montant CTI / RTI</label>
+                            <input type="number" step="0.01" name="itcAmount"
+                                   th:value="${period.taxITC}" required/>
                         </div>
                     </div>
                     <div class="form-actions">
