@@ -8,7 +8,13 @@
     <section class="portal-content">
         <div th:replace="~{fragments/layout :: flash}"></div>
         <div class="portal-card">
-            <h3>Trial Balance</h3>
+            <div class="d-flex align-items-center justify-content-between">
+                <h3>Trial Balance</h3>
+                <div>
+                    <button id="tb-refresh" class="btn-portal btn-sm"><i class="bi bi-arrow-clockwise"></i> Refresh</button>
+                    <span id="tb-spinner" class="spinner-border spinner-border-sm ms-2" role="status" aria-hidden="true" style="display:none"></span>
+                </div>
+            </div>
             <table class="table-portal table">
                 <thead>
                 <tr>
@@ -40,5 +46,68 @@
         </div>
     </section>
 </main>
+    <script>
+        (function(){
+            const refreshBtn = document.getElementById('tb-refresh');
+            const spinner = document.getElementById('tb-spinner');
+            const tbody = document.querySelector('tbody');
+            const totalDebitsEl = document.querySelector('tfoot td:nth-child(3)');
+            const totalCreditsEl = document.querySelector('tfoot td:nth-child(4)');
+            const balancedEl = document.querySelector('tfoot td:nth-child(5)');
+
+            function formatCurrency(v){
+                try{
+                    const n = Number(v);
+                    return new Intl.NumberFormat(undefined, {style:'currency', currency:'CAD'}).format(isNaN(n)?0:n);
+                } catch(e){
+                    return v;
+                }
+            }
+
+            function render(data){
+                if(!data || !data.accounts) return;
+                const rows = Object.values(data.accounts).map(acct => {
+                    const num = acct['accountNumber'] || '';
+                    const name = acct['accountName'] || '';
+                    const dr = acct['debitBalance'] || 0;
+                    const cr = acct['creditBalance'] || 0;
+                    const bal = acct['balance'] || 0;
+                    return `<tr>`+
+                        `<td>${num}</td>`+
+                        `<td>${name}</td>`+
+                        `<td class="num">${formatCurrency(dr)}</td>`+
+                        `<td class="num">${formatCurrency(cr)}</td>`+
+                        `<td class="num">${formatCurrency(bal)}</td>`+
+                        `</tr>`;
+                }).join('');
+                if(tbody) tbody.innerHTML = rows;
+                if(totalDebitsEl) totalDebitsEl.textContent = formatCurrency(data.totalDebits);
+                if(totalCreditsEl) totalCreditsEl.textContent = formatCurrency(data.totalCredits);
+                if(balancedEl) balancedEl.textContent = data.balanced ? 'Balanced' : '';
+            }
+
+            let inflight = null;
+            function setLoading(on){
+                if(spinner) spinner.style.display = on ? '' : 'none';
+                if(refreshBtn) refreshBtn.disabled = on;
+            }
+
+            function fetchTrialBalance(){
+                if(inflight) return;
+                setLoading(true);
+                inflight = fetch('/api/accounting-reports/trial-balance', {cache:'no-store'})
+                    .then(r => { if(!r.ok) throw new Error('Network'); return r.json(); })
+                    .then(json => render(json))
+                    .catch(err => console.error('Could not refresh trial balance', err))
+                    .finally(()=>{ inflight = null; setLoading(false); });
+            }
+
+            if(refreshBtn) refreshBtn.addEventListener('click', fetchTrialBalance);
+            // Auto refresh every 30 seconds
+            setInterval(fetchTrialBalance, 30000);
+            // Initial fetch to ensure latest data
+            document.addEventListener('DOMContentLoaded', function(){ fetchTrialBalance(); });
+        })();
+    </script>
 </body>
 </html>
