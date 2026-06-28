@@ -10,7 +10,13 @@
             <div th:replace="~{fragments/layout :: flash}"></div>
 
             <div class="portal-card">
-                <h3 class="portal-card-title">All Filing Periods</h3>
+                <div class="d-flex align-items-center justify-content-between">
+                    <h3 class="portal-card-title">All Filing Periods</h3>
+                    <div>
+                        <button id="periods-refresh" class="btn-portal btn-sm"><i class="bi bi-arrow-clockwise"></i> Refresh</button>
+                        <span id="periods-spinner" class="spinner-border spinner-border-sm ms-2" style="display:none"></span>
+                    </div>
+                </div>
                 <div th:if="${#lists.isEmpty(periods)}" class="empty-state">
                     No periods yet. Create one below.
                 </div>
@@ -74,5 +80,6 @@
         </section>
     </main>
 </div>
+<script th:src="@{/js/tax-periods-refresh.js}"></script>
 </body>
 </html>

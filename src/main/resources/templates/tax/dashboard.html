@@ -9,30 +9,36 @@
         <section class="portal-content">
             <div th:replace="~{fragments/layout :: flash}"></div>
 
-            <div class="hero-header">
-                <h2>Sales Tax Management</h2>
-                <p>Track TPS/GST collected for the CRA and TVQ/QST collected for Revenu Quebec. File periodic returns, record payments, and reconcile the payable accounts against the General Ledger.</p>
+            <div class="hero-header d-flex align-items-start justify-content-between">
+                <div>
+                    <h2>Sales Tax Management</h2>
+                    <p>Track TPS/GST collected for the CRA and TVQ/QST collected for Revenu Quebec. File periodic returns, record payments, and reconcile the payable accounts against the General Ledger.</p>
+                </div>
+                <div>
+                    <button id="tax-dashboard-refresh" class="btn-portal btn-sm"><i class="bi bi-arrow-clockwise"></i> Refresh</button>
+                    <span id="tax-dashboard-spinner" class="spinner-border spinner-border-sm ms-2" style="display:none"></span>
+                </div>
             </div>
 
             <div class="stat-grid">
                 <div class="stat-card">
                     <div class="stat-label">Tax Agencies</div>
-                    <div class="stat-value" th:text="${#lists.size(agencies)}">0</div>
+                    <div id="agencies-count" class="stat-value" th:text="${#lists.size(agencies)}">0</div>
                     <div class="stat-sub">Configured agencies</div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-label">Tax Codes</div>
-                    <div class="stat-value" th:text="${#lists.size(codes)}">0</div>
+                    <div id="codes-count" class="stat-value" th:text="${#lists.size(codes)}">0</div>
                     <div class="stat-sub">Rates available</div>
                 </div>
                 <div class="stat-card is-warning">
                     <div class="stat-label">Open Periods</div>
-                    <div class="stat-value" th:text="${openCount}">0</div>
+                    <div id="open-count" class="stat-value" th:text="${openCount}">0</div>
                     <div class="stat-sub">Not yet filed</div>
                 </div>
                 <div class="stat-card is-accent">
                     <div class="stat-label">Filed (Unpaid)</div>
-                    <div class="stat-value" th:text="${filedCount}">0</div>
+                    <div id="filed-count" class="stat-value" th:text="${filedCount}">0</div>
                     <div class="stat-sub">Awaiting payment</div>
                 </div>
             </div>
@@ -88,7 +94,8 @@
                 </table>
             </div>
         </section>
-    </main>
-</div>
-</body>
-</html>
+            </main>
+        </div>
+        <script th:src="@{/js/tax-dashboard-refresh.js}"></script>
+        </body>
+        </html>

@@ -10,7 +10,13 @@
             <div th:replace="~{fragments/layout :: flash}"></div>
 
             <div class="portal-card">
+                <div class="d-flex align-items-center justify-content-between">
                 <h3 class="portal-card-title">Configured Agencies</h3>
+                <div>
+                    <button id="agencies-refresh" class="btn-portal btn-sm"><i class="bi bi-arrow-clockwise"></i> Refresh</button>
+                    <span id="agencies-spinner" class="spinner-border spinner-border-sm ms-2" style="display:none"></span>
+                </div>
+            </div>
                 <table class="table-portal">
                     <thead>
                     <tr>
@@ -70,5 +76,6 @@
         </section>
     </main>
 </div>
+<script th:src="@{/js/tax-agencies-refresh.js}"></script>
 </body>
 </html>

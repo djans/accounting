@@ -10,7 +10,13 @@
             <div th:replace="~{fragments/layout :: flash}"></div>
 
             <div class="portal-card">
-                <h3 class="portal-card-title">Tax Codes</h3>
+                <div class="d-flex align-items-center justify-content-between">
+                    <h3 class="portal-card-title">Tax Codes</h3>
+                    <div>
+                        <button id="codes-refresh" class="btn-portal btn-sm"><i class="bi bi-arrow-clockwise"></i> Refresh</button>
+                        <span id="codes-spinner" class="spinner-border spinner-border-sm ms-2" style="display:none"></span>
+                    </div>
+                </div>
                 <table class="table-portal">
                     <thead>
                     <tr>
@@ -78,5 +84,6 @@
         </section>
     </main>
 </div>
+<script th:src="@{/js/tax-codes-refresh.js}"></script>
 </body>
 </html>

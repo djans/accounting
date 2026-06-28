@@ -10,15 +10,17 @@
             <div th:replace="~{fragments/layout :: flash}"></div>
 
             <div class="portal-card">
-                <h3 class="portal-card-title">
+                <h3 class="portal-card-title d-flex justify-content-between align-items-center">
                     <span>
                         <span th:text="${period.agency.name}">Agency</span>
                         <span class="badge-pill" th:text="${period.status}">OPEN</span>
                     </span>
                     <span>
+                        <button id="period-refresh" class="btn-portal btn-sm"><i class="bi bi-arrow-clockwise"></i> Refresh</button>
+                        <span id="period-spinner" class="spinner-border spinner-border-sm ms-2" style="display:none"></span>
                         <form th:action="@{/tax/periods/{id}/calculate(id=${period.id})}" method="post" style="display:inline"
                               th:if="${period.status.name() != 'PAID' and period.status.name() != 'CANCELLED'}">
-                            <button class="btn-portal btn-ghost btn-sm"><i class="bi bi-arrow-clockwise"></i> Recalculate</button>
+                            <button class="btn-portal btn-ghost btn-sm"><i class="bi bi-arrow-repeat"></i> Recalculate</button>
                         </form>
                         <form th:action="@{/tax/periods/{id}/cancel(id=${period.id})}" method="post" style="display:inline"
                               th:if="${period.status.name() != 'PAID' and period.status.name() != 'CANCELLED'}">
@@ -32,20 +34,20 @@
                 <div class="report-totals">
                     <div class="stat-card">
                         <div class="stat-label">Tax Collected</div>
-                        <div class="stat-value" th:text="${#numbers.formatCurrency(period.taxCollected)}">$0</div>
+                        <div id="period-tax-collected" class="stat-value" th:text="${#numbers.formatCurrency(period.taxCollected)}">$0</div>
                         <div class="stat-sub">From invoices in period</div>
                     </div>
                     <div class="stat-card is-accent">
                         <div class="stat-label">ITC / ITR Claimed</div>
-                        <div class="stat-value" th:text="${#numbers.formatCurrency(period.taxITC)}">$0</div>
+                        <div id="period-itc" class="stat-value" th:text="${#numbers.formatCurrency(period.taxITC)}">$0</div>
                         <div class="stat-sub">Input tax credits</div>
                     </div>
                     <div class="stat-card is-success">
                         <div class="stat-label">Net Owing</div>
-                        <div class="stat-value" th:text="${#numbers.formatCurrency(period.netOwing)}">$0</div>
+                        <div id="period-net" class="stat-value" th:text="${#numbers.formatCurrency(period.netOwing)}">$0</div>
                         <div class="stat-sub">
-                            <span th:if="${period.filedDate}">Filed <span th:text="${period.filedDate}"></span></span>
-                            <span th:if="${period.paidDate}"> · Paid <span th:text="${period.paidDate}"></span></span>
+                            <span id="period-filed" th:if="${period.filedDate}">Filed <span th:text="${period.filedDate}"></span></span>
+                            <span id="period-paid" th:if="${period.paidDate}"> · Paid <span th:text="${period.paidDate}"></span></span>
                         </div>
                     </div>
                 </div>
@@ -121,5 +123,6 @@
         </section>
     </main>
 </div>
+<script th:src="@{/js/tax-period-detail-refresh.js}"></script>
 </body>
 </html>

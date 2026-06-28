@@ -10,7 +10,13 @@
             <div th:replace="~{fragments/layout :: flash}"></div>
 
             <div class="portal-card">
-                <h3 class="portal-card-title">Payable Account Balances</h3>
+                <div class="d-flex align-items-center justify-content-between">
+                    <h3 class="portal-card-title">Payable Account Balances</h3>
+                    <div>
+                        <button id="recon-refresh" class="btn-portal btn-sm"><i class="bi bi-arrow-clockwise"></i> Refresh</button>
+                        <span id="recon-spinner" class="spinner-border spinner-border-sm ms-2" style="display:none"></span>
+                    </div>
+                </div>
                 <p class="text-muted">
                     Live balance on each tax payable account in the General Ledger.
                     This is what you currently owe to each agency from invoices already posted, minus any ITC adjustments or payments.
@@ -24,7 +30,7 @@
                         <th class="num">GL Balance</th>
                     </tr>
                     </thead>
-                    <tbody>
+                    <tbody id="recon-tbody">
                     <tr th:each="row : ${rows}">
                         <td th:text="${row.agency.code + ' — ' + row.agency.name}">CRA — Canada Revenue Agency</td>
                         <td th:text="${row.code.code + ' (' + row.code.name + ')'}">TPS</td>
@@ -37,5 +43,6 @@
         </section>
     </main>
 </div>
+<script th:src="@{/js/tax-reconciliation-refresh.js}"></script>
 </body>
 </html>
