@@ -28,7 +28,7 @@
                         <form th:action="@{/fiscal/{id}/reopen(id=${fiscalYear.id})}" method="post" style="display:inline"
                               th:if="${fiscalYear.status.name() == 'CLOSED'}">
                             <button class="btn-portal btn-ghost btn-sm"
-                                    onclick="return confirm('Rouvrir cet exercice ? L''écriture de clôture sera contrepassée.')">
+                                    onclick="return confirm('Rouvrir cet exercice ? L\'écriture de clôture sera contrepassée.')">
                                 <i class="bi bi-unlock"></i> Rouvrir
                             </button>
                         </form>

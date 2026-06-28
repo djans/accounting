@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments/layout :: head('Facture d''achat')}"></head>
+<head th:replace="~{fragments/layout :: head(\"Facture d'achat\")}"></head>
 <body>
 <div class="portal-shell">
     <div th:replace="~{fragments/layout :: sidebar('bills')}"></div>
@@ -24,7 +24,7 @@
                         </form>
                         <form th:action="@{/bills/{id}/cancel(id=${bill.id})}" method="post" style="display:inline"
                               th:if="${bill.status.name() != 'CANCELLED' and bill.status.name() != 'PAID'}">
-                            <button class="btn-portal btn-ghost btn-sm" onclick="return confirm('Annuler cette facture d''achat ?')">
+                            <button class="btn-portal btn-ghost btn-sm" onclick="return confirm('Annuler cette facture d\'achat ?')">
                                 <i class="bi bi-x-circle"></i> Annuler
                             </button>
                         </form>
@@ -174,7 +174,7 @@
             <div style="text-align:right">
                 <form th:action="@{/bills/{id}/delete(id=${bill.id})}" method="post" style="display:inline">
                     <button class="btn-portal btn-danger btn-sm"
-                            onclick="return confirm('Supprimer cette facture d''achat ?')">
+                            onclick="return confirm('Supprimer cette facture d\'achat ?')">
                         <i class="bi bi-trash"></i> Supprimer la facture
                     </button>
                 </form>
