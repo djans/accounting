@@ -41,7 +41,7 @@ jobs:
       # -----------------------------------------------------
       - name: Update deployment manifest
         run: |
-          sed -i "s|image: .*/accounting:.*|image: ${{ secrets.DOCKERHUB_USERNAME }}/accounting:${{ github.sha }}|" accounting/manifests/deployment.yaml
+          sed -i "s|image: .*/accounting:.*|image: ${{ secrets.DOCKERHUB_USERNAME }}/accounting:${{ github.sha }}|" manifests/deployment.yaml
 
       # -----------------------------------------
       # Commit & push updated manifest to GitHub
@@ -50,6 +50,6 @@ jobs:
         run: |
           git config user.name "github-actions"
           git config user.email "actions@github.com"
-          git add accounting/manifests/deployment.yaml
+          git add manifests/deployment.yaml
           git commit -m "Update image tag to ${{ github.sha }}"
           git push
