@@ -3,12 +3,40 @@
 <head th:replace="~{fragments/layout :: head('Trial Balance')}"></head>
 <body>
 <div th:replace="~{fragments/layout :: sidebar('accounting')}"></div>
-<main>
+<main class="portal-main">
     <div th:replace="~{fragments/layout :: topbar('Trial Balance')}"></div>
     <section class="portal-content">
+        <div th:replace="~{fragments/layout :: flash}"></div>
         <div class="portal-card">
             <h3>Trial Balance</h3>
-            <p>Placeholder: trial balance will be generated here from the GL (API: /api/accounting-reports/trial-balance)</p>
+            <table class="table-portal table">
+                <thead>
+                <tr>
+                    <th>Account #</th>
+                    <th>Account</th>
+                    <th class="num">Debits</th>
+                    <th class="num">Credits</th>
+                    <th class="num">Balance</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="acct : ${accounts.values()}">
+                    <td th:text="${acct['accountNumber']}">1001</td>
+                    <td th:text="${acct['accountName']}">Bank A</td>
+                    <td class="num" th:text="${#numbers.formatCurrency(acct['debitBalance'])}">$0.00</td>
+                    <td class="num" th:text="${#numbers.formatCurrency(acct['creditBalance'])}">$0.00</td>
+                    <td class="num" th:text="${#numbers.formatCurrency(acct['balance'])}">$0.00</td>
+                </tr>
+                </tbody>
+                <tfoot>
+                <tr>
+                    <td colspan="2">Totals</td>
+                    <td class="num" th:text="${#numbers.formatCurrency(totalDebits)}">$0.00</td>
+                    <td class="num" th:text="${#numbers.formatCurrency(totalCredits)}">$0.00</td>
+                    <td class="num" th:text="${balanced ? 'Balanced' : ''}"></td>
+                </tr>
+                </tfoot>
+            </table>
         </div>
     </section>
 </main>

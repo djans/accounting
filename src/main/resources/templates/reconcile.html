@@ -3,12 +3,28 @@
 <head th:replace="~{fragments/layout :: head('Reconcile')}"></head>
 <body>
 <div th:replace="~{fragments/layout :: sidebar('accounting')}"></div>
-<main>
+<main class="portal-main">
     <div th:replace="~{fragments/layout :: topbar('Reconcile')}"></div>
     <section class="portal-content">
+        <div th:replace="~{fragments/layout :: flash}"></div>
         <div class="portal-card">
             <h3>Reconcile</h3>
-            <p>Placeholder page: bank reconciliation UI will appear here.</p>
+            <table class="table-portal table">
+                <thead>
+                <tr>
+                    <th>Account #</th>
+                    <th>Account</th>
+                    <th class="num">Balance</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="r : ${rows}">
+                    <td th:text="${r.accountNumber}">1001</td>
+                    <td th:text="${r.accountName}">Bank A</td>
+                    <td class="num" th:text="${r.balance != null ? #numbers.formatCurrency(r.balance) : '-'}">$0.00</td>
+                </tr>
+                </tbody>
+            </table>
         </div>
     </section>
 </main>
