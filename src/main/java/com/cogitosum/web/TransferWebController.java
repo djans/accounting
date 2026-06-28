@@ -8,12 +8,14 @@ import org.springframework.web.bind.annotation.RequestMapping;
 @Controller
 @RequestMapping("/transfers")
 public class TransferWebController {
-n    @GetMapping
+
+    @GetMapping
     public String list(Model model) {
         // Placeholder implementation
         return "transfers/list";
     }
-n    @GetMapping("/new")
+
+    @GetMapping("/new")
     public String newForm(Model model) {
         // Placeholder transfer form
         return "transfers/form";

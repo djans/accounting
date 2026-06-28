@@ -8,7 +8,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 @Controller
 @RequestMapping("/reports/tax")
 public class TaxReportWebController {
-n    @GetMapping
+
+    @GetMapping
     public String index(Model model) {
         // Placeholder tax reports landing page
         return "reports/tax";
