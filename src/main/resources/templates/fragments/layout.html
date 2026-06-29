@@ -144,9 +144,9 @@
     <h1 th:text="${pageTitle}">Page Title</h1>
     <div class="topbar-actions">
         <div class="language-switcher">
-            <a th:href="@{${#request.requestURI}(lang=en)}" class="btn-lang" th:classappend="${#locale.language == 'en'} ? 'active'">EN</a>
+            <a th:href="@{${requestURI}(lang=en)}" class="btn-lang" th:classappend="${#locale.language == 'en'} ? 'active'">EN</a>
             <span class="lang-separator">|</span>
-            <a th:href="@{${#request.requestURI}(lang=fr)}" class="btn-lang" th:classappend="${#locale.language == 'fr'} ? 'active'">FR</a>
+            <a th:href="@{${requestURI}(lang=fr)}" class="btn-lang" th:classappend="${#locale.language == 'fr'} ? 'active'">FR</a>
         </div>
         <span class="text-muted small">
             <i class="bi bi-database"></i>
