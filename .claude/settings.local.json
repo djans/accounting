@@ -14,7 +14,9 @@
       "Bash(/c/Windows/System32/where.exe javac *)",
       "Read(//c/Program Files/Java//**)",
       "Read(//c/Program Files/Common Files/**)",
-      "Read(//c/Program Files/JetBrains//**)"
+      "Read(//c/Program Files/JetBrains//**)",
+      "Bash(xargs grep -l \"WebMvcConfigurer\\\\|@SpringBootApplication\\\\|WebSecurity\\\\|SecurityFilterChain\\\\|addInterceptors\")",
+      "Read(//tmp/**)"
     ]
   }
 }

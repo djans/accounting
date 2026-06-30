@@ -55,7 +55,13 @@
                 btn.addEventListener('click', function(){ toggleSection(name, btn); });
                 const state = localStorage.getItem('sidebar-section-' + name);
                 const section = document.querySelector('[data-section="' + name + '"]');
-                if (section && state === 'collapsed') section.classList.add('collapsed');
+                if (!section) return;
+                // Collapsed by default; only expand sections the user explicitly opened.
+                if (state === 'expanded') {
+                    section.classList.remove('collapsed');
+                } else {
+                    section.classList.add('collapsed');
+                }
             });
         }
 
@@ -75,67 +81,67 @@
     </div>
 
     <!-- Overview -->
-    <div class="nav-section" data-section="overview">
-        <button class="section-toggle" data-section="overview">Overview <i class="bi bi-chevron-down"></i></button>
+    <div class="nav-section collapsed" data-section="overview">
+        <button class="section-toggle" data-section="overview"><span th:text="#{nav.section.overview}">Overview</span> <i class="bi bi-chevron-down"></i></button>
     </div>
     <div class="nav-group">
         <a th:href="@{/}" class="nav-link" th:classappend="${active=='dashboard'} ? ' active'">
-            <i class="bi bi-grid-1x2-fill nav-icon"></i> Dashboard
+            <i class="bi bi-grid-1x2-fill nav-icon"></i> <span th:text="#{nav.dashboard}">Dashboard</span>
         </a>
     </div>
 
     <!-- Billing -->
-    <div class="nav-section" data-section="billing">
-        <button class="section-toggle" data-section="billing">Billing <i class="bi bi-chevron-down"></i></button>
+    <div class="nav-section collapsed" data-section="billing">
+        <button class="section-toggle" data-section="billing"><span th:text="#{nav.section.billing}">Billing</span> <i class="bi bi-chevron-down"></i></button>
     </div>
     <div class="nav-group">
-        <a th:href="@{/customers}" class="nav-link" th:classappend="${active=='customers'} ? ' active'"><i class="bi bi-people-fill nav-icon"></i> Customers</a>
-        <a th:href="@{/invoices}" class="nav-link" th:classappend="${active=='invoices'} ? ' active'"><i class="bi bi-receipt nav-icon"></i> Invoices</a>
-        <a th:href="@{/invoices/new}" class="nav-link" title="Create Invoice (Ctrl+I)"><i class="bi bi-plus-square nav-icon"></i> Create Invoice <span class="nav-hotkey">Ctrl+I</span></a>
-        <a th:href="@{/payments}" class="nav-link" th:classappend="${active=='payments'} ? ' active'"><i class="bi bi-cash-coin nav-icon"></i> Payments</a>
-        <a th:href="@{/payments/new}" class="nav-link"><i class="bi bi-wallet2 nav-icon"></i> Receive Payments</a>
-        <a th:href="@{/cheques}" class="nav-link" th:classappend="${active=='cheques'} ? ' active'"><i class="bi bi-wallet2 nav-icon"></i> Cheques <span class="nav-hotkey">Ctrl+W</span></a>
-        <a th:href="@{/cheques/new}" class="nav-link"><i class="bi bi-pencil-square nav-icon"></i> New Cheque</a>
-        <a th:href="@{/transfers}" class="nav-link" th:classappend="${active=='transfers'} ? ' active'"><i class="bi bi-arrow-left-right nav-icon"></i> Transfers</a>
-        <a th:href="@{/reports/billing}" class="nav-link" th:classappend="${active=='billing-reports'} ? ' active'"><i class="bi bi-bar-chart-line nav-icon"></i> Billing Reports</a>
+        <a th:href="@{/customers}" class="nav-link" th:classappend="${active=='customers'} ? ' active'"><i class="bi bi-people-fill nav-icon"></i> <span th:text="#{nav.customers}">Customers</span></a>
+        <a th:href="@{/invoices}" class="nav-link" th:classappend="${active=='invoices'} ? ' active'"><i class="bi bi-receipt nav-icon"></i> <span th:text="#{nav.invoices}">Invoices</span></a>
+        <a th:href="@{/invoices/new}" class="nav-link" th:title="#{nav.createInvoice} + ' (Ctrl+I)'"><i class="bi bi-plus-square nav-icon"></i> <span th:text="#{nav.createInvoice}">Create Invoice</span> <span class="nav-hotkey">Ctrl+I</span></a>
+        <a th:href="@{/payments}" class="nav-link" th:classappend="${active=='payments'} ? ' active'"><i class="bi bi-cash-coin nav-icon"></i> <span th:text="#{nav.payments}">Payments</span></a>
+        <a th:href="@{/payments/new}" class="nav-link"><i class="bi bi-wallet2 nav-icon"></i> <span th:text="#{nav.receivePayments}">Receive Payments</span></a>
+        <a th:href="@{/cheques}" class="nav-link" th:classappend="${active=='cheques'} ? ' active'"><i class="bi bi-wallet2 nav-icon"></i> <span th:text="#{nav.cheques}">Cheques</span> <span class="nav-hotkey">Ctrl+W</span></a>
+        <a th:href="@{/cheques/new}" class="nav-link"><i class="bi bi-pencil-square nav-icon"></i> <span th:text="#{nav.newCheque}">New Cheque</span></a>
+        <a th:href="@{/transfers}" class="nav-link" th:classappend="${active=='transfers'} ? ' active'"><i class="bi bi-arrow-left-right nav-icon"></i> <span th:text="#{nav.transfers}">Transfers</span></a>
+        <a th:href="@{/reports/billing}" class="nav-link" th:classappend="${active=='billing-reports'} ? ' active'"><i class="bi bi-bar-chart-line nav-icon"></i> <span th:text="#{nav.billingReports}">Billing Reports</span></a>
     </div>
 
     <!-- Purchases -->
-    <div class="nav-section" data-section="purchases">
-    <button class="section-toggle" data-section="purchases">Achats <i class="bi bi-chevron-down"></i></button>
+    <div class="nav-section collapsed" data-section="purchases">
+    <button class="section-toggle" data-section="purchases"><span th:text="#{nav.section.purchases}">Purchases</span> <i class="bi bi-chevron-down"></i></button>
     </div>
     <div class="nav-group">
-        <a th:href="@{/vendors}" class="nav-link" th:classappend="${active=='vendors'} ? ' active'"><i class="bi bi-truck nav-icon"></i> Fournisseurs</a>
-        <a th:href="@{/bills}" class="nav-link" th:classappend="${active=='bills'} ? ' active'"><i class="bi bi-receipt-cutoff nav-icon"></i> Factures d'achat</a>
+        <a th:href="@{/vendors}" class="nav-link" th:classappend="${active=='vendors'} ? ' active'"><i class="bi bi-truck nav-icon"></i> <span th:text="#{nav.vendors}">Vendors</span></a>
+        <a th:href="@{/bills}" class="nav-link" th:classappend="${active=='bills'} ? ' active'"><i class="bi bi-receipt-cutoff nav-icon"></i> <span th:text="#{nav.bills}">Purchase Invoices</span></a>
     </div>
 
     <!-- Accounting -->
-    <div class="nav-section" data-section="accounting">
-        <button class="section-toggle" data-section="accounting">Accounting <i class="bi bi-chevron-down"></i></button>
+    <div class="nav-section collapsed" data-section="accounting">
+        <button class="section-toggle" data-section="accounting"><span th:text="#{nav.section.accounting}">Accounting</span> <i class="bi bi-chevron-down"></i></button>
     </div>
     <div class="nav-group">
-        <a th:href="@{/accounts}" class="nav-link" th:classappend="${active=='accounts'} ? ' active'"><i class="bi bi-journal-text nav-icon"></i> Chart of Accounts</a>
-        <a th:href="@{/journals}" class="nav-link" th:classappend="${active=='journals'} ? ' active'"><i class="bi bi-pencil-square nav-icon"></i> General Journal</a>
-        <a th:href="@{/journals/new}" class="nav-link"><i class="bi bi-journal-plus nav-icon"></i> Make General Journal Entries...</a>
-        <a th:href="@{/ledger}" class="nav-link" th:classappend="${active=='ledger'} ? ' active'"><i class="bi bi-collection nav-icon"></i> General Ledger</a>
-        <a th:href="@{/reports/accounting}" class="nav-link" th:classappend="${active=='accounting-reports'} ? ' active'"><i class="bi bi-pie-chart-fill nav-icon"></i> Financial Statements</a>
-        <a th:href="@{/accounting/trial-balance}" class="nav-link"><i class="bi bi-check2-square nav-icon"></i> Trial Balance</a>
-        <a th:href="@{/fiscal}" class="nav-link" th:classappend="${active=='fiscal'} ? ' active'"><i class="bi bi-calendar-check nav-icon"></i> Exercices / Clôture</a>
-        <a th:href="@{/reconcile}" class="nav-link"><i class="bi bi-ui-checks-grid nav-icon"></i> Reconcile</a>
+        <a th:href="@{/accounts}" class="nav-link" th:classappend="${active=='accounts'} ? ' active'"><i class="bi bi-journal-text nav-icon"></i> <span th:text="#{nav.chartOfAccounts}">Chart of Accounts</span></a>
+        <a th:href="@{/journals}" class="nav-link" th:classappend="${active=='journals'} ? ' active'"><i class="bi bi-pencil-square nav-icon"></i> <span th:text="#{nav.generalJournal}">General Journal</span></a>
+        <a th:href="@{/journals/new}" class="nav-link"><i class="bi bi-journal-plus nav-icon"></i> <span th:text="#{nav.makeJournalEntries}">Make General Journal Entries...</span></a>
+        <a th:href="@{/ledger}" class="nav-link" th:classappend="${active=='ledger'} ? ' active'"><i class="bi bi-collection nav-icon"></i> <span th:text="#{nav.generalLedger}">General Ledger</span></a>
+        <a th:href="@{/reports/accounting}" class="nav-link" th:classappend="${active=='accounting-reports'} ? ' active'"><i class="bi bi-pie-chart-fill nav-icon"></i> <span th:text="#{nav.financialStatements}">Financial Statements</span></a>
+        <a th:href="@{/accounting/trial-balance}" class="nav-link"><i class="bi bi-check2-square nav-icon"></i> <span th:text="#{nav.trialBalance}">Trial Balance</span></a>
+        <a th:href="@{/fiscal}" class="nav-link" th:classappend="${active=='fiscal'} ? ' active'"><i class="bi bi-calendar-check nav-icon"></i> <span th:text="#{nav.fiscalClose}">Fiscal Years / Closing</span></a>
+        <a th:href="@{/reconcile}" class="nav-link"><i class="bi bi-ui-checks-grid nav-icon"></i> <span th:text="#{nav.reconcile}">Reconcile</span></a>
     </div>
 
     <!-- Sales Tax -->
-    <div class="nav-section" data-section="tax">
-        <button class="section-toggle" data-section="tax">Sales Tax (TPS / TVQ) <i class="bi bi-chevron-down"></i></button>
+    <div class="nav-section collapsed" data-section="tax">
+        <button class="section-toggle" data-section="tax"><span th:text="#{nav.section.tax}">Sales Tax (GST / QST)</span> <i class="bi bi-chevron-down"></i></button>
     </div>
     <div class="nav-group">
-        <a th:href="@{/tax}" class="nav-link" th:classappend="${active=='tax-dashboard'} ? ' active'"><i class="bi bi-shield-check nav-icon"></i> Tax Dashboard</a>
-        <a th:href="@{/tax/periods}" class="nav-link" th:classappend="${active=='tax-periods'} ? ' active'"><i class="bi bi-calendar-event nav-icon"></i> Filing Periods</a>
-        <a th:href="@{/tax/reconciliation}" class="nav-link" th:classappend="${active=='tax-reconciliation'} ? ' active'"><i class="bi bi-arrow-left-right nav-icon"></i> Reconciliation</a>
-        <a th:href="@{/tax/agencies}" class="nav-link" th:classappend="${active=='tax-agencies'} ? ' active'"><i class="bi bi-building nav-icon"></i> Tax Agencies</a>
-        <a th:href="@{/tax/agencies/report}" class="nav-link"><i class="bi bi-file-earmark-bar-graph nav-icon"></i> Tax Agency Report</a>
-        <a th:href="@{/tax/agencies/detail}" class="nav-link"><i class="bi bi-file-earmark-text nav-icon"></i> Tax Agency Detail Report</a>
-        <a th:href="@{/tax/codes}" class="nav-link" th:classappend="${active=='tax-codes'} ? ' active'"><i class="bi bi-percent nav-icon"></i> Tax Codes</a>
+        <a th:href="@{/tax}" class="nav-link" th:classappend="${active=='tax-dashboard'} ? ' active'"><i class="bi bi-shield-check nav-icon"></i> <span th:text="#{nav.taxDashboard}">Tax Dashboard</span></a>
+        <a th:href="@{/tax/periods}" class="nav-link" th:classappend="${active=='tax-periods'} ? ' active'"><i class="bi bi-calendar-event nav-icon"></i> <span th:text="#{nav.filingPeriods}">Filing Periods</span></a>
+        <a th:href="@{/tax/reconciliation}" class="nav-link" th:classappend="${active=='tax-reconciliation'} ? ' active'"><i class="bi bi-arrow-left-right nav-icon"></i> <span th:text="#{nav.reconciliation}">Reconciliation</span></a>
+        <a th:href="@{/tax/agencies}" class="nav-link" th:classappend="${active=='tax-agencies'} ? ' active'"><i class="bi bi-building nav-icon"></i> <span th:text="#{nav.taxAgencies}">Tax Agencies</span></a>
+        <a th:href="@{/tax/agencies/report}" class="nav-link"><i class="bi bi-file-earmark-bar-graph nav-icon"></i> <span th:text="#{nav.taxAgencyReport}">Tax Agency Report</span></a>
+        <a th:href="@{/tax/agencies/detail}" class="nav-link"><i class="bi bi-file-earmark-text nav-icon"></i> <span th:text="#{nav.taxAgencyDetailReport}">Tax Agency Detail Report</span></a>
+        <a th:href="@{/tax/codes}" class="nav-link" th:classappend="${active=='tax-codes'} ? ' active'"><i class="bi bi-percent nav-icon"></i> <span th:text="#{nav.taxCodes}">Tax Codes</span></a>
     </div>
 
 </aside>
