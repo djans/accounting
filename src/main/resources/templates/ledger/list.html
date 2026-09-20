@@ -23,6 +23,7 @@
                         <th class="num">Total Credits</th>
                         <th class="num">Balance</th>
                         <th>Last Updated</th>
+                        <th></th>
                     </tr>
                     </thead>
                     <tbody>
@@ -35,6 +36,7 @@
                         <td class="num" style="font-weight:600"
                             th:text="${#numbers.formatCurrency(gl.balance)}">$0</td>
                         <td th:text="${gl.lastUpdated}">—</td>
+                        <td><a class="btn-portal btn-ghost btn-sm" th:href="@{/ledger/{id}/edit(id=${gl.id})}">Edit</a></td>
                     </tr>
                     </tbody>
                 </table>

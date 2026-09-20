@@ -12,7 +12,10 @@
             <div class="portal-card">
                 <h3 class="portal-card-title">
                     All Payments
-                    <a th:href="@{/payments/new}" class="btn-portal"><i class="bi bi-plus-lg"></i> Record Payment</a>
+                    <div class="d-flex gap-2">
+                        <a th:href="@{/payments/customer}" class="btn-portal btn-ghost"><i class="bi bi-person"></i> Paiement Client</a>
+                        <a th:href="@{/payments/new}" class="btn-portal"><i class="bi bi-plus-lg"></i> Record Payment</a>
+                    </div>
                 </h3>
                 <div th:if="${#lists.isEmpty(payments)}" class="empty-state">
                     No payments yet.

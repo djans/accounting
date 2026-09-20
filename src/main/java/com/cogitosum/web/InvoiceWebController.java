@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -35,6 +36,9 @@ public class InvoiceWebController {
     public String newForm(Model model) {
         model.addAttribute("customers", customerService.getAllCustomers());
         model.addAttribute("regimes", invoiceService.getRegimes());
+        model.addAttribute("invoice", new Invoice());
+        model.addAttribute("suggestedNumber", invoiceService.suggestNextInvoiceNumber());
+        model.addAttribute("isEdit", false);
         return "invoices/form";
     }
 
@@ -42,6 +46,9 @@ public class InvoiceWebController {
     public String create(@RequestParam Long customerId,
                          @RequestParam(required = false) String taxRegime,
                          @RequestParam(required = false) String notes,
+                         @RequestParam(required = false) String invoiceNumber,
+                         @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) LocalDate invoiceDate,
+                         @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) LocalDate dueDate,
                          @RequestParam(required = false) List<String> descriptions,
                          @RequestParam(required = false) List<BigDecimal> quantities,
                          @RequestParam(required = false) List<BigDecimal> unitPrices,
@@ -53,6 +60,9 @@ public class InvoiceWebController {
             Invoice invoice = new Invoice();
             invoice.setCustomer(customer);
             invoice.setNotes(notes);
+            invoice.setInvoiceNumber(invoiceNumber);
+            invoice.setInvoiceDate(invoiceDate);
+            invoice.setDueDate(dueDate);
             invoice.setStatus(InvoiceStatus.DRAFT);
 
             List<LineItem> items = new ArrayList<>();
@@ -80,6 +90,80 @@ public class InvoiceWebController {
             ra.addFlashAttribute("flashError", "Could not create invoice: " + e.getMessage());
             return "redirect:/invoices/new";
         }
+    }
+
+    @GetMapping("/{id}/edit")
+    public String editForm(@PathVariable Long id, Model model, RedirectAttributes ra) {
+        return invoiceService.getInvoiceById(id).map(invoice -> {
+            if (invoice.getStatus() != InvoiceStatus.DRAFT) {
+                ra.addFlashAttribute("flashError", "Only draft invoices can be edited");
+                return "redirect:/invoices/" + id;
+            }
+            model.addAttribute("invoice", invoice);
+            model.addAttribute("customers", customerService.getAllCustomers());
+            model.addAttribute("regimes", invoiceService.getRegimes());
+            model.addAttribute("selectedTaxRegime", invoiceService.effectiveTaxRegime(invoice));
+            model.addAttribute("isEdit", true);
+            return "invoices/form";
+        }).orElseGet(() -> {
+            ra.addFlashAttribute("flashError", "Invoice not found");
+            return "redirect:/invoices";
+        });
+    }
+
+    @PostMapping("/{id}")
+    public String update(@PathVariable Long id, @RequestParam Long customerId,
+                         @RequestParam(required = false) String taxRegime,
+                         @RequestParam(required = false) String notes,
+                         @RequestParam(required = false) String invoiceNumber,
+                         @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) LocalDate invoiceDate,
+                         @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) LocalDate dueDate,
+                         @RequestParam(required = false) List<String> descriptions,
+                         @RequestParam(required = false) List<BigDecimal> quantities,
+                         @RequestParam(required = false) List<BigDecimal> unitPrices,
+                         RedirectAttributes ra) {
+        try {
+            Invoice invoice = new Invoice();
+            invoice.setInvoiceNumber(invoiceNumber);
+            invoice.setCustomer(customerService.getCustomerById(customerId).orElseThrow());
+            invoice.setInvoiceDate(invoiceDate);
+            invoice.setDueDate(dueDate);
+            invoice.setNotes(notes);
+            invoice.setLineItems(buildLineItems(descriptions, quantities, unitPrices, invoice));
+            invoiceService.updateInvoice(id, invoice, taxRegime);
+            ra.addFlashAttribute("flashSuccess", "Invoice updated");
+        } catch (Exception e) {
+            ra.addFlashAttribute("flashError", "Could not update invoice: " + e.getMessage());
+        }
+        return "redirect:/invoices/" + id;
+    }
+
+    @PostMapping("/{id}/duplicate")
+    public String duplicate(@PathVariable Long id, RedirectAttributes ra) {
+        try {
+            Invoice copy = invoiceService.duplicateInvoice(id);
+            ra.addFlashAttribute("flashSuccess", "Invoice duplicated as " + copy.getInvoiceNumber());
+            return "redirect:/invoices/" + copy.getId() + "/edit";
+        } catch (Exception e) {
+            ra.addFlashAttribute("flashError", "Could not duplicate invoice: " + e.getMessage());
+            return "redirect:/invoices/" + id;
+        }
+    }
+
+    private List<LineItem> buildLineItems(List<String> descriptions, List<BigDecimal> quantities,
+                                          List<BigDecimal> unitPrices, Invoice invoice) {
+        List<LineItem> items = new ArrayList<>();
+        if (descriptions == null) return items;
+        for (int i = 0; i < descriptions.size(); i++) {
+            if (descriptions.get(i) == null || descriptions.get(i).isBlank()) continue;
+            LineItem item = new LineItem();
+            item.setInvoice(invoice);
+            item.setDescription(descriptions.get(i));
+            item.setQuantity(quantities.get(i));
+            item.setUnitPrice(unitPrices.get(i));
+            items.add(item);
+        }
+        return items;
     }
 
     @GetMapping("/{id}")

@@ -3,7 +3,7 @@
 <head th:replace="~{fragments/layout :: head('Tax Reconciliation')}"></head>
 <body>
 <div class="portal-shell">
-    <div th:replace="~{fragments/layout :: sidebar('tax-reconciliation')}"></div>
+    <div th:replace="~{fragments/layout :: sidebar(${active})}"></div>
     <main class="portal-main">
         <div th:replace="~{fragments/layout :: topbar('Tax Reconciliation')}"></div>
         <section class="portal-content">

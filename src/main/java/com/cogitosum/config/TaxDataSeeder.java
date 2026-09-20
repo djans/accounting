@@ -4,6 +4,7 @@ import com.cogitosum.entity.*;
 import com.cogitosum.repository.ChartOfAccountRepository;
 import com.cogitosum.repository.TaxAgencyRepository;
 import com.cogitosum.repository.TaxCodeRepository;
+import com.cogitosum.repository.TaxGroupRepository;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 
@@ -15,13 +16,16 @@ public class TaxDataSeeder implements CommandLineRunner {
     private final ChartOfAccountRepository accounts;
     private final TaxAgencyRepository agencies;
     private final TaxCodeRepository codes;
+    private final TaxGroupRepository taxGroups;
 
     public TaxDataSeeder(ChartOfAccountRepository accounts,
                          TaxAgencyRepository agencies,
-                         TaxCodeRepository codes) {
+                         TaxCodeRepository codes,
+                         TaxGroupRepository taxGroups) {
         this.accounts = accounts;
         this.agencies = agencies;
         this.codes = codes;
+        this.taxGroups = taxGroups;
     }
 
     @Override
@@ -29,6 +33,7 @@ public class TaxDataSeeder implements CommandLineRunner {
         seedAccounts();
         seedAgencies();
         seedCodes();
+        seedGroups();
     }
 
     private void seedAccounts() {
@@ -40,6 +45,7 @@ public class TaxDataSeeder implements CommandLineRunner {
         ensureAccount("1300", "TPS à recevoir (CTI)", AccountType.ASSET, "Crédit de taxe sur intrants — TPS payée sur les achats, récupérable");
         ensureAccount("1310", "TVQ à recevoir (RTI)", AccountType.ASSET, "Remboursement de taxe sur intrants — TVQ payée sur les achats, récupérable");
         ensureAccount("1320", "HST à recevoir (CTI)", AccountType.ASSET, "Crédit de taxe sur intrants — HST payée sur les achats, récupérable");
+        ensureAccount("1330", "TPS/TVH/TVQ_2013", AccountType.ASSET, "Compte de taxe combiné 2013");
         ensureAccount("1400", "Charges payées d'avance", AccountType.ASSET, "Loyer, assurances, abonnements payés d'avance");
         ensureAccount("1500", "Immobilisations", AccountType.ASSET, "Équipement, véhicules, bâtiments");
         ensureAccount("1510", "Amortissement cumulé — Immobilisations", AccountType.ASSET, "Amortissement déduit des immobilisations");
@@ -107,33 +113,82 @@ public class TaxDataSeeder implements CommandLineRunner {
     private void seedAgencies() {
         ensureAgency("CRA", "Canada Revenue Agency", "https://www.canada.ca/en/revenue-agency.html");
         ensureAgency("RQ", "Revenu Quebec", "https://www.revenuquebec.ca/");
+        ensureAgency("MRQ2013", "Ministere du Revenue (TPS/TVQ_2013)", null);
     }
 
     private void seedCodes() {
         TaxAgency cra = agencies.findByCode("CRA").orElseThrow();
         TaxAgency rq = agencies.findByCode("RQ").orElseThrow();
+        TaxAgency mrq2013 = agencies.findByCode("MRQ2013").orElseThrow();
+
         ChartOfAccount tpsPayable = accounts.findByAccountNumber("2310").orElseThrow();
         ChartOfAccount tvqPayable = accounts.findByAccountNumber("2320").orElseThrow();
         ChartOfAccount hstPayable = accounts.findByAccountNumber("2330").orElseThrow();
         ChartOfAccount tpsItc = accounts.findByAccountNumber("1300").orElseThrow();
         ChartOfAccount tvqItc = accounts.findByAccountNumber("1310").orElseThrow();
         ChartOfAccount hstItc = accounts.findByAccountNumber("1320").orElseThrow();
+        ChartOfAccount combined2013 = accounts.findByAccountNumber("1330").orElseThrow();
 
         ensureCode("TPS", "Taxe sur les produits et services (5%)", new BigDecimal("0.05000"), cra, tpsPayable, tpsItc);
         ensureCode("TVQ", "Taxe de vente du Quebec (9.975%)", new BigDecimal("0.09975"), rq, tvqPayable, tvqItc);
         ensureCode("HST-ON", "Ontario HST (13%)", new BigDecimal("0.13000"), cra, hstPayable, hstItc);
         ensureCode("HST-15", "Maritime HST (15%)", new BigDecimal("0.15000"), cra, hstPayable, hstItc);
+
+        // Données 2013
+        ensureCode("S13-TPS", "TPS/GST_2013 (5%)", new BigDecimal("0.05000"), mrq2013, combined2013, combined2013);
+        ensureCode("S13-TVQ", "TVQ/QST_2013 (9.98%)", new BigDecimal("0.09980"), mrq2013, combined2013, combined2013);
+        ensureCode("S13-TPS-ITC", "TPS(CTI)/GST(ITC)_2013 (5%)", new BigDecimal("0.05000"), mrq2013, combined2013, combined2013);
+        ensureCode("S13-TVQ-ITC", "TVQ(CTI)/QST(ITC) (9.98%)", new BigDecimal("0.09980"), mrq2013, combined2013, combined2013);
+    }
+
+    private void seedGroups() {
+        ensureGroup("QC", "Québec (TPS + TVQ)", "TPS", "TVQ");
+        ensureGroup("ON", "Ontario (HST 13%)", "HST-ON");
+        ensureGroup("MARITIME", "Maritimes (HST 15%)", "HST-15");
+        ensureGroup("FED", "Fédéral (TPS seulement)", "TPS");
+    }
+
+    private void ensureGroup(String code, String name, String... itemCodes) {
+        if (taxGroups.findByCode(code).isPresent()) return;
+        TaxGroup g = new TaxGroup();
+        g.setCode(code);
+        g.setName(name);
+        for (String ic : itemCodes) {
+            codes.findByCode(ic).ifPresent(g.getTaxItems()::add);
+        }
+        taxGroups.save(g);
     }
 
     private void ensureAccount(String number, String name, AccountType type, String description) {
-        if (accounts.findByAccountNumber(number).isPresent()) return;
+        var existing = accounts.findByAccountNumber(number);
+        if (existing.isPresent()) {
+            ChartOfAccount account = existing.get();
+            if (account.getCategory() == null) {
+                account.setCategory(defaultCategory(number, type));
+                accounts.save(account);
+            }
+            return;
+        }
         ChartOfAccount a = new ChartOfAccount();
         a.setAccountNumber(number);
         a.setAccountName(name);
         a.setAccountType(type);
+        a.setCategory(defaultCategory(number, type));
         a.setDescription(description);
         a.setActive(true);
         accounts.save(a);
+    }
+
+    private AccountCategory defaultCategory(String number, AccountType type) {
+        if ("1000".equals(number) || "1010".equals(number)) return AccountCategory.BANK;
+        if ("1100".equals(number) || "1110".equals(number)) return AccountCategory.ACCOUNTS_RECEIVABLE;
+        if ("2000".equals(number)) return AccountCategory.ACCOUNTS_PAYABLE;
+        if ("2500".equals(number)) return AccountCategory.LONG_TERM_LIABILITY;
+        if (type == AccountType.ASSET) return AccountCategory.OTHER_CURRENT_ASSET;
+        if (type == AccountType.LIABILITY) return AccountCategory.OTHER_CURRENT_LIABILITY;
+        if (type == AccountType.EQUITY) return AccountCategory.EQUITY;
+        if (type == AccountType.REVENUE) return AccountCategory.INCOME;
+        return AccountCategory.EXPENSE;
     }
 
     private void ensureAgency(String code, String name, String website) {
@@ -155,6 +210,8 @@ public class TaxDataSeeder implements CommandLineRunner {
         c.setAgency(agency);
         c.setPayableAccount(payable);
         c.setItcAccount(itc);
+        c.setForSales(true);
+        c.setForPurchases(true);
         c.setActive(true);
         codes.save(c);
     }

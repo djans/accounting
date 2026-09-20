@@ -1,47 +1,52 @@
 <!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments/layout :: head('Customers')}"></head>
+<html lang="fr" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Clients')}"></head>
 <body>
 <div class="portal-shell">
     <div th:replace="~{fragments/layout :: sidebar('customers')}"></div>
     <main class="portal-main">
-        <div th:replace="~{fragments/layout :: topbar('Customers')}"></div>
+        <div th:replace="~{fragments/layout :: topbar('Clients')}"></div>
         <section class="portal-content">
             <div th:replace="~{fragments/layout :: flash}"></div>
 
             <div class="portal-card">
                 <h3 class="portal-card-title">
-                    All Customers
-                    <a th:href="@{/customers/new}" class="btn-portal"><i class="bi bi-plus-lg"></i> New Customer</a>
+                    Tous les clients
+                    <a th:href="@{/customers/new}" class="btn-portal"><i class="bi bi-plus-lg"></i> Nouveau client</a>
                 </h3>
                 <div th:if="${#lists.isEmpty(customers)}" class="empty-state">
-                    No customers yet. <a th:href="@{/customers/new}">Add the first one</a>.
+                    Aucun client pour le moment. <a th:href="@{/customers/new}">Ajouter le premier</a>.
                 </div>
                 <table th:if="${not #lists.isEmpty(customers)}" class="table-portal">
                     <thead>
                     <tr>
-                        <th>Business</th>
+                        <th>Entreprise</th>
                         <th>Contact</th>
+                        <th>Téléphone</th>
                         <th>Email</th>
-                        <th>Province</th>
-                        <th>GST #</th>
+                        <th>TPS/TVH</th>
+                        <th>Statut</th>
                         <th></th>
                     </tr>
                     </thead>
                     <tbody>
-                    <tr th:each="c : ${customers}">
+                    <tr th:each="c : ${customers}" th:classappend="${c.inactive} ? 'text-muted' : ''">
                         <td th:text="${c.businessName}">Business</td>
                         <td th:text="${c.name}">Name</td>
+                        <td th:text="${c.mainPhone ?: '—'}">—</td>
                         <td th:text="${c.email}">email</td>
-                        <td th:text="${c.province}">ON</td>
-                        <td th:text="${c.gstNumber}">—</td>
+                        <td th:text="${c.salesTaxRegistrationNumber ?: c.gstNumber ?: '—'}">—</td>
+                        <td>
+                            <span th:if="${c.inactive}" class="badge bg-secondary">Inactif</span>
+                            <span th:unless="${c.inactive}" class="badge bg-success">Actif</span>
+                        </td>
                         <td style="text-align:right; white-space:nowrap;">
                             <a th:href="@{/customers/{id}/edit(id=${c.id})}" class="btn-portal btn-ghost btn-sm">
-                                <i class="bi bi-pencil"></i> Edit
+                                <i class="bi bi-pencil"></i> Modifier
                             </a>
                             <form th:action="@{/customers/{id}/delete(id=${c.id})}" method="post" style="display:inline">
                                 <button type="submit" class="btn-portal btn-danger btn-sm"
-                                        onclick="return confirm('Delete this customer?')">
+                                        onclick="return confirm('Supprimer ce client ?')">
                                     <i class="bi bi-trash"></i>
                                 </button>
                             </form>

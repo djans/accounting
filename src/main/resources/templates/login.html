@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="fr" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(#{auth.login.title})}"></head>
+<body>
+<main class="portal-main" style="max-width:520px;margin:4rem auto;">
+    <section class="portal-content">
+        <div class="portal-card">
+            <h1 class="portal-card-title" th:text="#{auth.login.title}">Connexion</h1>
+            <div th:if="${param.error}" class="flash flash-error" th:text="#{auth.login.error}">
+                Identifiants invalides.
+            </div>
+            <div th:if="${param.logout}" class="flash flash-success" th:text="#{auth.login.logout}">
+                Vous êtes déconnecté.
+            </div>
+            <form th:action="@{/login}" method="post">
+                <div class="form-field">
+                    <label for="username" th:text="#{auth.login.email}">Adresse courriel</label>
+                    <input id="username" name="username" type="email" autocomplete="username" required/>
+                </div>
+                <div class="form-field" style="margin-top:1rem;">
+                    <label for="password" th:text="#{auth.login.password}">Mot de passe</label>
+                    <input id="password" name="password" type="password" autocomplete="current-password" required/>
+                </div>
+                <button type="submit" class="btn-portal" style="margin-top:1.25rem;">
+                    <i class="bi bi-box-arrow-in-right"></i> <span th:text="#{auth.login.submit}">Se connecter</span>
+                </button>
+            </form>
+            <p class="text-muted small" style="margin-top:1.5rem;" th:text="#{auth.login.initialCredentials}">
+                Première installation : admin@accounting.local / admin123
+            </p>
+        </div>
+    </section>
+</main>
+</body>
+</html>

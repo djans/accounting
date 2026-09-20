@@ -1,6 +1,7 @@
 package com.cogitosum.web;
 
 import com.cogitosum.entity.AccountType;
+import com.cogitosum.entity.AccountCategory;
 import com.cogitosum.entity.ChartOfAccount;
 import com.cogitosum.service.ChartOfAccountService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,8 +27,11 @@ public class ChartOfAccountWebController {
     public String newForm(Model model) {
         ChartOfAccount a = new ChartOfAccount();
         a.setActive(true);
+        a.setCurrency("CAD");
         model.addAttribute("account", a);
         model.addAttribute("types", AccountType.values());
+        model.addAttribute("categories", AccountCategory.values());
+        model.addAttribute("accounts", chartOfAccountService.getAllAccounts());
         model.addAttribute("isNew", true);
         return "accounts/form";
     }
@@ -38,6 +42,8 @@ public class ChartOfAccountWebController {
                 .map(a -> {
                     model.addAttribute("account", a);
                     model.addAttribute("types", AccountType.values());
+                    model.addAttribute("categories", AccountCategory.values());
+                    model.addAttribute("accounts", chartOfAccountService.getAllAccounts());
                     model.addAttribute("isNew", false);
                     return "accounts/form";
                 })

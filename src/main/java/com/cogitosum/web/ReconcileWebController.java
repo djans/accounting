@@ -24,7 +24,7 @@ public class ReconcileWebController {
     @GetMapping("/reconcile")
     public String reconcile(Model model) {
         List<Map<String, Object>> rows = new ArrayList<>();
-        for (ChartOfAccount acct : accountRepository.findByAccountType(AccountType.ASSET)) {
+        for (ChartOfAccount acct : accountRepository.findByAccountTypeOrderByAccountNumberAsc(AccountType.ASSET)) {
             Map<String, Object> row = new HashMap<>();
             row.put("accountId", acct.getId());
             row.put("accountNumber", acct.getAccountNumber());

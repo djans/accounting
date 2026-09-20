@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments/layout :: head('Reconcile')}"></head>
+<head th:replace="~{fragments/layout :: head(#{nav.reconcile})}"></head>
 <body>
 <div th:replace="~{fragments/layout :: sidebar('accounting')}"></div>
 <main class="portal-main">
-    <div th:replace="~{fragments/layout :: topbar('Reconcile')}"></div>
+    <div th:replace="~{fragments/layout :: topbar(#{nav.reconcile})}"></div>
     <section class="portal-content">
         <div th:replace="~{fragments/layout :: flash}"></div>
         <div class="portal-card">

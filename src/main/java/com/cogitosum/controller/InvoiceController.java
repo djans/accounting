@@ -25,7 +25,7 @@ public class InvoiceController {
             Invoice createdInvoice = invoiceService.createInvoice(invoice);
             return new ResponseEntity<>(createdInvoice, HttpStatus.CREATED);
         } catch (Exception e) {
-            return new ResponseEntity<>(null, HttpStatus.BAD_REQUEST);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
         }
     }
     
@@ -35,7 +35,7 @@ public class InvoiceController {
             List<Invoice> invoices = invoiceService.getAllInvoices();
             return new ResponseEntity<>(invoices, HttpStatus.OK);
         } catch (Exception e) {
-            return new ResponseEntity<>(null, HttpStatus.INTERNAL_SERVER_ERROR);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
     
@@ -44,9 +44,9 @@ public class InvoiceController {
         try {
             Optional<Invoice> invoice = invoiceService.getInvoiceById(id);
             return invoice.map(inv -> new ResponseEntity<>(inv, HttpStatus.OK))
-                    .orElseGet(() -> new ResponseEntity<>(null, HttpStatus.NOT_FOUND));
+                    .orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND).build());
         } catch (Exception e) {
-            return new ResponseEntity<>(null, HttpStatus.INTERNAL_SERVER_ERROR);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
     
@@ -55,9 +55,9 @@ public class InvoiceController {
         try {
             Optional<Invoice> invoice = invoiceService.getInvoiceByInvoiceNumber(invoiceNumber);
             return invoice.map(inv -> new ResponseEntity<>(inv, HttpStatus.OK))
-                    .orElseGet(() -> new ResponseEntity<>(null, HttpStatus.NOT_FOUND));
+                    .orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND).build());
         } catch (Exception e) {
-            return new ResponseEntity<>(null, HttpStatus.INTERNAL_SERVER_ERROR);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
     
@@ -67,7 +67,7 @@ public class InvoiceController {
             List<Invoice> invoices = invoiceService.getInvoicesByCustomerId(customerId);
             return new ResponseEntity<>(invoices, HttpStatus.OK);
         } catch (Exception e) {
-            return new ResponseEntity<>(null, HttpStatus.INTERNAL_SERVER_ERROR);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
     
@@ -77,7 +77,7 @@ public class InvoiceController {
             List<Invoice> invoices = invoiceService.getInvoicesByStatus(status);
             return new ResponseEntity<>(invoices, HttpStatus.OK);
         } catch (Exception e) {
-            return new ResponseEntity<>(null, HttpStatus.INTERNAL_SERVER_ERROR);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
     
@@ -89,7 +89,7 @@ public class InvoiceController {
             List<Invoice> invoices = invoiceService.getInvoicesByDateRange(startDate, endDate);
             return new ResponseEntity<>(invoices, HttpStatus.OK);
         } catch (Exception e) {
-            return new ResponseEntity<>(null, HttpStatus.INTERNAL_SERVER_ERROR);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
     
@@ -99,7 +99,7 @@ public class InvoiceController {
             List<Invoice> invoices = invoiceService.getOverdueInvoices();
             return new ResponseEntity<>(invoices, HttpStatus.OK);
         } catch (Exception e) {
-            return new ResponseEntity<>(null, HttpStatus.INTERNAL_SERVER_ERROR);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
     
@@ -110,10 +110,10 @@ public class InvoiceController {
             if (updatedInvoice != null) {
                 return new ResponseEntity<>(updatedInvoice, HttpStatus.OK);
             } else {
-                return new ResponseEntity<>(null, HttpStatus.NOT_FOUND);
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
             }
         } catch (Exception e) {
-            return new ResponseEntity<>(null, HttpStatus.BAD_REQUEST);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
         }
     }
     
@@ -124,10 +124,10 @@ public class InvoiceController {
             if (invoice != null) {
                 return new ResponseEntity<>(invoice, HttpStatus.OK);
             } else {
-                return new ResponseEntity<>(null, HttpStatus.NOT_FOUND);
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
             }
         } catch (Exception e) {
-            return new ResponseEntity<>(null, HttpStatus.INTERNAL_SERVER_ERROR);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
     
@@ -138,10 +138,10 @@ public class InvoiceController {
             if (invoice != null) {
                 return new ResponseEntity<>(invoice, HttpStatus.OK);
             } else {
-                return new ResponseEntity<>(null, HttpStatus.NOT_FOUND);
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
             }
         } catch (Exception e) {
-            return new ResponseEntity<>(null, HttpStatus.INTERNAL_SERVER_ERROR);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
     
@@ -152,10 +152,10 @@ public class InvoiceController {
             if (invoice != null) {
                 return new ResponseEntity<>(invoice, HttpStatus.OK);
             } else {
-                return new ResponseEntity<>(null, HttpStatus.NOT_FOUND);
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
             }
         } catch (Exception e) {
-            return new ResponseEntity<>(null, HttpStatus.INTERNAL_SERVER_ERROR);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
     

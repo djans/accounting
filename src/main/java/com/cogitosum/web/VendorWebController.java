@@ -2,11 +2,15 @@ package com.cogitosum.web;
 
 import com.cogitosum.entity.Vendor;
 import com.cogitosum.service.VendorService;
+import com.cogitosum.service.ChartOfAccountService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+
+import java.util.Locale;
+import java.util.stream.Collectors;
 
 @Controller
 @RequestMapping("/vendors")
@@ -14,11 +18,32 @@ public class VendorWebController {
 
     @Autowired
     private VendorService vendorService;
+    @Autowired private ChartOfAccountService accountService;
 
     @GetMapping
-    public String list(Model model) {
-        model.addAttribute("vendors", vendorService.getAllVendors());
+    public String list(@RequestParam(required = false) String q, Model model) {
+        String query = q == null ? "" : q.trim();
+        var vendors = vendorService.getAllVendors();
+        if (!query.isBlank()) {
+            String normalized = query.toLowerCase(Locale.ROOT);
+            vendors = vendors.stream()
+                    .filter(v -> contains(v.getBusinessName(), normalized)
+                            || contains(v.getName(), normalized)
+                            || contains(v.getEmail(), normalized)
+                            || contains(v.getMainPhone(), normalized)
+                            || contains(v.getWorkPhone(), normalized)
+                            || contains(v.getMobilePhone(), normalized)
+                            || contains(v.getProvince(), normalized)
+                            || contains(v.getVendorType(), normalized))
+                    .collect(Collectors.toList());
+        }
+        model.addAttribute("vendors", vendors);
+        model.addAttribute("searchQuery", query);
         return "vendors/list";
+    }
+
+    private boolean contains(String value, String query) {
+        return value != null && value.toLowerCase(Locale.ROOT).contains(query);
     }
 
     @GetMapping("/new")
@@ -27,6 +52,7 @@ public class VendorWebController {
         v.setCountry("Canada");
         model.addAttribute("vendor", v);
         model.addAttribute("isNew", true);
+        model.addAttribute("accounts", accountService.getActiveAccounts());
         return "vendors/form";
     }
 
@@ -36,6 +62,7 @@ public class VendorWebController {
                 .map(v -> {
                     model.addAttribute("vendor", v);
                     model.addAttribute("isNew", false);
+                    model.addAttribute("accounts", accountService.getActiveAccounts());
                     return "vendors/form";
                 })
                 .orElseGet(() -> {

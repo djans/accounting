@@ -1,86 +1,144 @@
 <!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments/layout :: head('Customer')}"></head>
+<html lang="fr" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Client')}"></head>
 <body>
 <div class="portal-shell">
-    <div th:replace="~{fragments/layout :: sidebar('customers')}"></div>
-    <main class="portal-main">
-        <div th:replace="~{fragments/layout :: topbar(${isNew} ? 'New Customer' : 'Edit Customer')}"></div>
-        <section class="portal-content">
-            <div th:replace="~{fragments/layout :: flash}"></div>
-
-            <div class="portal-card">
-                <form th:action="${isNew} ? @{/customers} : @{/customers/{id}(id=${customer.id})}"
-                      th:object="${customer}" method="post">
-                    <div class="form-grid">
-                        <div class="form-field">
-                            <label>Contact Name</label>
-                            <input type="text" th:field="*{name}" required/>
-                        </div>
-                        <div class="form-field">
-                            <label>Business Name</label>
-                            <input type="text" th:field="*{businessName}" required/>
-                        </div>
-                        <div class="form-field">
-                            <label>Email</label>
-                            <input type="email" th:field="*{email}" required/>
-                        </div>
-                        <div class="form-field">
-                            <label>Business Number</label>
-                            <input type="text" th:field="*{businessNumber}"/>
-                        </div>
-                        <div class="form-field full">
-                            <label>Address</label>
-                            <input type="text" th:field="*{address}" required/>
-                        </div>
-                        <div class="form-field">
-                            <label>City</label>
-                            <input type="text" th:field="*{city}" required/>
-                        </div>
-                        <div class="form-field">
-                            <label>Province</label>
-                            <select th:field="*{province}" required>
-                                <option value="">Select…</option>
-                                <option value="ON">Ontario</option>
-                                <option value="QC">Quebec</option>
-                                <option value="BC">British Columbia</option>
-                                <option value="AB">Alberta</option>
-                                <option value="MB">Manitoba</option>
-                                <option value="SK">Saskatchewan</option>
-                                <option value="NS">Nova Scotia</option>
-                                <option value="NB">New Brunswick</option>
-                                <option value="NL">Newfoundland and Labrador</option>
-                                <option value="PE">Prince Edward Island</option>
-                                <option value="YT">Yukon</option>
-                                <option value="NT">Northwest Territories</option>
-                                <option value="NU">Nunavut</option>
-                            </select>
-                        </div>
-                        <div class="form-field">
-                            <label>Postal Code</label>
-                            <input type="text" th:field="*{postalCode}" required/>
-                        </div>
-                        <div class="form-field">
-                            <label>Country</label>
-                            <input type="text" th:field="*{country}" required/>
-                        </div>
-                        <div class="form-field full">
-                            <label>GST/HST Number</label>
-                            <input type="text" th:field="*{gstNumber}"/>
-                        </div>
-                    </div>
-
-                    <div class="form-actions">
-                        <a th:href="@{/customers}" class="btn-portal btn-ghost">Cancel</a>
-                        <button type="submit" class="btn-portal">
-                            <i class="bi bi-check2"></i>
-                            <span th:text="${isNew} ? 'Create Customer' : 'Save Changes'">Save</span>
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </section>
-    </main>
+<div th:replace="~{fragments/layout :: sidebar('customers')}"></div>
+<main class="portal-main">
+<div th:replace="~{fragments/layout :: topbar(${isNew} ? 'Nouveau client' : 'Modifier le client')}"></div>
+<section class="portal-content"><div th:replace="~{fragments/layout :: flash}"></div>
+<div class="portal-card">
+<form th:action="${isNew} ? @{/customers} : @{/customers/{id}(id=${customer.id})}" th:object="${customer}" method="post">
+<div class="vendor-form-header">
+    <label>Nom du client <input th:field="*{businessName}" required placeholder="Nom de l'entreprise"></label>
+    <label>Contact principal <input th:field="*{name}" required placeholder="Nom et prénom"></label>
+    <label class="vendor-inactive"><input type="checkbox" th:field="*{inactive}"> Client inactif</label>
 </div>
+<nav class="vendor-tabs" role="tablist">
+    <button type="button" class="vendor-tab active" data-tab="address">Adresse & Contact</button>
+    <button type="button" class="vendor-tab" data-tab="payment">Paiement & Facturation</button>
+    <button type="button" class="vendor-tab" data-tab="tax">Taxes de vente</button>
+    <button type="button" class="vendor-tab" data-tab="additional">Notes & Info</button>
+</nav>
+
+<!-- Onglet Adresse & Contact -->
+<div class="vendor-panel active" id="tab-address">
+    <h3>Informations de contact</h3>
+    <div class="form-grid">
+        <label class="form-field"><span>Nom de la compagnie</span><input th:field="*{companyName}"></label>
+        <label class="form-field"><span>Titre</span><input th:field="*{title}" placeholder="M., Mme, etc."></label>
+        <label class="form-field"><span>Prénom</span><input th:field="*{firstName}"></label>
+        <label class="form-field"><span>Initiale</span><input th:field="*{middleInitial}"></label>
+        <label class="form-field"><span>Nom</span><input th:field="*{lastName}"></label>
+        <label class="form-field"><span>Poste</span><input th:field="*{jobTitle}"></label>
+        <label class="form-field"><span>Téléphone principal</span><input th:field="*{mainPhone}"></label>
+        <label class="form-field"><span>Téléphone travail</span><input th:field="*{workPhone}"></label>
+        <label class="form-field"><span>Mobile</span><input th:field="*{mobilePhone}"></label>
+        <label class="form-field"><span>Fax</span><input th:field="*{fax}"></label>
+        <label class="form-field"><span>Email principal</span><input type="email" th:field="*{email}" required></label>
+        <label class="form-field"><span>Email CC</span><input type="email" th:field="*{ccEmail}"></label>
+        <label class="form-field"><span>Site Web</span><input th:field="*{website}"></label>
+        <label class="form-field"><span>Email secondaire</span><input type="email" th:field="*{secondaryEmail}"></label>
+        <label class="form-field full"><span>Adresse de facturation</span><textarea th:field="*{address}" required rows="3"></textarea></label>
+        <label class="form-field full"><span>Adresse de livraison</span><textarea th:field="*{shipToAddress}" rows="3"></textarea></label>
+        <label class="form-field"><span>Ville</span><input th:field="*{city}" required></label>
+        <label class="form-field"><span>Province/État</span><input th:field="*{province}" required></label>
+        <label class="form-field"><span>Code Postal</span><input th:field="*{postalCode}" required></label>
+        <label class="form-field"><span>Pays</span><input th:field="*{country}" required></label>
+    </div>
+</div>
+
+<!-- Onglet Paiement -->
+<div class="vendor-panel" id="tab-payment">
+    <h3>Paramètres de paiement</h3>
+    <div class="form-grid">
+        <label class="form-field"><span>N° de compte client</span><input th:field="*{accountNumber}"></label>
+        <label class="form-field"><span>Limite de crédit</span><input type="number" step="0.01" th:field="*{creditLimit}"></label>
+        <label class="form-field"><span>Conditions de paiement</span>
+            <select th:field="*{paymentTerms}">
+                <option value="">Sélectionner...</option>
+                <option value="Due on receipt">Dû à la réception</option>
+                <option value="Net 15">Net 15 jours</option>
+                <option value="Net 30">Net 30 jours</option>
+                <option value="Net 60">Net 60 jours</option>
+            </select>
+        </label>
+        <label class="form-field"><span>Niveau de tarification</span><input th:field="*{billingRateLevel}"></label>
+        <label class="form-field"><span>Nom sur les factures</span><input th:field="*{printOnChequeAs}"></label>
+    </div>
+</div>
+
+<!-- Onglet Taxes -->
+<div class="vendor-panel" id="tab-tax">
+    <h3>Taxes de vente</h3>
+    <div class="form-grid">
+        <label class="form-field"><span>Numéro d'entreprise</span><input th:field="*{businessNumber}"></label>
+        <label class="form-field"><span>N° de taxes (TPS/HST)</span><input th:field="*{salesTaxRegistrationNumber}"></label>
+        <label class="form-field"><span>N° de taxe provincial (TVQ/PST)</span><input th:field="*{qstNumber}"></label>
+        
+        <div class="tax-section-title" style="grid-column: 1/-1; margin-top: 1rem;">Configuration des taxes</div>
+        
+        <div class="form-field full tax-account-options">
+            <span><input type="checkbox" th:field="*{trackSalesTaxSeparately}"> Suivre la taxe de vente séparément vers</span>
+            <select th:field="*{salesTaxAccount}">
+                <option value="">Sélectionner un compte...</option>
+                <option th:each="a:${accounts}" th:value="${a.id}" th:text="${a.accountNumber+' - '+a.accountName}"></option>
+            </select>
+        </div>
+        
+        <label class="form-field full">
+            <span><input type="checkbox" th:field="*{taxOnOtherTaxes}"> Les taxes pour ce client sont calculées sur les autres taxes</span><br/>
+            <span><input type="checkbox" th:field="*{taxIncludedOnSales}"> La taxe est incluse dans les montants de vente</span>
+        </label>
+    </div>
+</div>
+
+<!-- Onglet Additionnel -->
+<div class="vendor-panel" id="tab-additional">
+    <h3>Informations additionnelles & Notes</h3>
+    <div class="form-grid">
+        <label class="form-field full"><span>Notes internes</span><textarea th:field="*{notes}" rows="10" placeholder="Notes visibles uniquement par le personnel"></textarea></label>
+    </div>
+</div>
+
+<div class="form-actions">
+    <a th:href="@{/customers}" class="btn-portal btn-ghost">Annuler</a>
+    <button type="submit" class="btn-portal">
+        <i class="bi bi-check2"></i> 
+        <span th:text="${isNew} ? 'Créer le client' : 'Enregistrer les modifications'">Enregistrer</span>
+    </button>
+</div>
+</form>
+</div>
+</section>
+</main>
+</div>
+
+<style>
+.vendor-form-header{display:flex;gap:1rem;align-items:end;flex-wrap:wrap;margin-bottom:1rem}
+.vendor-form-header label{display:flex;flex-direction:column;gap:.3rem;font-weight:600}
+.vendor-form-header input{min-width:220px}
+.vendor-inactive{font-weight:400!important}
+.vendor-tabs{display:flex;flex-wrap:wrap;gap:.25rem;border-bottom:1px solid var(--portal-border);margin:0 -1rem 1rem;padding:0 1rem}
+.vendor-tab{border:0;background:#e5e7eb;padding:.7rem 1rem;cursor:pointer;border-radius:6px 6px 0 0}
+.vendor-tab.active{background:var(--portal-primary);color:#fff}
+.vendor-panel{display:none;min-height:300px}
+.vendor-panel.active{display:block}
+.vendor-panel h3{margin-top:0}
+.vendor-panel textarea{min-height:70px}
+.tax-section-title{grid-column:1/-1;text-transform:uppercase;font-size:.78rem;font-weight:700;border-bottom:1px solid var(--portal-border);padding-bottom:.5rem}
+.tax-account-options{display:grid;grid-template-columns:auto 1fr;gap:.6rem;align-items:center}
+.tax-account-options select{min-width:260px}
+</style>
+
+<script>
+document.querySelectorAll('.vendor-tab').forEach(function(tab){
+    tab.addEventListener('click',function(){
+        document.querySelectorAll('.vendor-tab,.vendor-panel').forEach(function(e){e.classList.remove('active')});
+        tab.classList.add('active');
+        document.getElementById('tab-'+tab.dataset.tab).classList.add('active')
+    })
+});
+</script>
 </body>
 </html>

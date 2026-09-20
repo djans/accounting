@@ -32,10 +32,24 @@ public class ChartOfAccountService {
         Optional<ChartOfAccount> existingAccount = chartOfAccountRepository.findById(id);
         if (existingAccount.isPresent()) {
             ChartOfAccount acc = existingAccount.get();
+            if (account.getAccountNumber() == null || account.getAccountNumber().isBlank()) {
+                throw new IllegalArgumentException("Account number is required");
+            }
+            chartOfAccountRepository.findByAccountNumber(account.getAccountNumber())
+                .filter(found -> !found.getId().equals(id))
+                .ifPresent(found -> {
+                    throw new IllegalArgumentException("Account number already exists: " + account.getAccountNumber());
+                });
+            acc.setAccountNumber(account.getAccountNumber().trim());
             acc.setAccountName(account.getAccountName());
             acc.setAccountType(account.getAccountType());
+            acc.setCategory(account.getCategory());
             acc.setDescription(account.getDescription());
             acc.setActive(account.getActive());
+            acc.setParentAccount(account.getParentAccount());
+            acc.setCurrency(account.getCurrency());
+            acc.setOpeningBalance(account.getOpeningBalance());
+            acc.setOpeningBalanceDate(account.getOpeningBalanceDate());
             return chartOfAccountRepository.save(acc);
         }
         return null;
@@ -50,15 +64,15 @@ public class ChartOfAccountService {
     }
 
     public List<ChartOfAccount> getAccountsByType(AccountType accountType) {
-        return chartOfAccountRepository.findByAccountType(accountType);
+        return chartOfAccountRepository.findByAccountTypeOrderByAccountNumberAsc(accountType);
     }
 
     public List<ChartOfAccount> getActiveAccounts() {
-        return chartOfAccountRepository.findByIsActive(true);
+        return chartOfAccountRepository.findByIsActiveOrderByAccountNumberAsc(true);
     }
 
     public List<ChartOfAccount> getAllAccounts() {
-        return chartOfAccountRepository.findAll();
+        return chartOfAccountRepository.findAllByOrderByAccountNumberAsc();
     }
 
     @Transactional

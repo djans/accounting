@@ -13,6 +13,7 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 
 @Controller
@@ -167,6 +168,7 @@ public class BillWebController {
     private List<ChartOfAccount> expenseAccountChoices() {
         List<ChartOfAccount> accounts = new ArrayList<>(accountService.getAccountsByType(AccountType.EXPENSE));
         accounts.addAll(accountService.getAccountsByType(AccountType.ASSET));
+        accounts.sort(Comparator.comparing(ChartOfAccount::getAccountNumber));
         return accounts;
     }
 

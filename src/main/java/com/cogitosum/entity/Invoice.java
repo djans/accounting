@@ -52,6 +52,9 @@ public class Invoice {
     
     @Column(precision = 19, scale = 2)
     private BigDecimal paidAmount;
+
+    @Column(length = 30)
+    private String taxRegime;
     
     @Column(length = 1000)
     private String notes;
@@ -203,6 +206,14 @@ public class Invoice {
     public void setPaidAmount(BigDecimal paidAmount) {
         this.paidAmount = paidAmount;
     }
+
+    public String getTaxRegime() {
+        return taxRegime;
+    }
+
+    public void setTaxRegime(String taxRegime) {
+        this.taxRegime = taxRegime;
+    }
     
     public String getNotes() {
         return notes;
@@ -228,4 +239,3 @@ public class Invoice {
         this.updatedAt = updatedAt;
     }
 }
-

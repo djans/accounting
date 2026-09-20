@@ -11,10 +11,11 @@ import java.util.Optional;
 
 @Repository
 public interface InvoiceRepository extends JpaRepository<Invoice, Long> {
+    List<Invoice> findAllByOrderByInvoiceNumberDesc();
     Optional<Invoice> findByInvoiceNumber(String invoiceNumber);
-    List<Invoice> findByCustomerId(Long customerId);
-    List<Invoice> findByStatus(InvoiceStatus status);
-    List<Invoice> findByInvoiceDateBetween(LocalDate startDate, LocalDate endDate);
-    List<Invoice> findByCustomerIdAndStatus(Long customerId, InvoiceStatus status);
+    Optional<Invoice> findTopByOrderByIdDesc();
+    List<Invoice> findByCustomerIdOrderByInvoiceNumberDesc(Long customerId);
+    List<Invoice> findByStatusOrderByInvoiceNumberDesc(InvoiceStatus status);
+    List<Invoice> findByInvoiceDateBetweenOrderByInvoiceDateDesc(LocalDate startDate, LocalDate endDate);
+    List<Invoice> findByCustomerIdAndStatusOrderByInvoiceNumberDesc(Long customerId, InvoiceStatus status);
 }
-

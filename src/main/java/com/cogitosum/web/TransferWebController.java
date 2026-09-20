@@ -1,6 +1,7 @@
 package com.cogitosum.web;
 
 import com.cogitosum.entity.AccountType;
+import com.cogitosum.entity.AccountCategory;
 import com.cogitosum.entity.ChartOfAccount;
 import com.cogitosum.entity.Transfer;
 import com.cogitosum.service.ChartOfAccountService;
@@ -30,8 +31,13 @@ public class TransferWebController {
 
     @GetMapping("/new")
     public String newForm(Model model) {
-        List<ChartOfAccount> bankAccounts = accountService.getAccountsByType(AccountType.ASSET).stream()
-                .filter(a -> a.getAccountNumber() != null && a.getAccountNumber().startsWith("10"))
+        List<ChartOfAccount> bankAccounts = accountService.getAllAccounts().stream()
+                .filter(a -> a.getAccountType() == AccountType.ASSET
+                        || a.getAccountType() == AccountType.LIABILITY
+                        || a.getAccountType() == AccountType.EQUITY
+                        || a.getCategory() == AccountCategory.BANK
+                        || a.getCategory() == AccountCategory.CREDIT_CARD
+                        )
                 .toList();
         model.addAttribute("bankAccounts", bankAccounts);
         return "transfers/form";

@@ -24,7 +24,7 @@ public class ReportController {
             Map<String, ?> report = billingReportService.getRevenueReport(startDate, endDate);
             return new ResponseEntity<>(report, HttpStatus.OK);
         } catch (Exception e) {
-            return new ResponseEntity<>(null, HttpStatus.INTERNAL_SERVER_ERROR);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
 
@@ -34,7 +34,7 @@ public class ReportController {
             Map<String, Object> report = billingReportService.getAgingAnalysis();
             return new ResponseEntity<>(report, HttpStatus.OK);
         } catch (Exception e) {
-            return new ResponseEntity<>(null, HttpStatus.INTERNAL_SERVER_ERROR);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
 
@@ -44,7 +44,7 @@ public class ReportController {
             Map<String, Object> summary = billingReportService.getInvoiceStatusSummary();
             return new ResponseEntity<>(summary, HttpStatus.OK);
         } catch (Exception e) {
-            return new ResponseEntity<>(null, HttpStatus.INTERNAL_SERVER_ERROR);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
 
@@ -56,7 +56,7 @@ public class ReportController {
             Map<String, ?> report = billingReportService.getTaxSummary(startDate, endDate);
             return new ResponseEntity<>(report, HttpStatus.OK);
         } catch (Exception e) {
-            return new ResponseEntity<>(null, HttpStatus.INTERNAL_SERVER_ERROR);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
 }

@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
 <head th:fragment="head(title)">
     <meta charset="UTF-8"/>
@@ -63,6 +63,14 @@
                     section.classList.add('collapsed');
                 }
             });
+            document.querySelectorAll('.nav-link.active').forEach(link => {
+                const group = link.closest('.nav-group');
+                const section = group && group.previousElementSibling;
+                if (section && section.classList.contains('nav-section')) {
+                    section.classList.remove('collapsed');
+                    localStorage.setItem('sidebar-section-' + section.dataset.section, 'expanded');
+                }
+            });
         }
 
         if (document.readyState === 'loading') {
@@ -99,11 +107,13 @@
         <a th:href="@{/invoices}" class="nav-link" th:classappend="${active=='invoices'} ? ' active'"><i class="bi bi-receipt nav-icon"></i> <span th:text="#{nav.invoices}">Invoices</span></a>
         <a th:href="@{/invoices/new}" class="nav-link" th:title="#{nav.createInvoice} + ' (Ctrl+I)'"><i class="bi bi-plus-square nav-icon"></i> <span th:text="#{nav.createInvoice}">Create Invoice</span> <span class="nav-hotkey">Ctrl+I</span></a>
         <a th:href="@{/payments}" class="nav-link" th:classappend="${active=='payments'} ? ' active'"><i class="bi bi-cash-coin nav-icon"></i> <span th:text="#{nav.payments}">Payments</span></a>
-        <a th:href="@{/payments/new}" class="nav-link"><i class="bi bi-wallet2 nav-icon"></i> <span th:text="#{nav.receivePayments}">Receive Payments</span></a>
+        <a th:href="@{/payments/new}" class="nav-link" th:classappend="${active=='payments-new'} ? ' active'"><i class="bi bi-wallet2 nav-icon"></i> <span th:text="#{nav.receivePayments}">Receive Payments</span></a>
         <a th:href="@{/cheques}" class="nav-link" th:classappend="${active=='cheques'} ? ' active'"><i class="bi bi-wallet2 nav-icon"></i> <span th:text="#{nav.cheques}">Cheques</span> <span class="nav-hotkey">Ctrl+W</span></a>
-        <a th:href="@{/cheques/new}" class="nav-link"><i class="bi bi-pencil-square nav-icon"></i> <span th:text="#{nav.newCheque}">New Cheque</span></a>
+        <a th:href="@{/cheques/new}" class="nav-link" th:classappend="${active=='cheques-new'} ? ' active'"><i class="bi bi-pencil-square nav-icon"></i> <span th:text="#{nav.newCheque}">New Cheque</span></a>
+        <a th:href="@{/credit-card-charges}" class="nav-link" th:classappend="${active=='credit-card-charges'} ? ' active'"><i class="bi bi-credit-card nav-icon"></i> Credit Card Charges</a>
         <a th:href="@{/transfers}" class="nav-link" th:classappend="${active=='transfers'} ? ' active'"><i class="bi bi-arrow-left-right nav-icon"></i> <span th:text="#{nav.transfers}">Transfers</span></a>
         <a th:href="@{/reports/billing}" class="nav-link" th:classappend="${active=='billing-reports'} ? ' active'"><i class="bi bi-bar-chart-line nav-icon"></i> <span th:text="#{nav.billingReports}">Billing Reports</span></a>
+        <a th:href="@{/reports/aging}" class="nav-link" th:classappend="${active=='aging-summary'} ? ' active'"><i class="bi bi-hourglass-split nav-icon"></i> <span th:text="#{nav.agingSummary}">Aging Summary</span></a>
     </div>
 
     <!-- Purchases -->
@@ -124,8 +134,8 @@
         <a th:href="@{/journals}" class="nav-link" th:classappend="${active=='journals'} ? ' active'"><i class="bi bi-pencil-square nav-icon"></i> <span th:text="#{nav.generalJournal}">General Journal</span></a>
         <a th:href="@{/journals/new}" class="nav-link"><i class="bi bi-journal-plus nav-icon"></i> <span th:text="#{nav.makeJournalEntries}">Make General Journal Entries...</span></a>
         <a th:href="@{/ledger}" class="nav-link" th:classappend="${active=='ledger'} ? ' active'"><i class="bi bi-collection nav-icon"></i> <span th:text="#{nav.generalLedger}">General Ledger</span></a>
-        <a th:href="@{/reports/accounting}" class="nav-link" th:classappend="${active=='accounting-reports'} ? ' active'"><i class="bi bi-pie-chart-fill nav-icon"></i> <span th:text="#{nav.financialStatements}">Financial Statements</span></a>
-        <a th:href="@{/accounting/trial-balance}" class="nav-link"><i class="bi bi-check2-square nav-icon"></i> <span th:text="#{nav.trialBalance}">Trial Balance</span></a>
+        <a th:href="@{/reports/accounting}" class="nav-link" th:classappend="${active=='financial-statements'} ? ' active'"><i class="bi bi-pie-chart-fill nav-icon"></i> <span th:text="#{nav.financialStatements}">Financial Statements</span></a>
+        <a th:href="@{/accounting/trial-balance}" class="nav-link" th:classappend="${active=='trial-balance'} ? ' active'"><i class="bi bi-check2-square nav-icon"></i> <span th:text="#{nav.trialBalance}">Trial Balance</span></a>
         <a th:href="@{/fiscal}" class="nav-link" th:classappend="${active=='fiscal'} ? ' active'"><i class="bi bi-calendar-check nav-icon"></i> <span th:text="#{nav.fiscalClose}">Fiscal Years / Closing</span></a>
         <a th:href="@{/reconcile}" class="nav-link"><i class="bi bi-ui-checks-grid nav-icon"></i> <span th:text="#{nav.reconcile}">Reconcile</span></a>
     </div>
@@ -136,12 +146,17 @@
     </div>
     <div class="nav-group">
         <a th:href="@{/tax}" class="nav-link" th:classappend="${active=='tax-dashboard'} ? ' active'"><i class="bi bi-shield-check nav-icon"></i> <span th:text="#{nav.taxDashboard}">Tax Dashboard</span></a>
-        <a th:href="@{/tax/periods}" class="nav-link" th:classappend="${active=='tax-periods'} ? ' active'"><i class="bi bi-calendar-event nav-icon"></i> <span th:text="#{nav.filingPeriods}">Filing Periods</span></a>
+        <a th:href="@{/tax/periods}" class="nav-link" th:classappend="${active=='tax-periods' || active=='tax-agency-detail-report'} ? ' active'"><i class="bi bi-calendar-event nav-icon"></i> <span th:text="#{nav.filingPeriods}">Filing Periods</span></a>
         <a th:href="@{/tax/reconciliation}" class="nav-link" th:classappend="${active=='tax-reconciliation'} ? ' active'"><i class="bi bi-arrow-left-right nav-icon"></i> <span th:text="#{nav.reconciliation}">Reconciliation</span></a>
-        <a th:href="@{/tax/agencies}" class="nav-link" th:classappend="${active=='tax-agencies'} ? ' active'"><i class="bi bi-building nav-icon"></i> <span th:text="#{nav.taxAgencies}">Tax Agencies</span></a>
-        <a th:href="@{/tax/agencies/report}" class="nav-link"><i class="bi bi-file-earmark-bar-graph nav-icon"></i> <span th:text="#{nav.taxAgencyReport}">Tax Agency Report</span></a>
-        <a th:href="@{/tax/agencies/detail}" class="nav-link"><i class="bi bi-file-earmark-text nav-icon"></i> <span th:text="#{nav.taxAgencyDetailReport}">Tax Agency Detail Report</span></a>
+        <a th:href="@{/tax/agencies}" class="nav-link" th:classappend="${active=='tax-agencies' || active=='tax-agency-report'} ? ' active'"><i class="bi bi-building nav-icon"></i> <span th:text="#{nav.taxAgencies}">Tax Agencies</span></a>
         <a th:href="@{/tax/codes}" class="nav-link" th:classappend="${active=='tax-codes'} ? ' active'"><i class="bi bi-percent nav-icon"></i> <span th:text="#{nav.taxCodes}">Tax Codes</span></a>
+    </div>
+
+    <div class="nav-section collapsed" data-section="administration">
+        <button class="section-toggle" data-section="administration"><span th:text="#{nav.section.administration}">Administration</span> <i class="bi bi-chevron-down"></i></button>
+    </div>
+    <div class="nav-group">
+        <a th:href="@{/database/backup}" class="nav-link" th:classappend="${active=='database'} ? ' active'"><i class="bi bi-database-down nav-icon"></i> <span th:text="#{nav.databaseBackup}">Database backup</span></a>
     </div>
 
 </aside>
@@ -158,6 +173,14 @@
             <i class="bi bi-database"></i>
             H2 dev DB
         </span>
+        <a th:if="${currentUser == null}" th:href="@{/login}" class="btn-portal btn-ghost btn-sm">
+            <i class="bi bi-box-arrow-in-right"></i> <span th:text="#{auth.login.link}">Connexion</span>
+        </a>
+        <form th:if="${currentUser != null}" th:action="@{/logout}" method="post" style="display:inline;">
+            <button type="submit" class="btn-portal btn-ghost btn-sm">
+                <i class="bi bi-box-arrow-right"></i> <span th:text="#{auth.logout}">Déconnexion</span>
+            </button>
+        </form>
         <a th:href="@{/h2-console}" target="_blank" class="btn-portal btn-ghost btn-sm">
             <i class="bi bi-terminal"></i> H2 Console
         </a>

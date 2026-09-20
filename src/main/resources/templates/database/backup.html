@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="fr" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(#{database.backup.title})}"></head>
+<body>
+<div class="portal-shell">
+    <div th:replace="~{fragments/layout :: sidebar('database')}"></div>
+    <main class="portal-main">
+        <div th:replace="~{fragments/layout :: topbar(#{database.backup.title})}"></div>
+        <section class="portal-content">
+            <div th:replace="~{fragments/layout :: flash}"></div>
+            <div class="portal-card">
+                <h2 class="portal-card-title" th:text="#{database.backup.exportTitle}">Export database</h2>
+                <p class="text-muted" th:text="#{database.backup.exportHint}">Download all database content as a JSON backup.</p>
+                <a class="btn-portal" th:href="@{/database/backup/export}">
+                    <i class="bi bi-download"></i> <span th:text="#{database.backup.export}">Export backup</span>
+                </a>
+            </div>
+            <div class="portal-card" style="margin-top:1rem;">
+                <h2 class="portal-card-title" th:text="#{database.backup.importTitle}">Restore database</h2>
+                <p class="text-muted" th:text="#{database.backup.importWarning}">Restoring replaces the current database content.</p>
+                <form th:action="@{/database/backup/import}" method="post" enctype="multipart/form-data"
+                      onsubmit="return confirm(this.dataset.confirm)" th:attr="data-confirm=#{database.backup.confirm}">
+                    <input type="file" name="file" accept=".json,application/json" required/>
+                    <button type="submit" class="btn-portal btn-danger">
+                        <i class="bi bi-upload"></i> <span th:text="#{database.backup.import}">Restore backup</span>
+                    </button>
+                </form>
+            </div>
+        </section>
+    </main>
+</div>
+</body>
+</html>

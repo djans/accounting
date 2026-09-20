@@ -17,10 +17,10 @@ public class TaxFilingPeriod {
     @JoinColumn(name = "agency_id", nullable = false)
     private TaxAgency agency;
 
-    @Column(nullable = false)
+    @Column(name = "period_start", nullable = false)
     private LocalDate periodStart;
 
-    @Column(nullable = false)
+    @Column(name = "period_end", nullable = false)
     private LocalDate periodEnd;
 
     @Enumerated(EnumType.STRING)
@@ -30,16 +30,16 @@ public class TaxFilingPeriod {
     @Column(nullable = false, precision = 19, scale = 2)
     private BigDecimal taxCollected;
 
-    @Column(nullable = false, precision = 19, scale = 2)
-    private BigDecimal taxITC;
+    @Column(name = "tax_itc", nullable = false, precision = 19, scale = 2)
+    private BigDecimal taxItc;
 
-    @Column(nullable = false, precision = 19, scale = 2)
+    @Column(name = "net_owing", nullable = false, precision = 19, scale = 2)
     private BigDecimal netOwing;
 
-    @Column
+    @Column(name = "filed_date")
     private LocalDate filedDate;
 
-    @Column
+    @Column(name = "paid_date")
     private LocalDate paidDate;
 
     @ManyToOne(fetch = FetchType.EAGER)
@@ -65,7 +65,7 @@ public class TaxFilingPeriod {
         updatedAt = LocalDateTime.now();
         if (status == null) status = TaxFilingStatus.OPEN;
         if (taxCollected == null) taxCollected = BigDecimal.ZERO;
-        if (taxITC == null) taxITC = BigDecimal.ZERO;
+        if (taxItc == null) taxItc = BigDecimal.ZERO;
         if (netOwing == null) netOwing = BigDecimal.ZERO;
     }
 
@@ -86,8 +86,8 @@ public class TaxFilingPeriod {
     public void setStatus(TaxFilingStatus status) { this.status = status; }
     public BigDecimal getTaxCollected() { return taxCollected; }
     public void setTaxCollected(BigDecimal taxCollected) { this.taxCollected = taxCollected; }
-    public BigDecimal getTaxITC() { return taxITC; }
-    public void setTaxITC(BigDecimal taxITC) { this.taxITC = taxITC; }
+    public BigDecimal getTaxItc() { return taxItc; }
+    public void setTaxItc(BigDecimal taxItc) { this.taxItc = taxItc; }
     public BigDecimal getNetOwing() { return netOwing; }
     public void setNetOwing(BigDecimal netOwing) { this.netOwing = netOwing; }
     public LocalDate getFiledDate() { return filedDate; }

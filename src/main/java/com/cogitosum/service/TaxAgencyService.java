@@ -41,7 +41,7 @@ public class TaxAgencyService {
     }
 
     public List<TaxAgency> getAll() {
-        return taxAgencyRepository.findAll();
+        return taxAgencyRepository.findAllByOrderByCodeAsc();
     }
 
     public void deleteAgency(Long id) {

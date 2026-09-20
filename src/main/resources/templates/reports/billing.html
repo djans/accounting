@@ -50,42 +50,6 @@
             </div>
 
             <div class="portal-card">
-                <h3 class="portal-card-title">A/R Aging</h3>
-                <table class="table-portal">
-                    <thead>
-                    <tr>
-                        <th>Bucket</th>
-                        <th class="num">Outstanding</th>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    <tr>
-                        <td>Current (not yet due)</td>
-                        <td id="aging-current" class="num" th:text="${#numbers.formatCurrency(aging['current'])}">$0</td>
-                    </tr>
-                    <tr>
-                        <td>1–30 days past due</td>
-                        <td id="aging-30" class="num" th:text="${#numbers.formatCurrency(aging['30Days'])}">$0</td>
-                    </tr>
-                    <tr>
-                        <td>31–60 days past due</td>
-                        <td id="aging-60" class="num" th:text="${#numbers.formatCurrency(aging['60Days'])}">$0</td>
-                    </tr>
-                    <tr>
-                        <td>61+ days past due</td>
-                        <td id="aging-90" class="num" th:text="${#numbers.formatCurrency(aging['90DaysPlus'])}">$0</td>
-                    </tr>
-                    </tbody>
-                    <tfoot>
-                    <tr style="font-weight:600">
-                        <td>Total Outstanding</td>
-                        <td class="num" th:text="${#numbers.formatCurrency(aging['totalOutstanding'])}">$0</td>
-                    </tr>
-                    </tfoot>
-                </table>
-            </div>
-
-            <div class="portal-card">
                 <h3 class="portal-card-title">Sales Tax Summary (TPS / TVQ / HST)</h3>
                 <div class="report-totals">
                     <div class="stat-card">

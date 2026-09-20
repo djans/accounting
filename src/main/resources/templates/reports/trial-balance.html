@@ -1,16 +1,22 @@
 <!DOCTYPE html>
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments/layout :: head('Trial Balance')}"></head>
+<head th:replace="~{fragments/layout :: head(#{nav.trialBalance})}"></head>
 <body>
-<div th:replace="~{fragments/layout :: sidebar('accounting')}"></div>
-<main class="portal-main">
-    <div th:replace="~{fragments/layout :: topbar('Trial Balance')}"></div>
-    <section class="portal-content">
+<div class="portal-shell">
+    <div th:replace="~{fragments/layout :: sidebar('trial-balance')}"></div>
+    <main class="portal-main">
+        <div th:replace="~{fragments/layout :: topbar(#{nav.trialBalance})}"></div>
+        <section class="portal-content">
         <div th:replace="~{fragments/layout :: flash}"></div>
+        <div th:if="${trialBalanceError}" class="flash flash-error" th:text="${trialBalanceError}"></div>
+        <div id="tb-error" class="flash flash-error" style="display:none"></div>
         <div class="portal-card">
             <div class="d-flex align-items-center justify-content-between">
                 <h3>Trial Balance</h3>
                 <div>
+                    <a th:href="@{/accounts}" class="btn-portal btn-ghost btn-sm">
+                        <i class="bi bi-journal-text"></i> Chart of Accounts
+                    </a>
                     <button id="tb-refresh" class="btn-portal btn-sm"><i class="bi bi-arrow-clockwise"></i> Refresh</button>
                     <span id="tb-spinner" class="spinner-border spinner-border-sm ms-2" role="status" aria-hidden="true" style="display:none"></span>
                 </div>
@@ -26,9 +32,15 @@
                 </tr>
                 </thead>
                 <tbody>
-                <tr th:each="acct : ${accounts.values()}">
-                    <td th:text="${acct['accountNumber']}">1001</td>
-                    <td th:text="${acct['accountName']}">Bank A</td>
+                <tr th:each="acct : ${accountRows}">
+                    <td>
+                        <a th:href="@{/accounts/{id}/edit(id=${acct['accountId']})}"
+                           th:text="${acct['accountNumber']}">1001</a>
+                    </td>
+                    <td>
+                        <a th:href="@{/accounts/{id}/edit(id=${acct['accountId']})}"
+                           th:text="${acct['accountName']}">Bank A</a>
+                    </td>
                     <td class="num" th:text="${#numbers.formatCurrency(acct['debitBalance'])}">$0.00</td>
                     <td class="num" th:text="${#numbers.formatCurrency(acct['creditBalance'])}">$0.00</td>
                     <td class="num" th:text="${#numbers.formatCurrency(acct['balance'])}">$0.00</td>
@@ -44,8 +56,9 @@
                 </tfoot>
             </table>
         </div>
-    </section>
-</main>
+        </section>
+    </main>
+</div>
     <script>
         (function(){
             const refreshBtn = document.getElementById('tb-refresh');
@@ -96,15 +109,20 @@
                 if(inflight) return;
                 setLoading(true);
                 inflight = fetch('/api/accounting-reports/trial-balance', {cache:'no-store'})
-                    .then(r => { if(!r.ok) throw new Error('Network'); return r.json(); })
+                    .then(r => { if(!r.ok) throw new Error('Trial balance request failed (' + r.status + ')'); return r.json(); })
                     .then(json => render(json))
-                    .catch(err => console.error('Could not refresh trial balance', err))
+                    .catch(err => {
+                        console.error('Could not refresh trial balance', err);
+                        const message = document.getElementById('tb-error');
+                        if (message) {
+                            message.textContent = 'Unable to refresh the trial balance.';
+                            message.style.display = '';
+                        }
+                    })
                     .finally(()=>{ inflight = null; setLoading(false); });
             }
 
             if(refreshBtn) refreshBtn.addEventListener('click', fetchTrialBalance);
-            // Auto refresh every 30 seconds
-            setInterval(fetchTrialBalance, 30000);
             // Initial fetch to ensure latest data
             document.addEventListener('DOMContentLoaded', function(){ fetchTrialBalance(); });
         })();

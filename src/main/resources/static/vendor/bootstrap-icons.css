@@ -2,7 +2,84 @@
    Replace this with the real bootstrap-icons CSS and SVG fonts locally.
    For now, provide a tiny helper so icon elements don't break layout. */
 
-.bi{display:inline-block;width:1em;height:1em;vertical-align:-0.125em;fill:currentColor}
-.bi-chevron-down:before{content:'\25BE'}
-.bi-receipt:before{content:'\1F9FE'}
+.bi {
+    display: inline-block;
+    width: 1em;
+    height: 1em;
+    vertical-align: -0.125em;
+    fill: currentColor;
+    font-family: serif; /* Fallback to show something */
+}
+
+/* Base style for icons to behave like font icons */
+[class^="bi-"]::before, [class*=" bi-"]::before {
+    display: inline-block;
+    font-family: serif;
+    font-style: normal;
+    font-weight: normal;
+    font-variant: normal;
+    text-transform: none;
+    line-height: 1;
+    vertical-align: -.125em;
+    -webkit-font-smoothing: antialiased;
+}
+
+/* Basic mappings for the placeholder file */
+.bi-pencil::before { content: "\270E"; } /* Lower Right Pencil */
+.bi-pencil-square::before { content: "\270F"; } /* Pencil */
+.bi-trash::before { content: "\1F5D1"; } /* Trash */
+.bi-plus-lg::before { content: "\002B"; } /* Plus */
+.bi-plus-square::before { content: "\229E"; } /* Squared Plus */
+.bi-printer::before { content: "\1F5B6"; } /* Printer */
+.bi-search::before { content: "\1F50D"; } /* Search */
+.bi-chevron-down::before { content: "\25BE"; } /* Small Down Triangle */
+.bi-grid-1x2-fill::before { content: "\25A6"; } /* Squares */
+.bi-people-fill::before { content: "\1F465"; } /* People */
+.bi-receipt::before { content: "\1F9FE"; } /* Receipt */
+.bi-cash-coin::before { content: "\1F4B5"; } /* Banknote */
+.bi-wallet2::before { content: "\1F45B"; } /* Wallet */
+.bi-credit-card::before { content: "\1F4B3"; } /* Credit Card */
+.bi-arrow-left-right::before { content: "\21C6"; } /* Arrows */
+.bi-bar-chart-line::before { content: "\1F4C8"; } /* Chart */
+.bi-hourglass-split::before { content: "\23F3"; } /* Hourglass */
+.bi-truck::before { content: "\1F69A"; } /* Truck */
+.bi-receipt-cutoff::before { content: "\1F9FE"; }
+.bi-journal-text::before { content: "\1F4D6"; } /* Book */
+.bi-journal-plus::before { content: "\1F4D7"; }
+.bi-collection::before { content: "\1F4C2"; } /* Folder */
+.bi-pie-chart-fill::before { content: "\25D4"; } /* Pie */
+.bi-check2-square::before { content: "\2611"; } /* Check */
+.bi-calendar-check::before { content: "\1F4C5"; } /* Calendar */
+.bi-ui-checks-grid::before { content: "\2630"; } /* Menu */
+.bi-shield-check::before { content: "\1F6E1"; } /* Shield */
+.bi-calendar-event::before { content: "\1F4C5"; }
+.bi-building::before { content: "\1F3E2"; } /* Office Building */
+.bi-percent::before { content: "\0025"; } /* Percent */
+.bi-database-down::before { content: "\1F4BE"; } /* Disk */
+.bi-database::before { content: "\1F4BE"; }
+.bi-box-arrow-in-right::before { content: "\21AA"; } /* Login */
+.bi-box-arrow-right::before { content: "\21A9"; } /* Logout */
+.bi-terminal::before { content: "\1F5B3"; } /* Keyboard/Terminal */
+.bi-dash-lg::before { content: "\2014"; } /* Em Dash for Minus */
+.bi-chevron-right::before { content: "\25B8"; } /* Small Right Triangle */
+.bi-arrow-clockwise::before { content: "\21BB"; } /* Refresh */
+.bi-file-earmark-arrow-down::before { content: "\1F4E5"; } /* Download */
+.bi-file-earmark-spreadsheet::before { content: "\1F4CA"; } /* CSV */
+.bi-file-earmark-text::before { content: "\1F4C4"; } /* TXT */
+.bi-arrow-counterclockwise::before { content: "\21BA"; } /* Undo/Counter-Clockwise */
+.bi-arrow-repeat::before { content: "\1F5D8"; } /* Repeat */
+.bi-arrow-right::before { content: "\2192"; } /* Right Arrow */
+.bi-check2::before { content: "\2713"; } /* Check */
+.bi-check2-circle::before { content: "\2705"; } /* Circle Check */
+.bi-copy::before { content: "\2398"; } /* Copy */
+.bi-eye::before { content: "\1F441"; } /* Eye */
+.bi-funnel::before { content: "\2207"; } /* Filter/Funnel */
+.bi-inbox::before { content: "\1F4E5"; } /* Inbox */
+.bi-lock::before { content: "\1F512"; } /* Lock */
+.bi-send::before { content: "\1F4E2"; } /* Send/Megaphone placeholder or \2709 Envelope */
+.bi-send-check::before { content: "\2709\2713"; }
+.bi-unlock::before { content: "\1F513"; } /* Unlock */
+.bi-upload::before { content: "\1F4E4"; } /* Upload */
+.bi-x::before { content: "\2715"; } /* Close/X */
+.bi-x-circle::before { content: "\274C"; } /* Red X */
 /* Add additional mappings as needed or add the official icon font files. */

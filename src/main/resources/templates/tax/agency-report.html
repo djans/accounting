@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments/layout :: head('Agency Report')}"></head>
+<head th:replace="~{fragments/layout :: head(#{nav.taxAgencyReport})}"></head>
 <body>
 <div class="portal-shell">
-    <div th:replace="~{fragments/layout :: sidebar('tax-agencies')}"></div>
+    <div th:replace="~{fragments/layout :: sidebar(${active})}"></div>
     <main class="portal-main">
         <div th:replace="~{fragments/layout :: topbar(|${agency.code} — ${agency.name}|)}"></div>
         <section class="portal-content">
@@ -41,17 +41,18 @@
 
             <div id="agency-report" th:attr="data-agency-id=${agency.id}">
                 <div class="report-totals" style="margin:1.25rem 0">
-                <div class="stat-card">
-                    <div class="stat-label">Total Tax Collected</div>
-                    <div class="stat-value" th:text="${#numbers.formatCurrency(totalCollected)}">$0</div>
-                </div>
-                <div class="stat-card is-accent">
-                    <div class="stat-label">Total ITC Claimed</div>
-                    <div class="stat-value" th:text="${#numbers.formatCurrency(totalItc)}">$0</div>
-                </div>
-                <div class="stat-card is-success">
-                    <div class="stat-label">Total Net Owed</div>
-                    <div class="stat-value" th:text="${#numbers.formatCurrency(totalNet)}">$0</div>
+                    <div class="stat-card">
+                        <div class="stat-label">Total Tax Collected</div>
+                        <div class="stat-value" th:text="${#numbers.formatCurrency(totalCollected)}">$0</div>
+                    </div>
+                    <div class="stat-card is-accent">
+                        <div class="stat-label">Total ITC Claimed</div>
+                        <div class="stat-value" th:text="${#numbers.formatCurrency(totalItc)}">$0</div>
+                    </div>
+                    <div class="stat-card is-success">
+                        <div class="stat-label">Total Net Owed</div>
+                        <div class="stat-value" th:text="${#numbers.formatCurrency(totalNet)}">$0</div>
+                    </div>
                 </div>
             </div>
 
@@ -80,7 +81,7 @@
                         </td>
                         <td><span class="badge-pill" th:text="${p.status}">OPEN</span></td>
                         <td class="num" th:text="${#numbers.formatCurrency(p.taxCollected)}">$0</td>
-                        <td class="num" th:text="${#numbers.formatCurrency(p.taxITC)}">$0</td>
+                        <td class="num" th:text="${#numbers.formatCurrency(p.taxItc)}">$0</td>
                         <td class="num" th:text="${#numbers.formatCurrency(p.netOwing)}">$0</td>
                         <td th:text="${p.filedDate}">—</td>
                         <td th:text="${p.paidDate}">—</td>
@@ -91,6 +92,6 @@
         </section>
     </main>
 </div>
-<script th:src="@{/tax/agency-refresh.js}"></script>
+<script th:src="@{/js/tax-agency-refresh.js}"></script>
 </body>
 </html>

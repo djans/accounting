@@ -54,7 +54,7 @@ public class TaxAgencyController {
                 .map(p -> p.getTaxCollected() == null ? java.math.BigDecimal.ZERO : p.getTaxCollected())
                 .reduce(java.math.BigDecimal.ZERO, java.math.BigDecimal::add);
             java.math.BigDecimal totalItc = periods.stream()
-                .map(p -> p.getTaxITC() == null ? java.math.BigDecimal.ZERO : p.getTaxITC())
+                .map(p -> p.getTaxItc() == null ? java.math.BigDecimal.ZERO : p.getTaxItc())
                 .reduce(java.math.BigDecimal.ZERO, java.math.BigDecimal::add);
             java.math.BigDecimal totalNet = periods.stream()
                 .map(p -> p.getNetOwing() == null ? java.math.BigDecimal.ZERO : p.getNetOwing())

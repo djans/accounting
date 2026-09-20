@@ -10,8 +10,13 @@
             <div th:replace="~{fragments/layout :: flash}"></div>
 
             <div class="portal-card">
-                <form th:action="@{/invoices}" method="post" id="invoiceForm">
+                <form th:action="${isEdit} ? @{/invoices/{id}(id=${invoice.id})} : @{/invoices}" method="post" id="invoiceForm">
                     <div class="form-grid">
+                        <div class="form-field">
+                            <label>Invoice number</label>
+                            <input type="text" name="invoiceNumber"
+                                   th:value="${isEdit ? invoice.invoiceNumber : suggestedNumber}" required/>
+                        </div>
                         <div class="form-field">
                             <label>Customer</label>
                             <select name="customerId" id="customerSelect" required>
@@ -19,8 +24,19 @@
                                 <option th:each="c : ${customers}"
                                         th:value="${c.id}"
                                         th:attr="data-province=${c.province}"
+                                        th:selected="${isEdit and invoice.customer != null and c.id == invoice.customer.id}"
                                         th:text="${c.businessName + ' — ' + c.province}">Customer</option>
                             </select>
+                        </div>
+                        <div class="form-field">
+                            <label>Issued</label>
+                            <input type="date" name="invoiceDate"
+                                   th:value="${invoice.invoiceDate != null ? invoice.invoiceDate : T(java.time.LocalDate).now()}"/>
+                        </div>
+                        <div class="form-field">
+                            <label>Due</label>
+                            <input type="date" name="dueDate"
+                                   th:value="${invoice.dueDate}"/>
                         </div>
                         <div class="form-field">
                             <label>Régime fiscal</label>
@@ -29,12 +45,14 @@
                                 <option th:each="r : ${regimes}"
                                         th:value="${r.code}"
                                         th:attr="data-gst=${r.gstRate},data-hst=${r.hstRate},data-qst=${r.qstRate}"
+                                        th:selected="${isEdit and r.code == selectedTaxRegime}"
                                         th:text="${r.label}">QC</option>
                             </select>
                         </div>
                         <div class="form-field full">
                             <label>Notes</label>
-                            <textarea name="notes" rows="2" placeholder="Optional notes shown on the invoice"></textarea>
+                            <textarea name="notes" rows="2" placeholder="Optional notes shown on the invoice"
+                                      th:text="${invoice.notes}"></textarea>
                         </div>
                     </div>
 
@@ -47,7 +65,7 @@
                     </div>
                     <table class="table-portal entries-table">
                         <thead>
-                        <tr>
+                        <tr th:if="${!isEdit}">
                             <th style="width:50%">Description</th>
                             <th style="width:13%">Quantity</th>
                             <th style="width:17%">Unit Price</th>
@@ -56,7 +74,7 @@
                         </tr>
                         </thead>
                         <tbody id="lineItemsBody">
-                        <tr>
+                        <tr th:if="${!isEdit}">
                             <td><input type="text" name="descriptions" required/></td>
                             <td><input type="number" class="qty" name="quantities" step="0.01" value="1" required/></td>
                             <td><input type="number" class="price" name="unitPrices" step="0.01" value="0" required/></td>
@@ -66,6 +84,13 @@
                                     <i class="bi bi-x"></i>
                                 </button>
                             </td>
+                        </tr>
+                        <tr th:if="${isEdit}" th:each="line : ${invoice.lineItems}">
+                            <td><input type="text" name="descriptions" th:value="${line.description}" required/></td>
+                            <td><input type="number" class="qty" name="quantities" step="0.01" th:value="${line.quantity}" required/></td>
+                            <td><input type="number" class="price" name="unitPrices" step="0.01" th:value="${line.unitPrice}" required/></td>
+                            <td class="num line-total" th:text="${line.total}">$0.00</td>
+                            <td><button type="button" class="btn-portal btn-danger btn-sm" onclick="removeLine(this)"><i class="bi bi-x"></i></button></td>
                         </tr>
                         </tbody>
                     </table>
@@ -104,7 +129,7 @@
                     <div class="form-actions">
                         <a th:href="@{/invoices}" class="btn-portal btn-ghost">Cancel</a>
                         <button type="submit" class="btn-portal">
-                            <i class="bi bi-check2"></i> Create Invoice
+                            <i class="bi bi-check2"></i> <span th:text="${isEdit ? 'Save changes' : 'Create Invoice'}">Create Invoice</span>
                         </button>
                     </div>
                 </form>

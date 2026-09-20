@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments/layout :: head(\"Facture d'achat\")}"></head>
+<head th:replace="~{fragments/layout :: head(#{nav.bills})}"></head>
 <body>
 <div class="portal-shell">
     <div th:replace="~{fragments/layout :: sidebar('bills')}"></div>

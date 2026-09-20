@@ -3,7 +3,7 @@
 <head th:replace="~{fragments/layout :: head('Tax Filing Periods')}"></head>
 <body>
 <div class="portal-shell">
-    <div th:replace="~{fragments/layout :: sidebar('tax-periods')}"></div>
+    <div th:replace="~{fragments/layout :: sidebar(${active})}"></div>
     <main class="portal-main">
         <div th:replace="~{fragments/layout :: topbar('Tax Filing Periods')}"></div>
         <section class="portal-content">
@@ -43,7 +43,7 @@
                         </td>
                         <td><span class="badge-pill" th:text="${p.status}">OPEN</span></td>
                         <td class="num" th:text="${#numbers.formatCurrency(p.taxCollected)}">$0</td>
-                        <td class="num" th:text="${#numbers.formatCurrency(p.taxITC)}">$0</td>
+                        <td class="num" th:text="${#numbers.formatCurrency(p.taxItc)}">$0</td>
                         <td class="num" th:text="${#numbers.formatCurrency(p.netOwing)}">$0</td>
                         <td th:text="${p.filedDate}">—</td>
                         <td th:text="${p.paidDate}">—</td>

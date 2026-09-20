@@ -10,8 +10,8 @@ import com.cogitosum.repository.GeneralLedgerRepository;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -30,16 +30,16 @@ class TaxReportRestControllerTest {
     @Autowired
     private MockMvc mockMvc;
 
-    @MockBean
+    @MockitoBean
     private TaxAgencyService agencyService;
 
-    @MockBean
+    @MockitoBean
     private TaxCodeService codeService;
 
-    @MockBean
+    @MockitoBean
     private TaxFilingService filingService;
 
-    @MockBean
+    @MockitoBean
     private GeneralLedgerRepository ledgerRepository;
 
     @Test
@@ -82,7 +82,7 @@ class TaxReportRestControllerTest {
         period.setId(42L);
         period.setStatus(com.cogitosum.entity.TaxFilingStatus.OPEN);
         period.setTaxCollected(java.math.BigDecimal.ZERO);
-        period.setTaxITC(java.math.BigDecimal.ZERO);
+        period.setTaxItc(java.math.BigDecimal.ZERO);
         period.setNetOwing(java.math.BigDecimal.ZERO);
 
         when(filingService.getAll()).thenReturn(List.of(period));
@@ -102,15 +102,17 @@ class TaxReportRestControllerTest {
         period.setId(99L);
         period.setStatus(com.cogitosum.entity.TaxFilingStatus.FILED);
         period.setTaxCollected(java.math.BigDecimal.ZERO);
-        period.setTaxITC(java.math.BigDecimal.ZERO);
+        period.setTaxItc(java.math.BigDecimal.ZERO);
         period.setNetOwing(java.math.BigDecimal.ZERO);
 
         when(filingService.getById(99L)).thenReturn(java.util.Optional.of(period));
 
         mockMvc.perform(get("/api/tax/periods/99").accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.agency.code").value("CRA"))
-                .andExpect(jsonPath("$.status").value("FILED"));
+                .andExpect(jsonPath("$.period.agency.code").value("CRA"))
+                .andExpect(jsonPath("$.period.status").value("FILED"))
+                .andExpect(jsonPath("$.collectedDetail").isArray())
+                .andExpect(jsonPath("$.itcDetail").isArray());
     }
 
     @Test

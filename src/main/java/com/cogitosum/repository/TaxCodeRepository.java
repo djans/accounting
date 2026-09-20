@@ -9,7 +9,8 @@ import java.util.Optional;
 
 @Repository
 public interface TaxCodeRepository extends JpaRepository<TaxCode, Long> {
+    List<TaxCode> findAllByOrderByCodeAsc();
     Optional<TaxCode> findByCode(String code);
-    List<TaxCode> findByAgencyId(Long agencyId);
-    List<TaxCode> findByIsActive(Boolean isActive);
+    List<TaxCode> findByAgencyIdOrderByCodeAsc(Long agencyId);
+    List<TaxCode> findByIsActiveOrderByCodeAsc(Boolean isActive);
 }

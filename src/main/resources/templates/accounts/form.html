@@ -1,50 +1,102 @@
 <!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments/layout :: head('Account')}"></head>
+<html lang="fr" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Compte Comptable')}"></head>
 <body>
 <div class="portal-shell">
     <div th:replace="~{fragments/layout :: sidebar('accounts')}"></div>
     <main class="portal-main">
-        <div th:replace="~{fragments/layout :: topbar(${isNew} ? 'New Account' : 'Edit Account')}"></div>
+        <div th:replace="~{fragments/layout :: topbar(${isNew} ? 'Nouveau Compte' : 'Modifier le Compte')}"></div>
         <section class="portal-content">
             <div th:replace="~{fragments/layout :: flash}"></div>
 
             <div class="portal-card">
                 <form th:action="${isNew} ? @{/accounts} : @{/accounts/{id}(id=${account.id})}"
                       th:object="${account}" method="post">
-                    <div class="form-grid">
-                        <div class="form-field">
-                            <label>Account Number</label>
-                            <input type="text" th:field="*{accountNumber}" placeholder="e.g. 1010" required/>
-                        </div>
-                        <div class="form-field">
-                            <label>Account Name</label>
-                            <input type="text" th:field="*{accountName}" placeholder="e.g. Cash" required/>
-                        </div>
-                        <div class="form-field">
-                            <label>Type</label>
-                            <select th:field="*{accountType}" required>
-                                <option th:each="t : ${types}" th:value="${t}" th:text="${t}">ASSET</option>
-                            </select>
-                        </div>
-                        <div class="form-field">
-                            <label>Active</label>
-                            <select th:field="*{active}">
-                                <option th:value="true">Yes</option>
-                                <option th:value="false">No</option>
-                            </select>
-                        </div>
-                        <div class="form-field full">
-                            <label>Description</label>
-                            <textarea th:field="*{description}" rows="2" required></textarea>
+                    
+                    <div class="form-section mb-4">
+                        <h4 class="section-title border-bottom pb-2 mb-3">Informations Générales</h4>
+                        <div class="form-grid">
+                            <div class="form-field">
+                                <label>Numéro de Compte</label>
+                                <input type="text" th:field="*{accountNumber}" placeholder="ex: 1010" required/>
+                            </div>
+                            <div class="form-field">
+                                <label>Nom du Compte</label>
+                                <input type="text" th:field="*{accountName}" placeholder="ex: Petite Caisse" required/>
+                            </div>
+                            <div class="form-field">
+                                <label>Type de Compte</label>
+                                <select th:field="*{accountType}" required>
+                                    <option th:each="t : ${types}" th:value="${t}" th:text="${t}">ASSET</option>
+                                </select>
+                            </div>
+                            <div class="form-field">
+                                <label>Catégorie (Détail)</label>
+                                <select th:field="*{category}">
+                                    <option value="">Choisir une catégorie...</option>
+                                    <option th:each="category : ${categories}"
+                                            th:value="${category}"
+                                            th:text="${category.label}">Bank</option>
+                                </select>
+                            </div>
                         </div>
                     </div>
 
-                    <div class="form-actions">
-                        <a th:href="@{/accounts}" class="btn-portal btn-ghost">Cancel</a>
+                    <div class="form-section mb-4">
+                        <h4 class="section-title border-bottom pb-2 mb-3">Hiérarchie et Devise</h4>
+                        <div class="form-grid">
+                            <div class="form-field">
+                                <label>Compte Parent (Sous-compte de)</label>
+                                <select th:field="*{parentAccount}">
+                                    <option value="">(Aucun - Compte Principal)</option>
+                                    <option th:each="a : ${accounts}" 
+                                            th:if="${a.id != account.id}"
+                                            th:value="${a.id}" 
+                                            th:text="${a.accountNumber + ' ' + a.accountName}"></option>
+                                </select>
+                            </div>
+                            <div class="form-field">
+                                <label>Devise</label>
+                                <select th:field="*{currency}">
+                                    <option value="CAD">Dollar Canadien (CAD)</option>
+                                    <option value="USD">Dollar Américain (USD)</option>
+                                    <option value="EUR">Euro (EUR)</option>
+                                </select>
+                            </div>
+                            <div class="form-field">
+                                <label>Statut</label>
+                                <select th:field="*{active}">
+                                    <option th:value="true">Actif</option>
+                                    <option th:value="false">Inactif</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-section mb-4" th:if="${isNew}">
+                        <h4 class="section-title border-bottom pb-2 mb-3">Solde d'Ouverture</h4>
+                        <div class="form-grid">
+                            <div class="form-field">
+                                <label>Solde Initial</label>
+                                <input type="number" step="0.01" th:field="*{openingBalance}" placeholder="0.00"/>
+                            </div>
+                            <div class="form-field">
+                                <label>En date du</label>
+                                <input type="date" th:field="*{openingBalanceDate}"/>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-field full">
+                        <label>Description / Notes</label>
+                        <textarea th:field="*{description}" rows="3" placeholder="Description optionnelle du compte..."></textarea>
+                    </div>
+
+                    <div class="form-actions mt-4">
+                        <a th:href="@{/accounts}" class="btn-portal btn-ghost">Annuler</a>
                         <button type="submit" class="btn-portal">
                             <i class="bi bi-check2"></i>
-                            <span th:text="${isNew} ? 'Create Account' : 'Save Changes'"></span>
+                            <span th:text="${isNew} ? 'Créer le Compte' : 'Enregistrer les Modifications'"></span>
                         </button>
                     </div>
                 </form>

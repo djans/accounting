@@ -21,6 +21,10 @@ public class Payment {
     @JoinColumn(name = "bank_account_id")
     private ChartOfAccount bankAccount;
 
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "ar_account_id")
+    private ChartOfAccount arAccount;
+
     @Column(nullable = false, precision = 19, scale = 2)
     private BigDecimal amount;
     
@@ -84,6 +88,14 @@ public class Payment {
 
     public void setBankAccount(ChartOfAccount bankAccount) {
         this.bankAccount = bankAccount;
+    }
+
+    public ChartOfAccount getArAccount() {
+        return arAccount;
+    }
+
+    public void setArAccount(ChartOfAccount arAccount) {
+        this.arAccount = arAccount;
     }
     
     public BigDecimal getAmount() {

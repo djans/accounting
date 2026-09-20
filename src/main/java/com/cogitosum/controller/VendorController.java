@@ -22,7 +22,7 @@ public class VendorController {
         try {
             return new ResponseEntity<>(vendorService.createVendor(vendor), HttpStatus.CREATED);
         } catch (Exception e) {
-            return new ResponseEntity<>(null, HttpStatus.BAD_REQUEST);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
         }
     }
 
@@ -31,7 +31,7 @@ public class VendorController {
         try {
             return new ResponseEntity<>(vendorService.getAllVendors(), HttpStatus.OK);
         } catch (Exception e) {
-            return new ResponseEntity<>(null, HttpStatus.INTERNAL_SERVER_ERROR);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
 
@@ -40,9 +40,9 @@ public class VendorController {
         try {
             Optional<Vendor> vendor = vendorService.getVendorById(id);
             return vendor.map(v -> new ResponseEntity<>(v, HttpStatus.OK))
-                    .orElseGet(() -> new ResponseEntity<>(null, HttpStatus.NOT_FOUND));
+                    .orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND).build());
         } catch (Exception e) {
-            return new ResponseEntity<>(null, HttpStatus.INTERNAL_SERVER_ERROR);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
 
@@ -51,9 +51,9 @@ public class VendorController {
         try {
             Optional<Vendor> vendor = vendorService.getVendorByEmail(email);
             return vendor.map(v -> new ResponseEntity<>(v, HttpStatus.OK))
-                    .orElseGet(() -> new ResponseEntity<>(null, HttpStatus.NOT_FOUND));
+                    .orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND).build());
         } catch (Exception e) {
-            return new ResponseEntity<>(null, HttpStatus.INTERNAL_SERVER_ERROR);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
 
@@ -63,9 +63,9 @@ public class VendorController {
             Vendor updated = vendorService.updateVendor(id, vendor);
             return updated != null
                     ? new ResponseEntity<>(updated, HttpStatus.OK)
-                    : new ResponseEntity<>(null, HttpStatus.NOT_FOUND);
+                    : ResponseEntity.status(HttpStatus.NOT_FOUND).build();
         } catch (Exception e) {
-            return new ResponseEntity<>(null, HttpStatus.BAD_REQUEST);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
         }
     }
 

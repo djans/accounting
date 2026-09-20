@@ -4,6 +4,7 @@ import com.cogitosum.entity.ChartOfAccount;
 import com.cogitosum.entity.GeneralJournal;
 import com.cogitosum.entity.JournalEntry;
 import com.cogitosum.entity.Transfer;
+import com.cogitosum.entity.AccountCategory;
 import com.cogitosum.repository.TransferRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -24,6 +25,15 @@ public class TransferService {
     public Transfer createTransfer(Long fromAccountId, Long toAccountId, BigDecimal amount, LocalDate transferDate, String notes, String postedBy) {
         ChartOfAccount from = accountService.getAccountById(fromAccountId).orElseThrow(() -> new IllegalArgumentException("From account not found"));
         ChartOfAccount to = accountService.getAccountById(toAccountId).orElseThrow(() -> new IllegalArgumentException("To account not found"));
+        if (from.getId().equals(to.getId())) {
+            throw new IllegalArgumentException("Source and destination accounts must be different");
+        }
+        if (amount == null || amount.signum() <= 0) {
+            throw new IllegalArgumentException("Transfer amount must be greater than zero");
+        }
+        if (!isTransferAccount(from) || !isTransferAccount(to)) {
+            throw new IllegalArgumentException("Transfers are limited to bank and credit card accounts");
+        }
 
         GeneralJournal journal = new GeneralJournal();
         journal.setJournalDate(transferDate != null ? transferDate : LocalDate.now());
@@ -61,5 +71,14 @@ public class TransferService {
 
     public List<Transfer> getAllTransfers() {
         return transferRepository.findAll();
+    }
+
+    private boolean isTransferAccount(ChartOfAccount account) {
+        return account.getAccountType() == com.cogitosum.entity.AccountType.ASSET
+                || account.getAccountType() == com.cogitosum.entity.AccountType.LIABILITY
+                || account.getAccountType() == com.cogitosum.entity.AccountType.EQUITY
+                || account.getCategory() == AccountCategory.BANK
+                || account.getCategory() == AccountCategory.CREDIT_CARD
+                ;
     }
 }

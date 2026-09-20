@@ -3,7 +3,7 @@
 <head th:replace="~{fragments/layout :: head('Tax Codes')}"></head>
 <body>
 <div class="portal-shell">
-    <div th:replace="~{fragments/layout :: sidebar('tax-codes')}"></div>
+    <div th:replace="~{fragments/layout :: sidebar(${active})}"></div>
     <main class="portal-main">
         <div th:replace="~{fragments/layout :: topbar('Tax Codes')}"></div>
         <section class="portal-content">
@@ -25,7 +25,11 @@
                         <th>Agency</th>
                         <th class="num">Rate</th>
                         <th>Payable Account</th>
+                        <th>ITC Account</th>
+                        <th>Sales</th>
+                        <th>Purchases</th>
                         <th>Active</th>
+                        <th>Actions</th>
                     </tr>
                     </thead>
                     <tbody>
@@ -35,9 +39,30 @@
                         <td th:text="${c.agency.code}">CRA</td>
                         <td class="num" th:text="${#numbers.formatPercent(c.rate, 1, 3)}">5%</td>
                         <td th:text="${c.payableAccount != null ? c.payableAccount.accountNumber + ' – ' + c.payableAccount.accountName : '—'}">2310 – TPS Payable</td>
+                        <td th:text="${c.itcAccount != null ? c.itcAccount.accountNumber + ' – ' + c.itcAccount.accountName : '—'}">1300 – TPS ITC</td>
+                        <td><i th:if="${c.forSales}" class="bi bi-check-circle text-success"></i></td>
+                        <td><i th:if="${c.forPurchases}" class="bi bi-check-circle text-success"></i></td>
                         <td>
                             <span class="badge-pill" th:classappend="${c.active ? ' paid' : ' overdue'}"
                                   th:text="${c.active ? 'Active' : 'Inactive'}"></span>
+                        </td>
+                        <td>
+                            <button class="btn btn-sm btn-outline-primary edit-code"
+                                    th:data-id="${c.id}"
+                                    th:data-code="${c.code}"
+                                    th:data-name="${c.name}"
+                                    th:data-rate="${c.rate}"
+                                    th:data-agency="${c.agency.id}"
+                                    th:data-payable="${c.payableAccount != null ? c.payableAccount.id : ''}"
+                                    th:data-itc="${c.itcAccount != null ? c.itcAccount.id : ''}"
+                                    th:data-sales="${c.forSales}"
+                                    th:data-purchases="${c.forPurchases}">
+                                <i class="bi bi-pencil"></i>
+                            </button>
+                            <a th:href="@{'/tax/codes/delete/' + ${c.id}}" class="btn btn-sm btn-outline-danger"
+                               onclick="return confirm('Are you sure you want to delete this tax code?')">
+                                <i class="bi bi-trash"></i>
+                            </a>
                         </td>
                     </tr>
                     </tbody>
@@ -45,45 +70,188 @@
             </div>
 
             <div class="portal-card">
-                <h3 class="portal-card-title">Add / Update Tax Code</h3>
-                <form th:action="@{/tax/codes}" method="post">
-                    <div class="form-grid">
-                        <div class="form-field">
-                            <label>Code</label>
-                            <input type="text" name="code" required placeholder="TPS, TVQ, HST-ON"/>
-                        </div>
-                        <div class="form-field">
-                            <label>Name</label>
-                            <input type="text" name="name" required/>
-                        </div>
-                        <div class="form-field">
-                            <label>Rate (e.g. 0.05 for 5%)</label>
-                            <input type="number" step="0.00001" name="rate" required/>
-                        </div>
-                        <div class="form-field">
-                            <label>Agency</label>
-                            <select name="agencyId" required>
-                                <option value="">Select an agency…</option>
-                                <option th:each="a : ${agencies}" th:value="${a.id}" th:text="${a.code + ' — ' + a.name}"></option>
-                            </select>
-                        </div>
-                        <div class="form-field full">
-                            <label>Payable Account</label>
-                            <select name="payableAccountId">
-                                <option value="">— none —</option>
-                                <option th:each="acc : ${accounts}" th:value="${acc.id}"
-                                        th:text="${acc.accountNumber + ' – ' + acc.accountName}"></option>
-                            </select>
-                        </div>
+                <h3 class="portal-card-title">Tax Groups</h3>
+                <table class="table-portal">
+                    <thead>
+                    <tr>
+                        <th>Code</th>
+                        <th>Name</th>
+                        <th>Components</th>
+                        <th>Total Rate</th>
+                        <th>Active</th>
+                        <th>Actions</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="g : ${groups}">
+                        <td th:text="${g.code}">QC-TPS-TVQ</td>
+                        <td th:text="${g.name}">Québec (TPS+TVQ)</td>
+                        <td>
+                            <span th:each="ti : ${g.taxItems}" class="badge-pill bg-light text-dark me-1" th:text="${ti.code}">TPS</span>
+                        </td>
+                        <td class="num">
+                            <span th:with="totalRate=${#aggregates.sum(g.taxItems.![rate])}"
+                                  th:text="${#numbers.formatPercent(totalRate, 1, 3)}">14.975%</span>
+                        </td>
+                        <td>
+                            <span class="badge-pill" th:classappend="${g.active ? ' paid' : ' overdue'}"
+                                  th:text="${g.active ? 'Active' : 'Inactive'}"></span>
+                        </td>
+                        <td>
+                            <button class="btn btn-sm btn-outline-primary edit-group"
+                                    th:data-id="${g.id}"
+                                    th:data-code="${g.code}"
+                                    th:data-name="${g.name}"
+                                    th:data-items="${#strings.join(g.taxItems.![id], ',')}">
+                                <i class="bi bi-pencil"></i>
+                            </button>
+                            <a th:href="@{'/tax/groups/delete/' + ${g.id}}" class="btn btn-sm btn-outline-danger"
+                               onclick="return confirm('Are you sure you want to delete this tax group?')">
+                                <i class="bi bi-trash"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="portal-card">
+                        <h3 class="portal-card-title">Add / Update Tax Item</h3>
+                        <form th:action="@{/tax/codes}" method="post" id="code-form">
+                            <input type="hidden" name="id" id="code-id"/>
+                            <div class="form-grid">
+                                <div class="form-field">
+                                    <label>Code</label>
+                                    <input type="text" name="code" id="code-input" required placeholder="TPS, TVQ, HST-ON"/>
+                                </div>
+                                <div class="form-field">
+                                    <label>Name</label>
+                                    <input type="text" name="name" id="name-input" required/>
+                                </div>
+                                <div class="form-field">
+                                    <label>Rate (e.g. 0.05 for 5%)</label>
+                                    <input type="number" step="0.00001" name="rate" id="rate-input" required/>
+                                </div>
+                                <div class="form-field">
+                                    <label>Agency</label>
+                                    <select name="agencyId" id="agency-input" required>
+                                        <option value="">Select an agency…</option>
+                                        <option th:each="a : ${agencies}" th:value="${a.id}" th:text="${a.code + ' — ' + a.name}"></option>
+                                    </select>
+                                </div>
+                                <div class="form-field full">
+                                    <label>Payable Account (Sales Tax Collected)</label>
+                                    <select name="payableAccountId" id="payable-input">
+                                        <option value="">— none —</option>
+                                        <option th:each="acc : ${accounts}" th:value="${acc.id}"
+                                                th:text="${acc.accountNumber + ' – ' + acc.accountName}"></option>
+                                    </select>
+                                </div>
+                                <div class="form-field full">
+                                    <label>ITC Account (Purchase Tax Credits)</label>
+                                    <select name="itcAccountId" id="itc-input">
+                                        <option value="">— none —</option>
+                                        <option th:each="acc : ${accounts}" th:value="${acc.id}"
+                                                th:text="${acc.accountNumber + ' – ' + acc.accountName}"></option>
+                                    </select>
+                                </div>
+                                <div class="form-field">
+                                    <label><input type="checkbox" name="forSales" id="sales-input" value="true" checked/> For Sales</label>
+                                </div>
+                                <div class="form-field">
+                                    <label><input type="checkbox" name="forPurchases" id="purchases-input" value="true" checked/> For Purchases</label>
+                                </div>
+                            </div>
+                            <div class="form-actions">
+                                <button type="submit" class="btn-portal"><i class="bi bi-check2"></i> Save Item</button>
+                                <button type="button" class="btn btn-secondary ms-2" onclick="resetCodeForm()" id="reset-code" style="display:none">Cancel</button>
+                            </div>
+                        </form>
                     </div>
-                    <div class="form-actions">
-                        <button type="submit" class="btn-portal"><i class="bi bi-check2"></i> Save</button>
+                </div>
+                <div class="col-md-6">
+                    <div class="portal-card">
+                        <h3 class="portal-card-title">Add / Update Tax Group</h3>
+                        <form th:action="@{/tax/groups}" method="post" id="group-form">
+                            <input type="hidden" name="id" id="group-id"/>
+                            <div class="form-grid">
+                                <div class="form-field">
+                                    <label>Group Code</label>
+                                    <input type="text" name="code" id="group-code-input" required placeholder="QC-TPS-TVQ"/>
+                                </div>
+                                <div class="form-field">
+                                    <label>Group Name</label>
+                                    <input type="text" name="name" id="group-name-input" required/>
+                                </div>
+                                <div class="form-field full">
+                                    <label>Tax Components</label>
+                                    <div class="border rounded p-2" style="max-height: 200px; overflow-y: auto;">
+                                        <div th:each="ti : ${codes}" class="form-check">
+                                            <input class="form-check-input item-checkbox" type="checkbox" name="itemIds" th:value="${ti.id}" th:id="'ti' + ${ti.id}">
+                                            <label class="form-check-label" th:for="'ti' + ${ti.id}" th:text="${ti.code + ' (' + #numbers.formatPercent(ti.rate, 1, 2) + ')'}"></label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="form-actions">
+                                <button type="submit" class="btn-portal"><i class="bi bi-check2"></i> Save Group</button>
+                                <button type="button" class="btn btn-secondary ms-2" onclick="resetGroupForm()" id="reset-group" style="display:none">Cancel</button>
+                            </div>
+                        </form>
                     </div>
-                </form>
+                </div>
             </div>
         </section>
     </main>
 </div>
+<script>
+    document.querySelectorAll('.edit-code').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.getElementById('code-id').value = btn.dataset.id;
+            document.getElementById('code-input').value = btn.dataset.code;
+            document.getElementById('name-input').value = btn.dataset.name;
+            document.getElementById('rate-input').value = btn.dataset.rate;
+            document.getElementById('agency-input').value = btn.dataset.agency;
+            document.getElementById('payable-input').value = btn.dataset.payable;
+            document.getElementById('itc-input').value = btn.dataset.itc;
+            document.getElementById('sales-input').checked = btn.dataset.sales === 'true';
+            document.getElementById('purchases-input').checked = btn.dataset.purchases === 'true';
+            document.getElementById('reset-code').style.display = 'inline-block';
+            document.getElementById('code-form').scrollIntoView({ behavior: 'smooth' });
+        });
+    });
+
+    function resetCodeForm() {
+        document.getElementById('code-form').reset();
+        document.getElementById('code-id').value = '';
+        document.getElementById('reset-code').style.display = 'none';
+    }
+
+    document.querySelectorAll('.edit-group').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.getElementById('group-id').value = btn.dataset.id;
+            document.getElementById('group-code-input').value = btn.dataset.code;
+            document.getElementById('group-name-input').value = btn.dataset.name;
+            
+            const itemIds = btn.dataset.items.split(',');
+            document.querySelectorAll('.item-checkbox').forEach(cb => {
+                cb.checked = itemIds.includes(cb.value);
+            });
+            
+            document.getElementById('reset-group').style.display = 'inline-block';
+            document.getElementById('group-form').scrollIntoView({ behavior: 'smooth' });
+        });
+    });
+
+    function resetGroupForm() {
+        document.getElementById('group-form').reset();
+        document.getElementById('group-id').value = '';
+        document.getElementById('reset-group').style.display = 'none';
+        document.querySelectorAll('.item-checkbox').forEach(cb => cb.checked = false);
+    }
+</script>
 <script th:src="@{/js/tax-codes-refresh.js}"></script>
 </body>
 </html>

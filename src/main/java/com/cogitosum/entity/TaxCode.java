@@ -21,6 +21,12 @@ public class TaxCode {
     @Column(nullable = false, precision = 7, scale = 5)
     private BigDecimal rate;
 
+    @Column(nullable = false)
+    private Boolean forSales = true;
+
+    @Column(nullable = false)
+    private Boolean forPurchases = true;
+
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "agency_id", nullable = false)
     private TaxAgency agency;
@@ -64,6 +70,10 @@ public class TaxCode {
     public void setName(String name) { this.name = name; }
     public BigDecimal getRate() { return rate; }
     public void setRate(BigDecimal rate) { this.rate = rate; }
+    public Boolean getForSales() { return forSales; }
+    public void setForSales(Boolean forSales) { this.forSales = forSales; }
+    public Boolean getForPurchases() { return forPurchases; }
+    public void setForPurchases(Boolean forPurchases) { this.forPurchases = forPurchases; }
     public TaxAgency getAgency() { return agency; }
     public void setAgency(TaxAgency agency) { this.agency = agency; }
     public ChartOfAccount getPayableAccount() { return payableAccount; }

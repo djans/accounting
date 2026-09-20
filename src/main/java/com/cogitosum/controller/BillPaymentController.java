@@ -23,7 +23,7 @@ public class BillPaymentController {
         try {
             return new ResponseEntity<>(billPaymentService.recordPayment(payment), HttpStatus.CREATED);
         } catch (Exception e) {
-            return new ResponseEntity<>(null, HttpStatus.BAD_REQUEST);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
         }
     }
 
@@ -32,7 +32,7 @@ public class BillPaymentController {
         try {
             return new ResponseEntity<>(billPaymentService.getAllPayments(), HttpStatus.OK);
         } catch (Exception e) {
-            return new ResponseEntity<>(null, HttpStatus.INTERNAL_SERVER_ERROR);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
 
@@ -41,9 +41,9 @@ public class BillPaymentController {
         try {
             Optional<BillPayment> payment = billPaymentService.getPaymentById(id);
             return payment.map(p -> new ResponseEntity<>(p, HttpStatus.OK))
-                    .orElseGet(() -> new ResponseEntity<>(null, HttpStatus.NOT_FOUND));
+                    .orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND).build());
         } catch (Exception e) {
-            return new ResponseEntity<>(null, HttpStatus.INTERNAL_SERVER_ERROR);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
 
@@ -52,7 +52,7 @@ public class BillPaymentController {
         try {
             return new ResponseEntity<>(billPaymentService.getPaymentsByBillId(billId), HttpStatus.OK);
         } catch (Exception e) {
-            return new ResponseEntity<>(null, HttpStatus.INTERNAL_SERVER_ERROR);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
 
@@ -62,9 +62,9 @@ public class BillPaymentController {
             BillPayment payment = billPaymentService.markPaymentAsCompleted(id);
             return payment != null
                     ? new ResponseEntity<>(payment, HttpStatus.OK)
-                    : new ResponseEntity<>(null, HttpStatus.NOT_FOUND);
+                    : ResponseEntity.status(HttpStatus.NOT_FOUND).build();
         } catch (Exception e) {
-            return new ResponseEntity<>(null, HttpStatus.INTERNAL_SERVER_ERROR);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
 
@@ -74,9 +74,9 @@ public class BillPaymentController {
             BillPayment payment = billPaymentService.refundPayment(id);
             return payment != null
                     ? new ResponseEntity<>(payment, HttpStatus.OK)
-                    : new ResponseEntity<>(null, HttpStatus.NOT_FOUND);
+                    : ResponseEntity.status(HttpStatus.NOT_FOUND).build();
         } catch (Exception e) {
-            return new ResponseEntity<>(null, HttpStatus.INTERNAL_SERVER_ERROR);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
 

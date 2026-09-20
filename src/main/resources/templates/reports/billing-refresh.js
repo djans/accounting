@@ -23,10 +23,6 @@
                 if(t.ok){ const jt = await t.json(); document.getElementById('totalGst').textContent = formatCurrency(jt.totalGst || 0); document.getElementById('totalQst').textContent = formatCurrency(jt.totalQst || 0); document.getElementById('totalHst').textContent = formatCurrency(jt.totalHst || 0); document.getElementById('totalTax').textContent = formatCurrency(jt.totalTax || 0); }
             }
 
-            // aging
-            const a = await fetch('/api/reports/aging');
-            if(a.ok){ const ja = await a.json(); document.getElementById('aging-current').textContent = formatCurrency(ja.current || 0); document.getElementById('aging-30').textContent = formatCurrency(ja['30Days'] || 0); document.getElementById('aging-60').textContent = formatCurrency(ja['60Days'] || 0); document.getElementById('aging-90').textContent = formatCurrency(ja['90DaysPlus'] || 0); document.getElementById('aging-total').textContent = formatCurrency(ja.totalOutstanding || 0); }
-
             // status summary
             const s = await fetch('/api/reports/invoice-status-summary');
             if(s.ok){ const js = await s.json(); ['draft','sent','viewed','partiallyPaid','paid','overdue','cancelled','refunded'].forEach(k=>{ const el = document.getElementById('status-'+k); if(el) el.textContent = js[k] || 0; }); }
@@ -36,6 +32,4 @@
     }
 
     if(btn) btn.addEventListener('click', refresh);
-    // auto refresh every 30s
-    setInterval(refresh, 30000);
 })();

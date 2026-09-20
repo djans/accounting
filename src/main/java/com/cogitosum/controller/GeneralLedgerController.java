@@ -23,7 +23,7 @@ public class GeneralLedgerController {
             List<GeneralLedger> ledgers = generalLedgerService.getAllLedgerAccounts();
             return new ResponseEntity<>(ledgers, HttpStatus.OK);
         } catch (Exception e) {
-            return new ResponseEntity<>(null, HttpStatus.INTERNAL_SERVER_ERROR);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
 
@@ -32,9 +32,9 @@ public class GeneralLedgerController {
         try {
             Optional<GeneralLedger> ledger = generalLedgerService.getLedgerByAccountId(accountId);
             return ledger.map(gl -> new ResponseEntity<>(gl, HttpStatus.OK))
-                    .orElseGet(() -> new ResponseEntity<>(null, HttpStatus.NOT_FOUND));
+                    .orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND).build());
         } catch (Exception e) {
-            return new ResponseEntity<>(null, HttpStatus.INTERNAL_SERVER_ERROR);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
 }

@@ -1,21 +1,21 @@
 <!DOCTYPE html>
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments/layout :: head('Cheques')}"></head>
+<head th:replace="~{fragments/layout :: head('Write Cheques')}"></head>
 <body>
 <div class="portal-shell">
     <div th:replace="~{fragments/layout :: sidebar('cheques')}"></div>
     <main class="portal-main">
-        <div th:replace="~{fragments/layout :: topbar('Cheques')}"></div>
+        <div th:replace="~{fragments/layout :: topbar('Write Cheques')}"></div>
         <section class="portal-content">
             <div th:replace="~{fragments/layout :: flash}"></div>
             <div class="portal-card">
-                <h3 class="portal-card-title">Cheques</h3>
-                <a th:href="@{/cheques/new}" class="btn-portal">New Cheque</a>
+                <h3 class="portal-card-title">Write Cheques</h3>
+                <a th:href="@{/cheques/new}" class="btn-portal">Write cheque</a>
                 <table class="table-portal" th:if="${not #lists.isEmpty(cheques)}">
                     <thead>
                     <tr>
-                        <th>Transaction</th>
-                        <th>Invoice</th>
+                        <th>Cheque #</th>
+                        <th>Vendor</th>
                         <th>Date</th>
                         <th class="num">Amount</th>
                         <th class="num">Status</th>
@@ -23,11 +23,11 @@
                     </thead>
                     <tbody>
                     <tr th:each="p : ${cheques}">
-                        <td th:text="${p.transactionId}">TXN-1</td>
-                        <td th:text="${p.invoice != null ? p.invoice.invoiceNumber : '—'}">INV-1</td>
-                        <td th:text="${p.paymentDate}">2026-01-01</td>
+                        <td th:text="${p.chequeNumber}">1</td>
+                        <td th:text="${p.vendor.businessName}">Vendor</td>
+                        <td th:text="${p.chequeDate}">2026-01-01</td>
                         <td class="num" th:text="${#numbers.formatCurrency(p.amount)}">$0</td>
-                        <td th:text="${p.status}">COMPLETED</td>
+                        <td>POSTED</td>
                     </tr>
                     </tbody>
                 </table>

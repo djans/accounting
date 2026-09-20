@@ -10,8 +10,9 @@ import java.util.Optional;
 
 @Repository
 public interface ChartOfAccountRepository extends JpaRepository<ChartOfAccount, Long> {
+    List<ChartOfAccount> findAllByOrderByAccountNumberAsc();
     Optional<ChartOfAccount> findByAccountNumber(String accountNumber);
-    List<ChartOfAccount> findByAccountType(AccountType accountType);
-    List<ChartOfAccount> findByIsActive(Boolean isActive);
+    public List<ChartOfAccount> findByAccountTypeOrderByAccountNumberAsc(AccountType accountType);
+    List<ChartOfAccount> findByIsActiveOrderByAccountNumberAsc(Boolean isActive);
 }
 

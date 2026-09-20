@@ -26,7 +26,7 @@ public class FiscalYearController {
         try {
             return new ResponseEntity<>(fiscalYearService.createFiscalYear(fiscalYear), HttpStatus.CREATED);
         } catch (Exception e) {
-            return new ResponseEntity<>(null, HttpStatus.BAD_REQUEST);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
         }
     }
 
@@ -35,7 +35,7 @@ public class FiscalYearController {
         try {
             return new ResponseEntity<>(fiscalYearService.getAll(), HttpStatus.OK);
         } catch (Exception e) {
-            return new ResponseEntity<>(null, HttpStatus.INTERNAL_SERVER_ERROR);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
 
@@ -44,9 +44,9 @@ public class FiscalYearController {
         try {
             Optional<FiscalYear> fy = fiscalYearService.getById(id);
             return fy.map(f -> new ResponseEntity<>(f, HttpStatus.OK))
-                    .orElseGet(() -> new ResponseEntity<>(null, HttpStatus.NOT_FOUND));
+                    .orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND).build());
         } catch (Exception e) {
-            return new ResponseEntity<>(null, HttpStatus.INTERNAL_SERVER_ERROR);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
 
@@ -56,7 +56,7 @@ public class FiscalYearController {
         try {
             return new ResponseEntity<>(fiscalYearCloseService.close(id, postedBy), HttpStatus.OK);
         } catch (Exception e) {
-            return new ResponseEntity<>(null, HttpStatus.BAD_REQUEST);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
         }
     }
 
@@ -65,7 +65,7 @@ public class FiscalYearController {
         try {
             return new ResponseEntity<>(fiscalYearCloseService.reopen(id), HttpStatus.OK);
         } catch (Exception e) {
-            return new ResponseEntity<>(null, HttpStatus.BAD_REQUEST);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
         }
     }
 

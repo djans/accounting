@@ -25,7 +25,7 @@ public class GeneralJournalController {
             GeneralJournal createdJournal = generalJournalService.createJournal(journal);
             return new ResponseEntity<>(createdJournal, HttpStatus.CREATED);
         } catch (Exception e) {
-            return new ResponseEntity<>(null, HttpStatus.BAD_REQUEST);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
         }
     }
     
@@ -35,7 +35,7 @@ public class GeneralJournalController {
             List<GeneralJournal> journals = generalJournalService.getAllJournals();
             return new ResponseEntity<>(journals, HttpStatus.OK);
         } catch (Exception e) {
-            return new ResponseEntity<>(null, HttpStatus.INTERNAL_SERVER_ERROR);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
     
@@ -44,9 +44,9 @@ public class GeneralJournalController {
         try {
             Optional<GeneralJournal> journal = generalJournalService.getJournalById(id);
             return journal.map(j -> new ResponseEntity<>(j, HttpStatus.OK))
-                    .orElseGet(() -> new ResponseEntity<>(null, HttpStatus.NOT_FOUND));
+                    .orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND).build());
         } catch (Exception e) {
-            return new ResponseEntity<>(null, HttpStatus.INTERNAL_SERVER_ERROR);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
     
@@ -55,9 +55,9 @@ public class GeneralJournalController {
         try {
             Optional<GeneralJournal> journal = generalJournalService.getJournalByNumber(journalNumber);
             return journal.map(j -> new ResponseEntity<>(j, HttpStatus.OK))
-                    .orElseGet(() -> new ResponseEntity<>(null, HttpStatus.NOT_FOUND));
+                    .orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND).build());
         } catch (Exception e) {
-            return new ResponseEntity<>(null, HttpStatus.INTERNAL_SERVER_ERROR);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
     
@@ -67,7 +67,7 @@ public class GeneralJournalController {
             List<GeneralJournal> journals = generalJournalService.getJournalsByStatus(status);
             return new ResponseEntity<>(journals, HttpStatus.OK);
         } catch (Exception e) {
-            return new ResponseEntity<>(null, HttpStatus.INTERNAL_SERVER_ERROR);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
     
@@ -79,7 +79,7 @@ public class GeneralJournalController {
             List<GeneralJournal> journals = generalJournalService.getJournalsByDateRange(startDate, endDate);
             return new ResponseEntity<>(journals, HttpStatus.OK);
         } catch (Exception e) {
-            return new ResponseEntity<>(null, HttpStatus.INTERNAL_SERVER_ERROR);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
     
@@ -91,7 +91,7 @@ public class GeneralJournalController {
             List<GeneralJournal> journals = generalJournalService.getPostedJournalsByDateRange(startDate, endDate);
             return new ResponseEntity<>(journals, HttpStatus.OK);
         } catch (Exception e) {
-            return new ResponseEntity<>(null, HttpStatus.INTERNAL_SERVER_ERROR);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
     
@@ -102,10 +102,10 @@ public class GeneralJournalController {
             if (updatedJournal != null) {
                 return new ResponseEntity<>(updatedJournal, HttpStatus.OK);
             } else {
-                return new ResponseEntity<>(null, HttpStatus.NOT_FOUND);
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
             }
         } catch (Exception e) {
-            return new ResponseEntity<>(null, HttpStatus.BAD_REQUEST);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
         }
     }
     
@@ -118,10 +118,10 @@ public class GeneralJournalController {
             if (journal != null) {
                 return new ResponseEntity<>(journal, HttpStatus.OK);
             } else {
-                return new ResponseEntity<>(null, HttpStatus.NOT_FOUND);
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
             }
         } catch (Exception e) {
-            return new ResponseEntity<>(null, HttpStatus.BAD_REQUEST);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
         }
     }
     
@@ -134,10 +134,10 @@ public class GeneralJournalController {
             if (journal != null) {
                 return new ResponseEntity<>(journal, HttpStatus.OK);
             } else {
-                return new ResponseEntity<>(null, HttpStatus.NOT_FOUND);
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
             }
         } catch (Exception e) {
-            return new ResponseEntity<>(null, HttpStatus.BAD_REQUEST);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
         }
     }
     

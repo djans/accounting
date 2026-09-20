@@ -24,7 +24,7 @@ public class ChartOfAccountController {
             ChartOfAccount createdAccount = chartOfAccountService.createAccount(account);
             return new ResponseEntity<>(createdAccount, HttpStatus.CREATED);
         } catch (Exception e) {
-            return new ResponseEntity<>(null, HttpStatus.BAD_REQUEST);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
         }
     }
 
@@ -34,7 +34,7 @@ public class ChartOfAccountController {
             List<ChartOfAccount> accounts = chartOfAccountService.getAllAccounts();
             return new ResponseEntity<>(accounts, HttpStatus.OK);
         } catch (Exception e) {
-            return new ResponseEntity<>(null, HttpStatus.INTERNAL_SERVER_ERROR);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
 
@@ -44,7 +44,7 @@ public class ChartOfAccountController {
             List<ChartOfAccount> accounts = chartOfAccountService.getActiveAccounts();
             return new ResponseEntity<>(accounts, HttpStatus.OK);
         } catch (Exception e) {
-            return new ResponseEntity<>(null, HttpStatus.INTERNAL_SERVER_ERROR);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
 
@@ -53,9 +53,9 @@ public class ChartOfAccountController {
         try {
             Optional<ChartOfAccount> account = chartOfAccountService.getAccountById(id);
             return account.map(acc -> new ResponseEntity<>(acc, HttpStatus.OK))
-                    .orElseGet(() -> new ResponseEntity<>(null, HttpStatus.NOT_FOUND));
+                    .orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND).build());
         } catch (Exception e) {
-            return new ResponseEntity<>(null, HttpStatus.INTERNAL_SERVER_ERROR);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
 
@@ -64,9 +64,9 @@ public class ChartOfAccountController {
         try {
             Optional<ChartOfAccount> account = chartOfAccountService.getAccountByNumber(accountNumber);
             return account.map(acc -> new ResponseEntity<>(acc, HttpStatus.OK))
-                    .orElseGet(() -> new ResponseEntity<>(null, HttpStatus.NOT_FOUND));
+                    .orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND).build());
         } catch (Exception e) {
-            return new ResponseEntity<>(null, HttpStatus.INTERNAL_SERVER_ERROR);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
 
@@ -76,7 +76,7 @@ public class ChartOfAccountController {
             List<ChartOfAccount> accounts = chartOfAccountService.getAccountsByType(type);
             return new ResponseEntity<>(accounts, HttpStatus.OK);
         } catch (Exception e) {
-            return new ResponseEntity<>(null, HttpStatus.INTERNAL_SERVER_ERROR);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
 
@@ -87,10 +87,10 @@ public class ChartOfAccountController {
             if (updatedAccount != null) {
                 return new ResponseEntity<>(updatedAccount, HttpStatus.OK);
             } else {
-                return new ResponseEntity<>(null, HttpStatus.NOT_FOUND);
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
             }
         } catch (Exception e) {
-            return new ResponseEntity<>(null, HttpStatus.BAD_REQUEST);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
         }
     }
 

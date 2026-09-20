@@ -2,6 +2,7 @@ package com.cogitosum.web;
 
 import com.cogitosum.entity.Customer;
 import com.cogitosum.service.CustomerService;
+import com.cogitosum.service.ChartOfAccountService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -15,9 +16,13 @@ public class CustomerWebController {
     @Autowired
     private CustomerService customerService;
 
+    @Autowired
+    private ChartOfAccountService accountService;
+
     @GetMapping
     public String list(Model model) {
         model.addAttribute("customers", customerService.getAllCustomers());
+        model.addAttribute("active", "customers");
         return "customers/list";
     }
 
@@ -26,7 +31,9 @@ public class CustomerWebController {
         Customer c = new Customer();
         c.setCountry("Canada");
         model.addAttribute("customer", c);
+        model.addAttribute("accounts", accountService.getAllAccounts());
         model.addAttribute("isNew", true);
+        model.addAttribute("active", "customers");
         return "customers/form";
     }
 
@@ -35,7 +42,9 @@ public class CustomerWebController {
         return customerService.getCustomerById(id)
                 .map(c -> {
                     model.addAttribute("customer", c);
+                    model.addAttribute("accounts", accountService.getAllAccounts());
                     model.addAttribute("isNew", false);
+                    model.addAttribute("active", "customers");
                     return "customers/form";
                 })
                 .orElseGet(() -> {

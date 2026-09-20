@@ -58,6 +58,12 @@ public class InvoicePostingService {
         reversePriorPosting(invoice, reason);
     }
 
+    public boolean hasPostedJournal(Invoice invoice) {
+        return journalRepository.findAll().stream()
+            .anyMatch(j -> ("INVOICE-" + invoice.getId()).equals(j.getReference())
+                && j.getStatus() == JournalStatus.POSTED);
+    }
+
     private void reversePriorPosting(Invoice invoice, String reason) {
         Optional<GeneralJournal> existing = journalRepository.findAll().stream()
             .filter(j -> ("INVOICE-" + invoice.getId()).equals(j.getReference()))

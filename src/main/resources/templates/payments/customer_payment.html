@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Paiements Clients')}"></head>
+<body>
+<div class="portal-shell">
+    <div th:replace="~{fragments/layout :: sidebar('payments')}"></div>
+    <main class="portal-main">
+        <div th:replace="~{fragments/layout :: topbar('Paiements Clients')}"></div>
+        <section class="portal-content">
+            <div th:replace="~{fragments/layout :: flash}"></div>
+
+            <div class="portal-card">
+                <form th:action="@{/payments/customer}" method="post" id="paymentForm">
+                    <div class="form-grid">
+                        <div class="form-field full">
+                            <label>Client</label>
+                            <select name="customerId" id="customerSelect" required>
+                                <option value="">Sélectionner un client…</option>
+                                <option th:each="c : ${customers}"
+                                        th:value="${c.id}"
+                                        th:selected="${selectedCustomerId != null and selectedCustomerId == c.id}"
+                                        th:text="${c.businessName}">Client Name</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-field">
+                            <label>Balance totale</label>
+                            <input type="text" id="totalBalance" readonly class="bg-light" value="0.00"/>
+                        </div>
+
+                        <div class="form-field">
+                            <label>Date de paiement</label>
+                            <input type="date" name="paymentDate" id="paymentDate" required th:value="${T(java.time.LocalDate).now()}"/>
+                        </div>
+
+                        <div class="form-field">
+                            <label>Méthode</label>
+                            <select name="paymentMethod" required>
+                                <option th:each="m : ${methods}"
+                                        th:value="${m}"
+                                        th:text="${m}"
+                                        th:selected="${m.name() == 'CHEQUE'}">CHEQUE</option>
+                            </select>
+                        </div>
+
+                        <div class="form-field">
+                            <label>Compte bancaire</label>
+                            <select name="bankAccountId" required>
+                                <option value="">Sélectionner…</option>
+                                <option th:each="b : ${bankAccounts}"
+                                        th:value="${b.id}"
+                                        th:text="${b.accountNumber + ' – ' + b.accountName}"
+                                        th:selected="${defaultBankAccountId != null and defaultBankAccountId == b.id}">1000 – Banque</option>
+                            </select>
+                        </div>
+
+                        <div class="form-field">
+                            <label>Compte A/R</label>
+                            <select name="arAccountId" required>
+                                <option th:each="a : ${arAccounts}"
+                                        th:value="${a.id}"
+                                        th:text="${a.accountNumber + ' – ' + a.accountName}"
+                                        th:selected="${(defaultArAccountId != null and defaultArAccountId == a.id) or (defaultArAccountId == null and a.accountNumber == '1100')}">1100 – Accounts Receivable</option>
+                            </select>
+                        </div>
+
+                        <div class="form-field">
+                            <label>Montant total reçu</label>
+                            <input type="number" step="0.01" id="totalAmountReceived" placeholder="0.00"/>
+                        </div>
+
+                        <div class="form-field full">
+                            <label>Transaction ID / Notes</label>
+                            <div class="d-flex gap-2">
+                                <input type="text" name="transactionId" placeholder="Transaction ID (optionnel)" class="flex-grow-1"/>
+                                <input type="text" name="notes" placeholder="Notes" class="flex-grow-1"/>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-4">
+                        <h5>Factures ouvertes</h5>
+                        <table class="table table-sm portal-table" id="invoicesTable">
+                            <thead>
+                                <tr>
+                                    <th style="width: 40px;"><input type="checkbox" id="selectAll"></th>
+                                    <th>N° Facture</th>
+                                    <th>Date</th>
+                                    <th class="text-end">Total</th>
+                                    <th class="text-end">Dû</th>
+                                    <th class="text-end" style="width: 150px;">Paiement</th>
+                                </tr>
+                            </thead>
+                            <tbody id="invoicesBody">
+                                <tr>
+                                    <td colspan="6" class="text-center text-muted">Sélectionnez un client pour voir les factures</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="form-actions mt-4">
+                        <a th:href="@{/payments}" class="btn-portal btn-ghost">Annuler</a>
+                        <button type="submit" class="btn-portal"><i class="bi bi-check2"></i> Enregistrer les paiements</button>
+                    </div>
+                </form>
+            </div>
+        </section>
+    </main>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const customerSelect = document.getElementById('customerSelect');
+    const totalBalanceInput = document.getElementById('totalBalance');
+    const totalAmountReceivedInput = document.getElementById('totalAmountReceived');
+    const invoicesBody = document.getElementById('invoicesBody');
+    const selectAllCheckbox = document.getElementById('selectAll');
+
+    async function loadCustomerDetails(customerId) {
+        if (!customerId) {
+            invoicesBody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">Sélectionnez un client pour voir les factures</td></tr>';
+            totalBalanceInput.value = '0.00';
+            return;
+        }
+
+        try {
+            const response = await fetch(`/payments/customer/${customerId}/details`);
+            const data = await response.json();
+            
+            totalBalanceInput.value = data.totalBalance.toFixed(2);
+            
+            invoicesBody.innerHTML = '';
+            if (data.openInvoices.length === 0) {
+                invoicesBody.innerHTML = '<tr><td colspan="6" class="text-center">Aucune facture ouverte pour ce client</td></tr>';
+            } else {
+                data.openInvoices.forEach(inv => {
+                    const outstanding = inv.totalAmount - (inv.paidAmount || 0);
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td><input type="checkbox" name="invoiceIds" value="${inv.id}" class="invoice-check"></td>
+                        <td>${inv.invoiceNumber}</td>
+                        <td>${inv.invoiceDate}</td>
+                        <td class="text-end">${inv.totalAmount.toFixed(2)}</td>
+                        <td class="text-end">${outstanding.toFixed(2)}</td>
+                        <td class="text-end">
+                            <input type="number" step="0.01" name="invoiceAmounts" class="form-control form-control-sm text-end invoice-amount" 
+                                   value="0.00" min="0" max="${outstanding.toFixed(2)}" data-outstanding="${outstanding}">
+                        </td>
+                    `;
+                    invoicesBody.appendChild(row);
+                });
+            }
+            setupDynamicBehavior();
+        } catch (error) {
+            console.error('Error fetching customer details:', error);
+        }
+    }
+
+    function updateAmountReceived() {
+        const amounts = document.querySelectorAll('.invoice-amount');
+        let total = 0;
+        amounts.forEach(input => {
+            const val = parseFloat(input.value);
+            if (!isNaN(val)) total += val;
+        });
+        totalAmountReceivedInput.value = total.toFixed(2);
+    }
+
+    function setupDynamicBehavior() {
+        const checks = document.querySelectorAll('.invoice-check');
+        const amounts = document.querySelectorAll('.invoice-amount');
+
+        checks.forEach((check, index) => {
+            check.addEventListener('change', function() {
+                if (this.checked) {
+                    amounts[index].value = parseFloat(amounts[index].dataset.outstanding).toFixed(2);
+                } else {
+                    amounts[index].value = "0.00";
+                }
+                updateAmountReceived();
+            });
+        });
+
+        amounts.forEach(input => {
+            input.addEventListener('input', function() {
+                const check = this.closest('tr').querySelector('.invoice-check');
+                const val = parseFloat(this.value);
+                if (val > 0) {
+                    check.checked = true;
+                } else {
+                    check.checked = false;
+                }
+                updateAmountReceived();
+            });
+        });
+    }
+
+    customerSelect.addEventListener('change', e => loadCustomerDetails(e.target.value));
+    if (customerSelect.value) loadCustomerDetails(customerSelect.value);
+
+    selectAllCheckbox.addEventListener('change', function() {
+        const checks = document.querySelectorAll('.invoice-check');
+        const amounts = document.querySelectorAll('.invoice-amount');
+        checks.forEach((check, index) => {
+            check.checked = this.checked;
+            if (this.checked) {
+                amounts[index].value = parseFloat(amounts[index].dataset.outstanding).toFixed(2);
+            } else {
+                amounts[index].value = "0.00";
+            }
+        });
+        updateAmountReceived();
+    });
+
+    totalAmountReceivedInput.addEventListener('input', function() {
+        const amount = parseFloat(this.value);
+        if (isNaN(amount)) return;
+
+        const checks = document.querySelectorAll('.invoice-check');
+        const amounts = document.querySelectorAll('.invoice-amount');
+        
+        // Reset all
+        checks.forEach((c, i) => { 
+            c.checked = false; 
+            amounts[i].value = "0.00"; 
+        });
+
+        // Try to find an exact match
+        let found = false;
+        amounts.forEach((amtInput, index) => {
+            const outstanding = parseFloat(amtInput.dataset.outstanding);
+            if (Math.abs(outstanding - amount) < 0.005) {
+                checks[index].checked = true;
+                amtInput.value = outstanding.toFixed(2);
+                found = true;
+            }
+        });
+
+        // If no exact match, we could potentially auto-distribute, 
+        // but the requirement says "Si une facture correspond au montant, par défaut sélectionner cette facture."
+    });
+});
+</script>
+</body>
+</html>

@@ -1,15 +1,52 @@
 <!DOCTYPE html>
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments/layout :: head('New Transfer')}"></head>
+<head th:replace="~{fragments/layout :: head('Transfer Funds')}"></head>
 <body>
 <div class="portal-shell">
     <div th:replace="~{fragments/layout :: sidebar('transfers')}"></div>
     <main class="portal-main">
-        <div th:replace="~{fragments/layout :: topbar('New Transfer')}"></div>
+        <div th:replace="~{fragments/layout :: topbar('Transfer Funds')}"></div>
         <section class="portal-content">
+            <div th:replace="~{fragments/layout :: flash}"></div>
             <div class="portal-card">
-                <h2>New Transfer</h2>
-                <p>Placeholder transfer form.</p>
+                <h2>Transfer Funds</h2>
+                <p class="text-muted">Transfer funds between bank, cash and credit card accounts.</p>
+                <form th:action="@{/transfers}" method="post">
+                    <div class="form-grid">
+                        <div class="form-field">
+                            <label>From account</label>
+                            <select name="fromAccountId" required>
+                                <option value="">Choose source...</option>
+                                <option th:each="account : ${bankAccounts}" th:value="${account.id}"
+                                        th:text="${account.accountNumber + ' — ' + account.accountName}"></option>
+                            </select>
+                        </div>
+                        <div class="form-field">
+                            <label>To account</label>
+                            <select name="toAccountId" required>
+                                <option value="">Choose destination...</option>
+                                <option th:each="account : ${bankAccounts}" th:value="${account.id}"
+                                        th:text="${account.accountNumber + ' — ' + account.accountName}"></option>
+                            </select>
+                        </div>
+                        <div class="form-field">
+                            <label>Amount</label>
+                            <input type="number" name="amount" min="0.01" step="0.01" required/>
+                        </div>
+                        <div class="form-field">
+                            <label>Date</label>
+                            <input type="date" name="transferDate" th:value="${T(java.time.LocalDate).now()}" required/>
+                        </div>
+                        <div class="form-field full">
+                            <label>Memo</label>
+                            <textarea name="notes" rows="2"></textarea>
+                        </div>
+                    </div>
+                    <div class="form-actions">
+                        <a th:href="@{/transfers}" class="btn-portal btn-ghost">Cancel</a>
+                        <button type="submit" class="btn-portal">Transfer Funds</button>
+                    </div>
+                </form>
             </div>
         </section>
     </main>

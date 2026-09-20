@@ -3,7 +3,7 @@
 <head th:replace="~{fragments/layout :: head('Record Payment')}"></head>
 <body>
 <div class="portal-shell">
-    <div th:replace="~{fragments/layout :: sidebar('payments')}"></div>
+    <div th:replace="~{fragments/layout :: sidebar(${active == 'cheques' ? 'cheques-new' : 'payments-new'})}"></div>
     <main class="portal-main">
         <div th:replace="~{fragments/layout :: topbar('Record Payment')}"></div>
         <section class="portal-content">
@@ -44,7 +44,17 @@
                                 <option value="">Sélectionner…</option>
                                 <option th:each="b : ${bankAccounts}"
                                         th:value="${b.id}"
-                                        th:text="${b.accountNumber + ' – ' + b.accountName}">1000 – Banque</option>
+                                        th:text="${b.accountNumber + ' – ' + b.accountName}"
+                                        th:selected="${defaultBankAccountId != null and defaultBankAccountId == b.id}">1000 – Banque</option>
+                            </select>
+                        </div>
+                        <div class="form-field">
+                            <label>Compte A/R</label>
+                            <select name="arAccountId" required>
+                                <option th:each="a : ${arAccounts}"
+                                        th:value="${a.id}"
+                                        th:text="${a.accountNumber + ' – ' + a.accountName}"
+                                        th:selected="${(defaultArAccountId != null and defaultArAccountId == a.id) or (defaultArAccountId == null and a.accountNumber == '1100')}">1100 – Accounts Receivable</option>
                             </select>
                         </div>
                         <div class="form-field">

@@ -7,8 +7,8 @@ import com.cogitosum.repository.ChartOfAccountRepository;
 import com.cogitosum.repository.GeneralLedgerRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.math.BigDecimal;
@@ -23,8 +23,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 public class ReconcileWebControllerTest {
 
     @Autowired private MockMvc mvc;
-    @MockBean private ChartOfAccountRepository accountRepository;
-    @MockBean private GeneralLedgerRepository ledgerRepository;
+    @MockitoBean private ChartOfAccountRepository accountRepository;
+    @MockitoBean private GeneralLedgerRepository ledgerRepository;
 
     @Test
     public void reconcile_populatesRows() throws Exception {
@@ -33,7 +33,7 @@ public class ReconcileWebControllerTest {
         acct.setAccountNumber("1001");
         acct.setAccountName("Bank A");
         acct.setAccountType(AccountType.ASSET);
-        when(accountRepository.findByAccountType(AccountType.ASSET)).thenReturn(List.of(acct));
+        when(accountRepository.findByAccountTypeOrderByAccountNumberAsc(AccountType.ASSET)).thenReturn(List.of(acct));
 
         GeneralLedger gl = new GeneralLedger();
         gl.setAccount(acct);

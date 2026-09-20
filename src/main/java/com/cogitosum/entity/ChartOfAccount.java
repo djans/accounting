@@ -20,13 +20,28 @@ public class ChartOfAccount {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private AccountType accountType;
+
+    @Enumerated(EnumType.STRING)
+    @Column(length = 40)
+    private AccountCategory category;
     
     @Column(nullable = false)
     private String description;
     
     @Column(nullable = false)
     private Boolean isActive;
-    
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "parent_account_id")
+    private ChartOfAccount parentAccount;
+
+    private String currency;
+
+    @Column(precision = 19, scale = 2)
+    private java.math.BigDecimal openingBalance;
+
+    private java.time.LocalDate openingBalanceDate;
+
     @Column(nullable = false)
     private LocalDateTime createdAt;
     
@@ -79,6 +94,14 @@ public class ChartOfAccount {
     public void setAccountType(AccountType accountType) {
         this.accountType = accountType;
     }
+
+    public AccountCategory getCategory() {
+        return category;
+    }
+
+    public void setCategory(AccountCategory category) {
+        this.category = category;
+    }
     
     public String getDescription() {
         return description;
@@ -111,5 +134,36 @@ public class ChartOfAccount {
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
     }
-}
 
+    public ChartOfAccount getParentAccount() {
+        return parentAccount;
+    }
+
+    public void setParentAccount(ChartOfAccount parentAccount) {
+        this.parentAccount = parentAccount;
+    }
+
+    public String getCurrency() {
+        return currency;
+    }
+
+    public void setCurrency(String currency) {
+        this.currency = currency;
+    }
+
+    public java.math.BigDecimal getOpeningBalance() {
+        return openingBalance;
+    }
+
+    public void setOpeningBalance(java.math.BigDecimal openingBalance) {
+        this.openingBalance = openingBalance;
+    }
+
+    public java.time.LocalDate getOpeningBalanceDate() {
+        return openingBalanceDate;
+    }
+
+    public void setOpeningBalanceDate(java.time.LocalDate openingBalanceDate) {
+        this.openingBalanceDate = openingBalanceDate;
+    }
+}

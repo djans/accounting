@@ -52,8 +52,11 @@ public class PaymentPostingService {
     }
 
     private GeneralJournal buildPaymentJournal(Payment payment) {
-        ChartOfAccount ar = accountRepository.findByAccountNumber(AR_ACCOUNT)
-            .orElseThrow(() -> new IllegalStateException("Accounts Receivable account (1100) not seeded"));
+        ChartOfAccount ar = payment.getArAccount();
+        if (ar == null) {
+            ar = accountRepository.findByAccountNumber(AR_ACCOUNT)
+                .orElseThrow(() -> new IllegalStateException("Accounts Receivable account (1100) not seeded"));
+        }
 
         GeneralJournal jl = new GeneralJournal();
         jl.setJournalDate(payment.getPaymentDate() == null ? LocalDate.now() : payment.getPaymentDate());

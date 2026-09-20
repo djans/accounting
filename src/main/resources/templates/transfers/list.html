@@ -8,8 +8,20 @@
         <div th:replace="~{fragments/layout :: topbar('Transfers')}"></div>
         <section class="portal-content">
             <div class="portal-card">
+                <div th:replace="~{fragments/layout :: flash}"></div>
                 <h2>Transfers</h2>
-                <p>Placeholder list of transfers.</p>
+                <a th:href="@{/transfers/new}" class="btn-portal">Transfer Funds</a>
+                <table class="table-portal" th:if="${not #lists.isEmpty(transfers)}">
+                    <thead><tr><th>Date</th><th>From</th><th>To</th><th class="num">Amount</th><th>Memo</th></tr></thead>
+                    <tbody><tr th:each="transfer : ${transfers}">
+                        <td th:text="${transfer.transferDate}"></td>
+                        <td th:text="${transfer.fromAccount.accountNumber + ' — ' + transfer.fromAccount.accountName}"></td>
+                        <td th:text="${transfer.toAccount.accountNumber + ' — ' + transfer.toAccount.accountName}"></td>
+                        <td class="num" th:text="${#numbers.formatCurrency(transfer.amount)}"></td>
+                        <td th:text="${transfer.notes}"></td>
+                    </tr></tbody>
+                </table>
+                <div th:if="${#lists.isEmpty(transfers)}" class="empty-state">No transfers recorded yet.</div>
             </div>
         </section>
     </main>

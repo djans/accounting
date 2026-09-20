@@ -37,12 +37,14 @@ public class TaxWebController {
         model.addAttribute("periods", all);
         model.addAttribute("openCount", all.stream().filter(p -> p.getStatus() == TaxFilingStatus.OPEN || p.getStatus() == TaxFilingStatus.CALCULATED).count());
         model.addAttribute("filedCount", all.stream().filter(p -> p.getStatus() == TaxFilingStatus.FILED).count());
+        model.addAttribute("active", "tax-dashboard");
         return "tax/dashboard";
     }
 
     @GetMapping("/agencies")
     public String agencies(Model model) {
         model.addAttribute("agencies", agencyService.getAll());
+        model.addAttribute("active", "tax-agencies");
         return "tax/agencies";
     }
 
@@ -78,8 +80,10 @@ public class TaxWebController {
     @GetMapping("/codes")
     public String codes(Model model) {
         model.addAttribute("codes", codeService.getAll());
+        model.addAttribute("groups", codeService.getAllGroups());
         model.addAttribute("agencies", agencyService.getAll());
-        model.addAttribute("accounts", accountRepository.findAll());
+        model.addAttribute("accounts", accountRepository.findAllByOrderByAccountNumberAsc());
+        model.addAttribute("active", "tax-codes");
         return "tax/codes";
     }
 
@@ -90,6 +94,9 @@ public class TaxWebController {
                            @RequestParam BigDecimal rate,
                            @RequestParam Long agencyId,
                            @RequestParam(required = false) Long payableAccountId,
+                           @RequestParam(required = false) Long itcAccountId,
+                           @RequestParam(defaultValue = "false") Boolean forSales,
+                           @RequestParam(defaultValue = "false") Boolean forPurchases,
                            RedirectAttributes ra) {
         try {
             TaxCode c = id != null
@@ -98,9 +105,18 @@ public class TaxWebController {
             c.setCode(code);
             c.setName(name);
             c.setRate(rate);
+            c.setForSales(forSales);
+            c.setForPurchases(forPurchases);
             c.setAgency(agencyService.getById(agencyId).orElseThrow());
             if (payableAccountId != null) {
                 c.setPayableAccount(accountRepository.findById(payableAccountId).orElse(null));
+            } else {
+                c.setPayableAccount(null);
+            }
+            if (itcAccountId != null) {
+                c.setItcAccount(accountRepository.findById(itcAccountId).orElse(null));
+            } else {
+                c.setItcAccount(null);
             }
             c.setActive(true);
             if (c.getId() == null) {
@@ -115,10 +131,64 @@ public class TaxWebController {
         return "redirect:/tax/codes";
     }
 
+    @PostMapping("/groups")
+    public String saveGroup(@RequestParam(required = false) Long id,
+                            @RequestParam String code,
+                            @RequestParam String name,
+                            @RequestParam(name = "itemIds", required = false) List<Long> itemIds,
+                            RedirectAttributes ra) {
+        try {
+            TaxGroup g = id != null
+                ? codeService.getGroupById(id).orElseGet(TaxGroup::new)
+                : new TaxGroup();
+            g.setCode(code);
+            g.setName(name);
+            g.getTaxItems().clear();
+            if (itemIds != null) {
+                for (Long itemId : itemIds) {
+                    codeService.getById(itemId).ifPresent(g.getTaxItems()::add);
+                }
+            }
+            g.setActive(true);
+            if (g.getId() == null) {
+                codeService.createGroup(g);
+            } else {
+                codeService.updateGroup(g.getId(), g);
+            }
+            ra.addFlashAttribute("flashSuccess", "Tax group saved");
+        } catch (Exception e) {
+            ra.addFlashAttribute("flashError", "Could not save tax group: " + e.getMessage());
+        }
+        return "redirect:/tax/codes";
+    }
+
+    @GetMapping("/codes/delete/{id}")
+    public String deleteCode(@PathVariable Long id, RedirectAttributes ra) {
+        try {
+            codeService.deleteCode(id);
+            ra.addFlashAttribute("flashSuccess", "Tax code deleted");
+        } catch (Exception e) {
+            ra.addFlashAttribute("flashError", "Could not delete tax code: " + e.getMessage());
+        }
+        return "redirect:/tax/codes";
+    }
+
+    @GetMapping("/groups/delete/{id}")
+    public String deleteGroup(@PathVariable Long id, RedirectAttributes ra) {
+        try {
+            codeService.deleteGroup(id);
+            ra.addFlashAttribute("flashSuccess", "Tax group deleted");
+        } catch (Exception e) {
+            ra.addFlashAttribute("flashError", "Could not delete tax group: " + e.getMessage());
+        }
+        return "redirect:/tax/codes";
+    }
+
     @GetMapping("/periods")
     public String periods(Model model) {
         model.addAttribute("periods", filingService.getAll());
         model.addAttribute("agencies", agencyService.getAll());
+        model.addAttribute("active", "tax-periods");
         return "tax/periods";
     }
 
@@ -143,7 +213,10 @@ public class TaxWebController {
         return filingService.getById(id)
             .map(p -> {
                 model.addAttribute("period", p);
-                model.addAttribute("bankAccounts", accountRepository.findByAccountType(AccountType.ASSET));
+                model.addAttribute("collectedDetail", filingService.getTaxCollectedDetail(p.getAgency(), p.getPeriodStart(), p.getPeriodEnd()));
+                model.addAttribute("itcDetail", filingService.getItcDetail(p.getAgency(), p.getPeriodStart(), p.getPeriodEnd()));
+                model.addAttribute("bankAccounts", accountRepository.findByAccountTypeOrderByAccountNumberAsc(AccountType.ASSET));
+                model.addAttribute("active", "tax-agency-detail-report");
                 return "tax/period-detail";
             })
             .orElseGet(() -> {
@@ -219,6 +292,7 @@ public class TaxWebController {
             }
         }
         model.addAttribute("rows", rows);
+        model.addAttribute("active", "tax-reconciliation");
         return "tax/reconciliation";
     }
 
@@ -231,7 +305,7 @@ public class TaxWebController {
                     .map(p -> p.getTaxCollected() == null ? BigDecimal.ZERO : p.getTaxCollected())
                     .reduce(BigDecimal.ZERO, BigDecimal::add);
                 BigDecimal totalItc = periods.stream()
-                    .map(p -> p.getTaxITC() == null ? BigDecimal.ZERO : p.getTaxITC())
+                    .map(p -> p.getTaxItc() == null ? BigDecimal.ZERO : p.getTaxItc())
                     .reduce(BigDecimal.ZERO, BigDecimal::add);
                 BigDecimal totalNet = periods.stream()
                     .map(p -> p.getNetOwing() == null ? BigDecimal.ZERO : p.getNetOwing())
@@ -241,6 +315,7 @@ public class TaxWebController {
                 model.addAttribute("totalCollected", totalCollected);
                 model.addAttribute("totalItc", totalItc);
                 model.addAttribute("totalNet", totalNet);
+                model.addAttribute("active", "tax-agency-report");
                 return "tax/agency-report";
             })
             .orElseGet(() -> {

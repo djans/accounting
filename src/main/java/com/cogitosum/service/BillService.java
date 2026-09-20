@@ -1,10 +1,15 @@
 package com.cogitosum.service;
 
 import com.cogitosum.entity.Bill;
+import com.cogitosum.entity.BillLineItem;
 import com.cogitosum.entity.BillStatus;
+import com.cogitosum.entity.TaxCode;
+import com.cogitosum.entity.TaxGroup;
 import com.cogitosum.repository.BillRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
@@ -25,6 +30,9 @@ public class BillService {
 
     @Autowired
     private InvoiceService invoiceService;
+
+    @Autowired
+    private TaxCodeService taxCodeService;
 
     public List<TaxRegime> getRegimes() {
         return invoiceService.getRegimes();
@@ -81,19 +89,19 @@ public class BillService {
     }
 
     public List<Bill> getBillsByVendorId(Long vendorId) {
-        return billRepository.findByVendorId(vendorId);
+        return billRepository.findByVendorIdOrderByBillNumberDesc(vendorId);
     }
 
     public List<Bill> getBillsByStatus(BillStatus status) {
-        return billRepository.findByStatus(status);
+        return billRepository.findByStatusOrderByBillNumberDesc(status);
     }
 
     public List<Bill> getBillsByDateRange(LocalDate startDate, LocalDate endDate) {
-        return billRepository.findByBillDateBetween(startDate, endDate);
+        return billRepository.findByBillDateBetweenOrderByBillDateDesc(startDate, endDate);
     }
 
     public List<Bill> getAllBills() {
-        return billRepository.findAll();
+        return billRepository.findAllByOrderByBillNumberDesc();
     }
 
     public Bill markBillAsReceived(Long id) {
@@ -117,7 +125,7 @@ public class BillService {
     }
 
     public List<Bill> getOverdueBills() {
-        List<Bill> bills = billRepository.findByStatus(BillStatus.RECEIVED);
+        List<Bill> bills = billRepository.findByStatusOrderByBillNumberDesc(BillStatus.RECEIVED);
         return bills.stream()
             .filter(b -> b.getDueDate().isBefore(LocalDate.now()))
             .toList();
@@ -125,8 +133,47 @@ public class BillService {
 
     void calculateBillTotals(Bill bill, String regimeCode) {
         String province = bill.getVendor() != null ? bill.getVendor().getProvince() : null;
-        TaxRegime regime = invoiceService.resolveRegime(province, regimeCode);
-        bill.calculateTotals(regime.gstRate(), regime.hstRate(), regime.qstRate());
+        String effectiveCode = regimeCode != null ? regimeCode : (province != null ? province : "FED");
+
+        Optional<TaxGroup> groupOpt = taxCodeService.getAllGroups().stream()
+                .filter(g -> g.getCode().equals(effectiveCode))
+                .findFirst();
+
+        BigDecimal subtotal = bill.getLineItems().stream()
+                .map(BillLineItem::calculateTotal)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        bill.setSubtotal(subtotal);
+
+        BigDecimal gst = BigDecimal.ZERO;
+        BigDecimal hst = BigDecimal.ZERO;
+        BigDecimal qst = BigDecimal.ZERO;
+
+        if (groupOpt.isPresent()) {
+            for (TaxCode item : groupOpt.get().getTaxItems()) {
+                if (Boolean.FALSE.equals(item.getForPurchases())) continue;
+
+                BigDecimal taxAmount = subtotal.multiply(item.getRate()).setScale(2, java.math.RoundingMode.HALF_UP);
+                String code = item.getCode();
+                if (code.contains("TPS") || code.contains("GST")) {
+                    gst = gst.add(taxAmount);
+                } else if (code.contains("HST")) {
+                    hst = hst.add(taxAmount);
+                } else if (code.contains("TVQ") || code.contains("QST")) {
+                    qst = qst.add(taxAmount);
+                }
+            }
+        } else {
+            // Fallback to legacy static rates if no group found
+            TaxRegime regime = invoiceService.resolveRegime(province, regimeCode);
+            gst = subtotal.multiply(regime.gstRate()).setScale(2, java.math.RoundingMode.HALF_UP);
+            hst = subtotal.multiply(regime.hstRate()).setScale(2, java.math.RoundingMode.HALF_UP);
+            qst = subtotal.multiply(regime.qstRate()).setScale(2, java.math.RoundingMode.HALF_UP);
+        }
+
+        bill.setGstAmount(gst);
+        bill.setHstAmount(hst);
+        bill.setQstAmount(qst);
+        bill.setTotalAmount(subtotal.add(gst).add(hst).add(qst));
     }
 
     public void deleteBill(Long id) {

@@ -18,6 +18,15 @@
                               th:text="${invoice.status}"></span>
                     </span>
                     <span>
+                        <a th:if="${invoice.status.name() == 'DRAFT'}"
+                           th:href="@{/invoices/{id}/edit(id=${invoice.id})}" class="btn-portal btn-ghost btn-sm">
+                            <i class="bi bi-pencil"></i> Edit
+                        </a>
+                        <form th:action="@{/invoices/{id}/duplicate(id=${invoice.id})}" method="post" style="display:inline">
+                            <button class="btn-portal btn-ghost btn-sm">
+                                <i class="bi bi-copy"></i> Duplicate
+                            </button>
+                        </form>
                         <form th:action="@{/invoices/{id}/send(id=${invoice.id})}" method="post" style="display:inline"
                               th:if="${invoice.status.name() == 'DRAFT'}">
                             <button class="btn-portal btn-sm"><i class="bi bi-send"></i> Mark as Sent</button>

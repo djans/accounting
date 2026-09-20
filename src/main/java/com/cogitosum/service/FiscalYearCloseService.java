@@ -65,14 +65,14 @@ public class FiscalYearCloseService {
         BigDecimal totalExpenses = BigDecimal.ZERO;
 
         // Dr each revenue account by its (credit-normal) balance to zero it out.
-        for (ChartOfAccount acct : accountRepository.findByAccountType(AccountType.REVENUE)) {
+        for (ChartOfAccount acct : accountRepository.findByAccountTypeOrderByAccountNumberAsc(AccountType.REVENUE)) {
             BigDecimal bal = balanceOf(acct);
             if (bal.signum() == 0) continue;
             entries.add(entry(acct, bal, BigDecimal.ZERO, "Clôture — " + acct.getAccountName(), line++));
             totalRevenue = totalRevenue.add(bal);
         }
         // Cr each expense account by its (debit-normal) balance to zero it out.
-        for (ChartOfAccount acct : accountRepository.findByAccountType(AccountType.EXPENSE)) {
+        for (ChartOfAccount acct : accountRepository.findByAccountTypeOrderByAccountNumberAsc(AccountType.EXPENSE)) {
             BigDecimal bal = balanceOf(acct);
             if (bal.signum() == 0) continue;
             entries.add(entry(acct, BigDecimal.ZERO, bal, "Clôture — " + acct.getAccountName(), line++));

@@ -11,6 +11,8 @@ import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 
 @Service
 public class BillingReportService {
@@ -19,7 +21,7 @@ public class BillingReportService {
     private InvoiceRepository invoiceRepository;
 
     public Map<String, BigDecimal> getRevenueReport(LocalDate startDate, LocalDate endDate) {
-        List<Invoice> invoices = invoiceRepository.findByInvoiceDateBetween(startDate, endDate);
+        List<Invoice> invoices = invoiceRepository.findByInvoiceDateBetweenOrderByInvoiceDateDesc(startDate, endDate);
 
         BigDecimal totalRevenue = BigDecimal.ZERO;
         BigDecimal totalPaid = BigDecimal.ZERO;
@@ -45,32 +47,38 @@ public class BillingReportService {
     }
 
     public Map<String, Object> getAgingAnalysis() {
-        LocalDate today = LocalDate.now();
-        LocalDate thirtyDaysAgo = today.minusDays(30);
-        LocalDate sixtyDaysAgo = today.minusDays(60);
-        LocalDate ninetyDaysAgo = today.minusDays(90);
+        return getAgingAnalysis(LocalDate.now());
+    }
 
-        List<Invoice> invoices = invoiceRepository.findByStatus(InvoiceStatus.SENT);
-        invoices.addAll(invoiceRepository.findByStatus(InvoiceStatus.PARTIALLY_PAID));
+    public Map<String, Object> getAgingAnalysis(LocalDate asOf) {
+        LocalDate thirtyDaysAgo = asOf.minusDays(30);
+        LocalDate sixtyDaysAgo = asOf.minusDays(60);
+        LocalDate ninetyDaysAgo = asOf.minusDays(90);
+
+        List<Invoice> invoices = invoiceRepository.findByStatusOrderByInvoiceNumberDesc(InvoiceStatus.SENT);
+        invoices.addAll(invoiceRepository.findByStatusOrderByInvoiceNumberDesc(InvoiceStatus.PARTIALLY_PAID));
+        invoices.addAll(invoiceRepository.findByStatusOrderByInvoiceNumberDesc(InvoiceStatus.OVERDUE));
 
         BigDecimal current = BigDecimal.ZERO;
         BigDecimal days30 = BigDecimal.ZERO;
         BigDecimal days60 = BigDecimal.ZERO;
+        BigDecimal days61To90 = BigDecimal.ZERO;
         BigDecimal days90Plus = BigDecimal.ZERO;
 
         for (Invoice invoice : invoices) {
+            if (invoice.getDueDate() == null) continue;
             BigDecimal outstanding = invoice.getTotalAmount().subtract(
                 invoice.getPaidAmount() != null ? invoice.getPaidAmount() : BigDecimal.ZERO
             );
 
-            if (invoice.getDueDate().isAfter(today) || invoice.getDueDate().isEqual(today)) {
+            if (invoice.getDueDate().isAfter(asOf) || invoice.getDueDate().isEqual(asOf)) {
                 current = current.add(outstanding);
             } else if (invoice.getDueDate().isAfter(thirtyDaysAgo)) {
                 days30 = days30.add(outstanding);
             } else if (invoice.getDueDate().isAfter(sixtyDaysAgo)) {
                 days60 = days60.add(outstanding);
             } else if (invoice.getDueDate().isAfter(ninetyDaysAgo)) {
-                days90Plus = days90Plus.add(outstanding);
+                days61To90 = days61To90.add(outstanding);
             } else {
                 days90Plus = days90Plus.add(outstanding);
             }
@@ -80,29 +88,64 @@ public class BillingReportService {
         agingReport.put("current", current);
         agingReport.put("30Days", days30);
         agingReport.put("60Days", days60);
+        agingReport.put("61To90Days", days61To90);
         agingReport.put("90DaysPlus", days90Plus);
-        agingReport.put("totalOutstanding", current.add(days30).add(days60).add(days90Plus));
+        agingReport.put("totalOutstanding", current.add(days30).add(days60).add(days61To90).add(days90Plus));
 
         return agingReport;
+    }
+
+    public List<Map<String, Object>> getAgingSummary(LocalDate asOf) {
+        Map<Long, Map<String, Object>> byCustomer = new LinkedHashMap<>();
+        List<Invoice> invoices = new ArrayList<>(invoiceRepository.findByStatusOrderByInvoiceNumberDesc(InvoiceStatus.SENT));
+        invoices.addAll(invoiceRepository.findByStatusOrderByInvoiceNumberDesc(InvoiceStatus.PARTIALLY_PAID));
+        invoices.addAll(invoiceRepository.findByStatusOrderByInvoiceNumberDesc(InvoiceStatus.OVERDUE));
+
+        for (Invoice invoice : invoices) {
+            if (invoice.getCustomer() == null || invoice.getDueDate() == null) continue;
+            BigDecimal outstanding = invoice.getTotalAmount().subtract(
+                    invoice.getPaidAmount() == null ? BigDecimal.ZERO : invoice.getPaidAmount());
+            Map<String, Object> row = byCustomer.computeIfAbsent(invoice.getCustomer().getId(), id -> {
+                Map<String, Object> values = new LinkedHashMap<>();
+                values.put("customerName", invoice.getCustomer().getBusinessName());
+                values.put("current", BigDecimal.ZERO);
+                values.put("days1To30", BigDecimal.ZERO);
+                values.put("days31To60", BigDecimal.ZERO);
+                values.put("days61To90", BigDecimal.ZERO);
+                values.put("over90", BigDecimal.ZERO);
+                values.put("total", BigDecimal.ZERO);
+                return values;
+            });
+
+            long overdueDays = java.time.temporal.ChronoUnit.DAYS.between(invoice.getDueDate(), asOf);
+            String bucket = overdueDays <= 0 ? "current"
+                    : overdueDays <= 30 ? "days1To30"
+                    : overdueDays <= 60 ? "days31To60"
+                    : overdueDays <= 90 ? "days61To90"
+                    : "over90";
+            row.put(bucket, ((BigDecimal) row.get(bucket)).add(outstanding));
+            row.put("total", ((BigDecimal) row.get("total")).add(outstanding));
+        }
+        return new ArrayList<>(byCustomer.values());
     }
 
     public Map<String, Object> getInvoiceStatusSummary() {
         Map<String, Object> summary = new HashMap<>();
 
-        summary.put("draft", invoiceRepository.findByStatus(InvoiceStatus.DRAFT).size());
-        summary.put("sent", invoiceRepository.findByStatus(InvoiceStatus.SENT).size());
-        summary.put("viewed", invoiceRepository.findByStatus(InvoiceStatus.VIEWED).size());
-        summary.put("partiallyPaid", invoiceRepository.findByStatus(InvoiceStatus.PARTIALLY_PAID).size());
-        summary.put("paid", invoiceRepository.findByStatus(InvoiceStatus.PAID).size());
-        summary.put("overdue", invoiceRepository.findByStatus(InvoiceStatus.OVERDUE).size());
-        summary.put("cancelled", invoiceRepository.findByStatus(InvoiceStatus.CANCELLED).size());
-        summary.put("refunded", invoiceRepository.findByStatus(InvoiceStatus.REFUNDED).size());
+        summary.put("draft", invoiceRepository.findByStatusOrderByInvoiceNumberDesc(InvoiceStatus.DRAFT).size());
+        summary.put("sent", invoiceRepository.findByStatusOrderByInvoiceNumberDesc(InvoiceStatus.SENT).size());
+        summary.put("viewed", invoiceRepository.findByStatusOrderByInvoiceNumberDesc(InvoiceStatus.VIEWED).size());
+        summary.put("partiallyPaid", invoiceRepository.findByStatusOrderByInvoiceNumberDesc(InvoiceStatus.PARTIALLY_PAID).size());
+        summary.put("paid", invoiceRepository.findByStatusOrderByInvoiceNumberDesc(InvoiceStatus.PAID).size());
+        summary.put("overdue", invoiceRepository.findByStatusOrderByInvoiceNumberDesc(InvoiceStatus.OVERDUE).size());
+        summary.put("cancelled", invoiceRepository.findByStatusOrderByInvoiceNumberDesc(InvoiceStatus.CANCELLED).size());
+        summary.put("refunded", invoiceRepository.findByStatusOrderByInvoiceNumberDesc(InvoiceStatus.REFUNDED).size());
 
         return summary;
     }
 
     public Map<String, BigDecimal> getTaxSummary(LocalDate startDate, LocalDate endDate) {
-        List<Invoice> invoices = invoiceRepository.findByInvoiceDateBetween(startDate, endDate);
+        List<Invoice> invoices = invoiceRepository.findByInvoiceDateBetweenOrderByInvoiceDateDesc(startDate, endDate);
 
         BigDecimal totalGst = BigDecimal.ZERO;
         BigDecimal totalHst = BigDecimal.ZERO;
@@ -125,4 +168,3 @@ public class BillingReportService {
         return taxReport;
     }
 }
-

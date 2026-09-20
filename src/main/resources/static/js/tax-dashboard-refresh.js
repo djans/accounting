@@ -17,10 +17,16 @@
             ]);
             if(agR.ok){ const ags = await agR.json(); if(agenciesCount) agenciesCount.textContent = ags.length; }
             if(codesR.ok){ const cds = await codesR.json(); if(codesCount) codesCount.textContent = cds.length; }
-            if(periodsR.ok){ const periods = await periodsR.json(); if(openCount) openCount.textContent = periods.filter(p=>p.status==='OPEN').length; if(filedCount) filedCount.textContent = periods.filter(p=>p.status==='FILED' && !p.paid).length; if(periodsTbody){ periodsTbody.innerHTML = periods.slice(0,10).map(p=>`<tr><td>${escapeHtml(p.agency.code)}</td><td><a href='/tax/periods/${p.id}'>${escapeHtml(p.periodStart)} → ${escapeHtml(p.periodEnd)}</a></td><td><span class='badge-pill'>${escapeHtml(p.status)}</span></td><td class='num'>${p.taxCollected? p.taxCollected : '$0'}</td><td class='num'>${p.taxITC? p.taxITC : '$0'}</td><td class='num'>${p.netOwing? p.netOwing : '$0'}</td></tr>`).join(''); }}
-        catch(e){ console.error('tax dashboard refresh failed', e); }
+            if(periodsR.ok){ 
+                const periods = await periodsR.json(); 
+                if(openCount) openCount.textContent = periods.filter(p=>p.status==='OPEN').length; 
+                if(filedCount) filedCount.textContent = periods.filter(p=>p.status==='FILED' && !p.paid).length; 
+                if(periodsTbody){ 
+                    periodsTbody.innerHTML = periods.slice(0,10).map(p=>`<tr><td>${escapeHtml(p.agency.code)}</td><td><a href='/tax/periods/${p.id}'>${escapeHtml(p.periodStart)} → ${escapeHtml(p.periodEnd)}</a></td><td><span class='badge-pill'>${escapeHtml(p.status)}</span></td><td class='num'>${p.taxCollected? p.taxCollected : '$0'}</td><td class='num'>${p.taxItc? p.taxItc : '$0'}</td><td class='num'>${p.netOwing? p.netOwing : '$0'}</td></tr>`).join(''); 
+                } 
+            }
+        } catch(e){ console.error('tax dashboard refresh failed', e); }
         finally{ setLoading(false); }
     }
     if(btn) btn.addEventListener('click', refresh);
-    setInterval(refresh,30000);
 })();

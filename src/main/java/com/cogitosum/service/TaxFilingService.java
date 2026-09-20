@@ -1,5 +1,6 @@
 package com.cogitosum.service;
 
+import com.cogitosum.dto.TaxContributionDTO;
 import com.cogitosum.entity.*;
 import com.cogitosum.repository.BillRepository;
 import com.cogitosum.repository.ChartOfAccountRepository;
@@ -21,6 +22,7 @@ public class TaxFilingService {
 
     public static final String CRA_CODE = "CRA";
     public static final String RQ_CODE = "RQ";
+    public static final String MRQ2013_CODE = "MRQ2013";
 
     @Autowired
     private TaxFilingPeriodRepository periodRepository;
@@ -49,6 +51,9 @@ public class TaxFilingService {
         period.setPeriodStart(start);
         period.setPeriodEnd(end);
         period.setStatus(TaxFilingStatus.OPEN);
+        period.setTaxCollected(BigDecimal.ZERO);
+        period.setTaxItc(BigDecimal.ZERO);
+        period.setNetOwing(BigDecimal.ZERO);
         return periodRepository.save(period);
     }
 
@@ -62,7 +67,7 @@ public class TaxFilingService {
         BigDecimal collected = sumTaxCollected(period.getAgency(), period.getPeriodStart(), period.getPeriodEnd());
         BigDecimal itc = sumItc(period.getAgency(), period.getPeriodStart(), period.getPeriodEnd());
         period.setTaxCollected(collected);
-        period.setTaxITC(itc);
+        period.setTaxItc(itc);
         period.setNetOwing(collected.subtract(itc));
         period.setStatus(TaxFilingStatus.CALCULATED);
         return periodRepository.save(period);
@@ -84,7 +89,7 @@ public class TaxFilingService {
         BigDecimal net = collected.subtract(itc);
 
         period.setTaxCollected(collected);
-        period.setTaxITC(itc);
+        period.setTaxItc(itc);
         period.setNetOwing(net);
         period.setFiledDate(LocalDate.now());
 
@@ -151,12 +156,64 @@ public class TaxFilingService {
         periodRepository.save(period);
     }
 
+    public List<TaxContributionDTO> getTaxCollectedDetail(TaxAgency agency, LocalDate start, LocalDate end) {
+        List<Invoice> invoices = invoiceRepository.findByInvoiceDateBetweenOrderByInvoiceDateDesc(start, end);
+        List<TaxContributionDTO> details = new ArrayList<>();
+        for (Invoice inv : invoices) {
+            if (inv.getStatus() == InvoiceStatus.CANCELLED) continue;
+            BigDecimal contribution = taxContribution(inv, agency);
+            if (contribution.compareTo(BigDecimal.ZERO) != 0) {
+                details.add(new TaxContributionDTO(
+                    inv.getId(),
+                    "INVOICE",
+                    inv.getInvoiceNumber(),
+                    inv.getInvoiceDate(),
+                    inv.getCustomer() != null ? inv.getCustomer().getBusinessName() : "Unknown Customer",
+                    contribution
+                ));
+            }
+        }
+        return details;
+    }
+
+    public List<TaxContributionDTO> getItcDetail(TaxAgency agency, LocalDate start, LocalDate end) {
+        List<Bill> bills = billRepository.findByBillDateBetweenOrderByBillDateDesc(start, end);
+        List<TaxContributionDTO> details = new ArrayList<>();
+        for (Bill bill : bills) {
+            if (bill.getStatus() == BillStatus.CANCELLED) continue;
+            BigDecimal contribution = billTaxContribution(bill, agency);
+            if (contribution.compareTo(BigDecimal.ZERO) != 0) {
+                details.add(new TaxContributionDTO(
+                    bill.getId(),
+                    "BILL",
+                    bill.getBillNumber(),
+                    bill.getBillDate(),
+                    bill.getVendor() != null ? bill.getVendor().getBusinessName() : "Unknown Vendor",
+                    contribution
+                ));
+            }
+        }
+        return details;
+    }
+
+    private BigDecimal billTaxContribution(Bill bill, TaxAgency agency) {
+        BigDecimal gst = bill.getGstAmount() == null ? BigDecimal.ZERO : bill.getGstAmount();
+        BigDecimal hst = bill.getHstAmount() == null ? BigDecimal.ZERO : bill.getHstAmount();
+        BigDecimal qst = bill.getQstAmount() == null ? BigDecimal.ZERO : bill.getQstAmount();
+        return switch (agency.getCode()) {
+            case CRA_CODE -> gst.add(hst);
+            case RQ_CODE -> qst;
+            case MRQ2013_CODE -> gst.add(qst);
+            default -> BigDecimal.ZERO;
+        };
+    }
+
     /**
      * Sums tax collected for an agency by aggregating the relevant invoice fields in the period.
      * CRA collects TPS (gstAmount) and HST (hstAmount); Revenu Quebec collects TVQ (qstAmount).
      */
     public BigDecimal sumTaxCollected(TaxAgency agency, LocalDate start, LocalDate end) {
-        List<Invoice> invoices = invoiceRepository.findByInvoiceDateBetween(start, end);
+        List<Invoice> invoices = invoiceRepository.findByInvoiceDateBetweenOrderByInvoiceDateDesc(start, end);
         BigDecimal sum = BigDecimal.ZERO;
         for (Invoice inv : invoices) {
             if (inv.getStatus() == InvoiceStatus.CANCELLED) continue;
@@ -172,6 +229,7 @@ public class TaxFilingService {
         return switch (agency.getCode()) {
             case CRA_CODE -> gst.add(hst);
             case RQ_CODE -> qst;
+            case MRQ2013_CODE -> gst.add(qst);
             default -> BigDecimal.ZERO;
         };
     }
@@ -187,7 +245,7 @@ public class TaxFilingService {
 
     private ItcComponents itcComponents(TaxAgency agency, LocalDate start, LocalDate end) {
         ItcComponents c = new ItcComponents();
-        for (Bill bill : billRepository.findByBillDateBetween(start, end)) {
+        for (Bill bill : billRepository.findByBillDateBetweenOrderByBillDateDesc(start, end)) {
             if (bill.getStatus() == BillStatus.CANCELLED) continue;
             BigDecimal gst = bill.getGstAmount() == null ? BigDecimal.ZERO : bill.getGstAmount();
             BigDecimal hst = bill.getHstAmount() == null ? BigDecimal.ZERO : bill.getHstAmount();
@@ -195,6 +253,7 @@ public class TaxFilingService {
             switch (agency.getCode()) {
                 case CRA_CODE -> { c.tps = c.tps.add(gst); c.hst = c.hst.add(hst); }
                 case RQ_CODE -> c.tvq = c.tvq.add(qst);
+                case MRQ2013_CODE -> { c.tps = c.tps.add(gst); c.tvq = c.tvq.add(qst); }
                 default -> { /* no ITC for this agency */ }
             }
         }
@@ -235,14 +294,20 @@ public class TaxFilingService {
         entries.add(dr);
 
         // Cr each ITC receivable account for the amount accumulated by bills.
-        if (c.tps.compareTo(BigDecimal.ZERO) > 0) {
-            entries.add(creditItc("1300", "TPS à recevoir (CTI) non semé", c.tps, "TPS récupérée", line++));
-        }
-        if (c.hst.compareTo(BigDecimal.ZERO) > 0) {
-            entries.add(creditItc("1320", "HST à recevoir (CTI) non semé", c.hst, "HST récupérée", line++));
-        }
-        if (c.tvq.compareTo(BigDecimal.ZERO) > 0) {
-            entries.add(creditItc("1310", "TVQ à recevoir (RTI) non semé", c.tvq, "TVQ récupérée", line++));
+        if (period.getAgency().getCode().equals(MRQ2013_CODE)) {
+            if (total.compareTo(BigDecimal.ZERO) > 0) {
+                entries.add(creditItc("1330", "Compte TPS/TVH/TVQ_2013 non semé", total, "TPS/TVQ 2013 récupérée", line++));
+            }
+        } else {
+            if (c.tps.compareTo(BigDecimal.ZERO) > 0) {
+                entries.add(creditItc("1300", "TPS à recevoir (CTI) non semé", c.tps, "TPS récupérée", line++));
+            }
+            if (c.hst.compareTo(BigDecimal.ZERO) > 0) {
+                entries.add(creditItc("1320", "HST à recevoir (CTI) non semé", c.hst, "HST récupérée", line++));
+            }
+            if (c.tvq.compareTo(BigDecimal.ZERO) > 0) {
+                entries.add(creditItc("1310", "TVQ à recevoir (RTI) non semé", c.tvq, "TVQ récupérée", line++));
+            }
         }
 
         jl.setEntries(entries);

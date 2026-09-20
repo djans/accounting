@@ -32,6 +32,43 @@ public class VendorService {
             v.setBusinessNumber(vendor.getBusinessNumber());
             v.setGstNumber(vendor.getGstNumber());
             v.setQstNumber(vendor.getQstNumber());
+            v.setCompanyName(vendor.getCompanyName());
+            v.setTitle(vendor.getTitle());
+            v.setFirstName(vendor.getFirstName());
+            v.setMiddleInitial(vendor.getMiddleInitial());
+            v.setLastName(vendor.getLastName());
+            v.setJobTitle(vendor.getJobTitle());
+            v.setMainPhone(vendor.getMainPhone());
+            v.setWorkPhone(vendor.getWorkPhone());
+            v.setMobilePhone(vendor.getMobilePhone());
+            v.setFax(vendor.getFax());
+            v.setWebsite(vendor.getWebsite());
+            v.setSecondaryEmail(vendor.getSecondaryEmail());
+            v.setCcEmail(vendor.getCcEmail());
+            v.setShipFromAddress(vendor.getShipFromAddress());
+            v.setAccountNumber(vendor.getAccountNumber());
+            v.setPaymentTerms(vendor.getPaymentTerms());
+            v.setBillingRateLevel(vendor.getBillingRateLevel());
+            v.setPrintOnChequeAs(vendor.getPrintOnChequeAs());
+            v.setCreditLimit(vendor.getCreditLimit());
+            v.setTaxAgency(vendor.isTaxAgency());
+            v.setTaxReturnType(vendor.getTaxReturnType());
+            v.setTaxReportingPeriod(vendor.getTaxReportingPeriod());
+            v.setTaxPeriodEnding(vendor.getTaxPeriodEnding());
+            v.setTaxLabel(vendor.getTaxLabel());
+            v.setSalesTaxRegistrationNumber(vendor.getSalesTaxRegistrationNumber());
+            v.setSalesTaxAccount(vendor.getSalesTaxAccount());
+            v.setPurchaseTaxAccount(vendor.getPurchaseTaxAccount());
+            v.setTrackSalesTaxSeparately(vendor.isTrackSalesTaxSeparately());
+            v.setTrackPurchaseTaxSeparately(vendor.isTrackPurchaseTaxSeparately());
+            v.setTaxOnOtherTaxes(vendor.isTaxOnOtherTaxes());
+            v.setTaxIncludedOnExpenses(vendor.isTaxIncludedOnExpenses());
+            v.setDefaultExpenseAccount1(vendor.getDefaultExpenseAccount1());
+            v.setDefaultExpenseAccount2(vendor.getDefaultExpenseAccount2());
+            v.setDefaultExpenseAccount3(vendor.getDefaultExpenseAccount3());
+            v.setVendorType(vendor.getVendorType());
+            v.setCustomFields(vendor.getCustomFields());
+            v.setInactive(vendor.isInactive());
             return vendorRepository.save(v);
         }
         return null;
@@ -46,7 +83,7 @@ public class VendorService {
     }
 
     public List<Vendor> getAllVendors() {
-        return vendorRepository.findAll();
+        return vendorRepository.findAllByOrderByBusinessNameAsc();
     }
 
     public void deleteVendor(Long id) {

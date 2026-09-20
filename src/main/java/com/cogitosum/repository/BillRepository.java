@@ -11,9 +11,10 @@ import java.util.Optional;
 
 @Repository
 public interface BillRepository extends JpaRepository<Bill, Long> {
+    List<Bill> findAllByOrderByBillNumberDesc();
     Optional<Bill> findByBillNumber(String billNumber);
-    List<Bill> findByVendorId(Long vendorId);
-    List<Bill> findByStatus(BillStatus status);
-    List<Bill> findByBillDateBetween(LocalDate startDate, LocalDate endDate);
-    List<Bill> findByVendorIdAndStatus(Long vendorId, BillStatus status);
+    List<Bill> findByVendorIdOrderByBillNumberDesc(Long vendorId);
+    List<Bill> findByStatusOrderByBillNumberDesc(BillStatus status);
+    List<Bill> findByBillDateBetweenOrderByBillDateDesc(LocalDate startDate, LocalDate endDate);
+    List<Bill> findByVendorIdAndStatusOrderByBillNumberDesc(Long vendorId, BillStatus status);
 }

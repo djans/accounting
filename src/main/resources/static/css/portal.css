@@ -98,9 +98,10 @@ body {
 }
 
 .portal-sidebar .nav-icon {
-    width: 18px;
+    width: 24px;
     text-align: center;
     opacity: 0.85;
+    margin-right: 0.5rem;
 }
 
 .portal-main {
@@ -278,8 +279,11 @@ body {
     text-decoration: none;
     display: inline-flex;
     align-items: center;
-    gap: 0.35rem;
     transition: background 0.15s, transform 0.05s;
+}
+
+.btn-portal i {
+    margin-right: 0.35rem;
 }
 
 .btn-portal:hover {
@@ -357,6 +361,10 @@ body {
     box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
 }
 
+.bg-light {
+    background-color: #f8fafc !important;
+}
+
 .form-actions {
     display: flex;
     gap: 0.6rem;
@@ -406,10 +414,6 @@ body {
 .lang-separator {
     color: var(--portal-border);
     margin: 0 0.2rem;
-}
-
-    border: 1px solid;
-    font-size: 0.92rem;
 }
 
 .flash.flash-success { background: #ecfdf5; border-color: #a7f3d0; color: #065f46; }

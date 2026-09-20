@@ -9,13 +9,24 @@
         <section class="portal-content">
             <div th:replace="~{fragments/layout :: flash}"></div>
 
-            <div class="portal-card">
+            <div class="portal-card vendor-list-card">
                 <h3 class="portal-card-title">
                     Tous les fournisseurs
-                    <a th:href="@{/vendors/new}" class="btn-portal"><i class="bi bi-plus-lg"></i> Nouveau fournisseur</a>
+                    <span class="vendor-actions no-print">
+                        <a th:href="@{/vendors/new}" class="btn-portal"><i class="bi bi-plus-lg"></i> Nouveau fournisseur</a>
+                        <button type="button" class="btn-portal btn-ghost" onclick="window.print()"><i class="bi bi-printer"></i> Imprimer</button>
+                    </span>
                 </h3>
+                <form th:action="@{/vendors}" method="get" class="vendor-search no-print">
+                    <label for="vendor-search">Rechercher un fournisseur</label>
+                    <input id="vendor-search" type="search" name="q" th:value="${searchQuery}"
+                           placeholder="Entreprise, contact, courriel, téléphone, province..."/>
+                    <button type="submit" class="btn-portal"><i class="bi bi-search"></i> Rechercher</button>
+                    <a th:if="${searchQuery != null and !searchQuery.isBlank()}" th:href="@{/vendors}" class="btn-portal btn-ghost">Effacer</a>
+                </form>
+                <p class="text-muted vendor-result-count" th:text="${#lists.size(vendors) + ' fournisseur(s) affiché(s)'}">0 fournisseur(s) affiché(s)</p>
                 <div th:if="${#lists.isEmpty(vendors)}" class="empty-state">
-                    Aucun fournisseur. <a th:href="@{/vendors/new}">Ajoutez le premier</a>.
+                    Aucun fournisseur ne correspond à la recherche.
                 </div>
                 <table th:if="${not #lists.isEmpty(vendors)}" class="table-portal">
                     <thead>
@@ -55,5 +66,24 @@
         </section>
     </main>
 </div>
+<style>
+    .vendor-actions { float:right; display:flex; gap:.5rem; }
+    .vendor-search { display:flex; align-items:end; gap:.6rem; flex-wrap:wrap; margin:1rem 0; padding:1rem; background:#f8fafc; border:1px solid var(--portal-border); border-radius:8px; }
+    .vendor-search label { display:flex; flex-direction:column; gap:.3rem; font-weight:600; width:100%; }
+    .vendor-search input { flex:1; min-width:240px; }
+    .vendor-result-count { margin-bottom:.75rem; }
+    @media print {
+        @page { margin:1.2cm; }
+        body { background:#fff; }
+        .portal-sidebar, .portal-topbar, .no-print { display:none !important; }
+        .portal-main { display:block; }
+        .portal-content { padding:0; }
+        .vendor-list-card { border:0; box-shadow:none; padding:0; }
+        .vendor-actions { display:none; }
+        .table-portal { width:100%; font-size:10pt; }
+        .table-portal th:last-child, .table-portal td:last-child { display:none; }
+        .vendor-result-count { color:#000; }
+    }
+</style>
 </body>
 </html>

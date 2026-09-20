@@ -61,7 +61,15 @@ public class TaxReportRestController {
 
     @GetMapping("/periods/{id}")
     public ResponseEntity<?> period(@org.springframework.web.bind.annotation.PathVariable("id") Long id) {
-        return ResponseEntity.of(filingService.getById(id));
+        return filingService.getById(id)
+            .map(p -> {
+                Map<String, Object> body = new HashMap<>();
+                body.put("period", p);
+                body.put("collectedDetail", filingService.getTaxCollectedDetail(p.getAgency(), p.getPeriodStart(), p.getPeriodEnd()));
+                body.put("itcDetail", filingService.getItcDetail(p.getAgency(), p.getPeriodStart(), p.getPeriodEnd()));
+                return ResponseEntity.ok(body);
+            })
+            .orElse(ResponseEntity.notFound().build());
     }
 }
 
