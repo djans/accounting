@@ -5,6 +5,8 @@ import com.cogitosum.entity.UserAccount;
 import com.cogitosum.entity.UserRole;
 import com.cogitosum.repository.CompanyRepository;
 import com.cogitosum.repository.UserAccountRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.annotation.Order;
@@ -14,6 +16,8 @@ import org.springframework.stereotype.Component;
 @Component
 @Order(0)
 public class AuthBootstrap implements CommandLineRunner {
+
+    private static final Logger log = LoggerFactory.getLogger(AuthBootstrap.class);
 
     private final CompanyRepository companyRepository;
     private final UserAccountRepository userAccountRepository;
@@ -38,7 +42,12 @@ public class AuthBootstrap implements CommandLineRunner {
         if (bootstrapAdminEmail.isBlank() || bootstrapAdminPassword.isBlank()) {
             if (userAccountRepository.count() == 0) {
                 throw new IllegalStateException(
-                    "Set APP_BOOTSTRAP_ADMIN_EMAIL and APP_BOOTSTRAP_ADMIN_PASSWORD before the first startup.");
+                    "No admin account exists yet, and no bootstrap credentials were supplied.\n"
+                    + "To create the first administrator, set these environment variables before starting the app:\n"
+                    + "  APP_BOOTSTRAP_ADMIN_EMAIL=you@example.com\n"
+                    + "  APP_BOOTSTRAP_ADMIN_PASSWORD=<a strong password>\n"
+                    + "Then restart the application. These variables are only needed once, to seed the initial\n"
+                    + "administrator account; they can be removed afterwards.");
             }
             return;
         }
@@ -69,6 +78,9 @@ public class AuthBootstrap implements CommandLineRunner {
             admin.setRole(UserRole.ADMIN);
             admin.setEnabled(true);
             userAccountRepository.save(admin);
+            log.info("Bootstrap administrator created: {} (company: {}). "
+                + "You can now remove APP_BOOTSTRAP_ADMIN_EMAIL/APP_BOOTSTRAP_ADMIN_PASSWORD.",
+                bootstrapAdminEmail, company.getName());
         } else if (admin.getCompany() == null) {
             admin.setCompany(company);
             admin.setRole(UserRole.ADMIN);

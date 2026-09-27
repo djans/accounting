@@ -175,7 +175,7 @@ public class DatabaseBackupService {
             }
         } catch (RuntimeException e) {
             throw new IllegalArgumentException("Invalid value for SQL type " + sqlType + ": " + text, e);
-        } catch (IOException e) {
+        } catch (Exception e) {
             throw new IllegalArgumentException("Invalid binary value for SQL type " + sqlType, e);
         }
         return text;

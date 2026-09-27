@@ -42,8 +42,9 @@
                     <tr th:each="entry : ${trialBalance['accounts']}">
                         <td th:text="${entry.value['accountNumber']}">1010</td>
                         <td>
-                            <a href="javascript:void(0)" 
-                               th:onclick="'showTransactions(' + ${entry.value['accountId']} + ', \'' + ${#strings.escapeJavaScript(entry.value['accountName'])} + '\')'"
+                            <a href="#"
+                               class="account-transactions-link"
+                               th:attr="data-account-id=${entry.value['accountId']},data-account-name=${entry.value['accountName']}"
                                th:text="${entry.value['accountName']}"
                                style="text-decoration: none; color: var(--portal-primary); font-weight: 500;">
                                 Cash
@@ -96,8 +97,9 @@
                     <tr th:each="row : ${balanceSheet['assets']}">
                         <td th:text="${row['accountNumber']}">1010</td>
                         <td>
-                            <a href="javascript:void(0)" 
-                               th:onclick="'showTransactions(' + ${row['accountId']} + ', \'' + ${#strings.escapeJavaScript(row['accountName'])} + '\')'"
+                            <a href="#"
+                               class="account-transactions-link"
+                               th:attr="data-account-id=${row['accountId']},data-account-name=${row['accountName']}"
                                th:text="${row['accountName']}"
                                style="text-decoration: none; color: var(--portal-primary); font-weight: 500;">
                                 Cash
@@ -118,8 +120,9 @@
                     <tr th:each="row : ${balanceSheet['liabilities']}">
                         <td th:text="${row['accountNumber']}">2010</td>
                         <td>
-                            <a href="javascript:void(0)" 
-                               th:onclick="'showTransactions(' + ${row['accountId']} + ', \'' + ${#strings.escapeJavaScript(row['accountName'])} + '\')'"
+                            <a href="#"
+                               class="account-transactions-link"
+                               th:attr="data-account-id=${row['accountId']},data-account-name=${row['accountName']}"
                                th:text="${row['accountName']}"
                                style="text-decoration: none; color: var(--portal-primary); font-weight: 500;">
                                 A/P
@@ -140,8 +143,9 @@
                     <tr th:each="row : ${balanceSheet['equity']}">
                         <td th:text="${row['accountNumber']}">3010</td>
                         <td>
-                            <a href="javascript:void(0)" 
-                               th:onclick="'showTransactions(' + ${row['accountId']} + ', \'' + ${#strings.escapeJavaScript(row['accountName'])} + '\')'"
+                            <a href="#"
+                               class="account-transactions-link"
+                               th:attr="data-account-id=${row['accountId']},data-account-name=${row['accountName']}"
                                th:text="${row['accountName']}"
                                style="text-decoration: none; color: var(--portal-primary); font-weight: 500;">
                                 Equity
@@ -183,8 +187,9 @@
                     <tr th:each="row : ${incomeStatement['revenue']}">
                         <td th:text="${row['accountNumber']}">4010</td>
                         <td>
-                            <a href="javascript:void(0)" 
-                               th:onclick="'showTransactions(' + ${row['accountId']} + ', \'' + ${#strings.escapeJavaScript(row['accountName'])} + '\')'"
+                            <a href="#"
+                               class="account-transactions-link"
+                               th:attr="data-account-id=${row['accountId']},data-account-name=${row['accountName']}"
                                th:text="${row['accountName']}"
                                style="text-decoration: none; color: var(--portal-primary); font-weight: 500;">
                                 Sales
@@ -205,8 +210,9 @@
                     <tr th:each="row : ${incomeStatement['expenses']}">
                         <td th:text="${row['accountNumber']}">5010</td>
                         <td>
-                            <a href="javascript:void(0)" 
-                               th:onclick="'showTransactions(' + ${row['accountId']} + ', \'' + ${#strings.escapeJavaScript(row['accountName'])} + '\')'"
+                            <a href="#"
+                               class="account-transactions-link"
+                               th:attr="data-account-id=${row['accountId']},data-account-name=${row['accountName']}"
                                th:text="${row['accountName']}"
                                style="text-decoration: none; color: var(--portal-primary); font-weight: 500;">
                                 Cost

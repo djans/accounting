@@ -23,11 +23,22 @@ public class BootstrapCompanyProvider {
 
     public Company requireBootstrapCompany() {
         if (bootstrapAdminEmail.isBlank()) {
-            throw new IllegalStateException("Reference-data seeding requires APP_BOOTSTRAP_ADMIN_EMAIL.");
+            throw new IllegalStateException(
+                "Reference-data seeding (tax codes, vendors, etc.) needs a bootstrap administrator to attach "
+                + "the seeded data to.\n"
+                + "Set these environment variables before starting the app:\n"
+                + "  APP_BOOTSTRAP_ADMIN_EMAIL=you@example.com\n"
+                + "  APP_BOOTSTRAP_ADMIN_PASSWORD=<a strong password>\n"
+                + "Then restart. If you don't need reference-data seeding yet, disable it instead via\n"
+                + "  APP_SEED_REFERENCE_DATA_ENABLED=false (and APP_SEED_VENDOR_DATA_ENABLED=false).");
         }
         return userAccountRepository.findByEmail(bootstrapAdminEmail)
             .filter(user -> user.isEnabled() && user.getCompany() != null)
             .map(user -> user.getCompany())
-            .orElseThrow(() -> new IllegalStateException("The bootstrap administrator has no active company."));
+            .orElseThrow(() -> new IllegalStateException(
+                "APP_BOOTSTRAP_ADMIN_EMAIL is set to '" + bootstrapAdminEmail + "', but no enabled user with an "
+                + "assigned company was found for that email. Make sure the bootstrap admin account exists "
+                + "(restart once with APP_BOOTSTRAP_ADMIN_PASSWORD also set so it can be created), is enabled, "
+                + "and belongs to a company."));
     }
 }
