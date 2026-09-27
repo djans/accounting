@@ -7,11 +7,15 @@ import java.time.LocalDate;
 
 @Entity
 @Table(name = "payments")
-public class Payment {
+public class Payment implements CompanyOwned {
     
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "company_id", nullable = false, updatable = false)
+    private Company company;
     
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "invoice_id", nullable = false)
@@ -72,6 +76,16 @@ public class Payment {
     
     public void setId(Long id) {
         this.id = id;
+    }
+
+    @Override
+    public Company getCompany() {
+        return company;
+    }
+
+    @Override
+    public void setCompany(Company company) {
+        this.company = company;
     }
     
     public Invoice getInvoice() {
@@ -162,4 +176,3 @@ public class Payment {
         this.updatedAt = updatedAt;
     }
 }
-

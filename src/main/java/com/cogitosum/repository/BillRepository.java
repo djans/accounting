@@ -17,4 +17,12 @@ public interface BillRepository extends JpaRepository<Bill, Long> {
     List<Bill> findByStatusOrderByBillNumberDesc(BillStatus status);
     List<Bill> findByBillDateBetweenOrderByBillDateDesc(LocalDate startDate, LocalDate endDate);
     List<Bill> findByVendorIdAndStatusOrderByBillNumberDesc(Long vendorId, BillStatus status);
+    Long countByVendorProvince(String province);
+    Optional<Bill> findByIdAndCompanyId(Long id, Long companyId);
+    List<Bill> findAllByCompanyIdOrderByBillNumberDesc(Long companyId);
+    Optional<Bill> findByCompanyIdAndBillNumber(Long companyId, String billNumber);
+    List<Bill> findByCompanyIdAndVendorIdOrderByBillNumberDesc(Long companyId, Long vendorId);
+    List<Bill> findByCompanyIdAndStatusOrderByBillNumberDesc(Long companyId, BillStatus status);
+    List<Bill> findByCompanyIdAndBillDateBetweenOrderByBillDateDesc(Long companyId, LocalDate startDate, LocalDate endDate);
+    Long countByCompanyIdAndVendorProvince(Long companyId, String province);
 }

@@ -10,14 +10,19 @@ import java.time.LocalDateTime;
  * et verrouille les dates de l'exercice contre toute nouvelle écriture.
  */
 @Entity
-@Table(name = "fiscal_years")
-public class FiscalYear {
+@Table(name = "fiscal_years", uniqueConstraints = @UniqueConstraint(
+        name = "uk_fiscal_years_company_label", columnNames = {"company_id", "label"}))
+public class FiscalYear implements CompanyOwned {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, unique = true)
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "company_id", nullable = false, updatable = false)
+    private Company company;
+
+    @Column(nullable = false)
     private String label;
 
     @Column(nullable = false)
@@ -73,6 +78,16 @@ public class FiscalYear {
 
     public void setId(Long id) {
         this.id = id;
+    }
+
+    @Override
+    public Company getCompany() {
+        return company;
+    }
+
+    @Override
+    public void setCompany(Company company) {
+        this.company = company;
     }
 
     public String getLabel() {

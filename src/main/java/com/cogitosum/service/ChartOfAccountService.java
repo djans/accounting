@@ -19,8 +19,14 @@ public class ChartOfAccountService {
     @Autowired
     private GeneralLedgerService generalLedgerService;
 
+    @Autowired
+    private CurrentCompanyContext companyContext;
+
     @Transactional
     public ChartOfAccount createAccount(ChartOfAccount account) {
+        Long companyId = companyContext.requireCompanyId();
+        companyContext.assignCurrentCompany(account);
+        account.setParentAccount(resolveParentAccount(account.getParentAccount(), companyId));
         ChartOfAccount saved = chartOfAccountRepository.save(account);
         // Every new account gets a matching GL row so journal posting can find it.
         generalLedgerService.createLedgerAccount(saved);
@@ -29,13 +35,14 @@ public class ChartOfAccountService {
 
     @Transactional
     public ChartOfAccount updateAccount(Long id, ChartOfAccount account) {
-        Optional<ChartOfAccount> existingAccount = chartOfAccountRepository.findById(id);
+        Long companyId = companyContext.requireCompanyId();
+        Optional<ChartOfAccount> existingAccount = chartOfAccountRepository.findByIdAndCompanyId(id, companyId);
         if (existingAccount.isPresent()) {
             ChartOfAccount acc = existingAccount.get();
             if (account.getAccountNumber() == null || account.getAccountNumber().isBlank()) {
                 throw new IllegalArgumentException("Account number is required");
             }
-            chartOfAccountRepository.findByAccountNumber(account.getAccountNumber())
+            chartOfAccountRepository.findByCompanyIdAndAccountNumber(companyId, account.getAccountNumber())
                 .filter(found -> !found.getId().equals(id))
                 .ifPresent(found -> {
                     throw new IllegalArgumentException("Account number already exists: " + account.getAccountNumber());
@@ -46,7 +53,7 @@ public class ChartOfAccountService {
             acc.setCategory(account.getCategory());
             acc.setDescription(account.getDescription());
             acc.setActive(account.getActive());
-            acc.setParentAccount(account.getParentAccount());
+            acc.setParentAccount(resolveParentAccount(account.getParentAccount(), companyId));
             acc.setCurrency(account.getCurrency());
             acc.setOpeningBalance(account.getOpeningBalance());
             acc.setOpeningBalanceDate(account.getOpeningBalanceDate());
@@ -56,27 +63,41 @@ public class ChartOfAccountService {
     }
 
     public Optional<ChartOfAccount> getAccountById(Long id) {
-        return chartOfAccountRepository.findById(id);
+        return chartOfAccountRepository.findByIdAndCompanyId(id, companyContext.requireCompanyId());
     }
 
     public Optional<ChartOfAccount> getAccountByNumber(String accountNumber) {
-        return chartOfAccountRepository.findByAccountNumber(accountNumber);
+        return chartOfAccountRepository.findByCompanyIdAndAccountNumber(companyContext.requireCompanyId(), accountNumber);
     }
 
     public List<ChartOfAccount> getAccountsByType(AccountType accountType) {
-        return chartOfAccountRepository.findByAccountTypeOrderByAccountNumberAsc(accountType);
+        return chartOfAccountRepository.findByCompanyIdAndAccountTypeOrderByAccountNumberAsc(
+                companyContext.requireCompanyId(), accountType);
     }
 
     public List<ChartOfAccount> getActiveAccounts() {
-        return chartOfAccountRepository.findByIsActiveOrderByAccountNumberAsc(true);
+        return chartOfAccountRepository.findByCompanyIdAndIsActiveOrderByAccountNumberAsc(
+                companyContext.requireCompanyId(), true);
     }
 
     public List<ChartOfAccount> getAllAccounts() {
-        return chartOfAccountRepository.findAllByOrderByAccountNumberAsc();
+        return chartOfAccountRepository.findAllByCompanyIdOrderByAccountNumberAsc(companyContext.requireCompanyId());
     }
 
     @Transactional
     public void deleteAccount(Long id) {
-        chartOfAccountRepository.deleteById(id);
+        chartOfAccountRepository.findByIdAndCompanyId(id, companyContext.requireCompanyId())
+                .ifPresent(chartOfAccountRepository::delete);
+    }
+
+    private ChartOfAccount resolveParentAccount(ChartOfAccount parent, Long companyId) {
+        if (parent == null) {
+            return null;
+        }
+        if (parent.getId() == null) {
+            throw new IllegalArgumentException("Parent account is invalid");
+        }
+        return chartOfAccountRepository.findByIdAndCompanyId(parent.getId(), companyId)
+                .orElseThrow(() -> new IllegalArgumentException("Parent account not found"));
     }
 }

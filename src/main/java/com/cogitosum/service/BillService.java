@@ -1,11 +1,9 @@
 package com.cogitosum.service;
 
-import com.cogitosum.entity.Bill;
-import com.cogitosum.entity.BillLineItem;
-import com.cogitosum.entity.BillStatus;
-import com.cogitosum.entity.TaxCode;
-import com.cogitosum.entity.TaxGroup;
+import com.cogitosum.entity.*;
 import com.cogitosum.repository.BillRepository;
+import com.cogitosum.repository.ChartOfAccountRepository;
+import com.cogitosum.repository.VendorRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -34,6 +32,15 @@ public class BillService {
     @Autowired
     private TaxCodeService taxCodeService;
 
+    @Autowired
+    private VendorRepository vendorRepository;
+
+    @Autowired
+    private ChartOfAccountRepository accountRepository;
+
+    @Autowired
+    private CurrentCompanyContext companyContext;
+
     public List<TaxRegime> getRegimes() {
         return invoiceService.getRegimes();
     }
@@ -43,6 +50,11 @@ public class BillService {
     }
 
     public Bill createBill(Bill bill, String regimeCode) {
+        Long companyId = companyContext.requireCompanyId();
+        bill.setCompany(companyContext.requireCompany());
+        bill.setVendor(vendorRepository.findByIdAndCompanyId(requiredId(bill.getVendor()), companyId)
+                .orElseThrow(() -> new IllegalArgumentException("Vendor not found")));
+        resolveExpenseAccounts(bill, companyId);
         if (bill.getBillNumber() == null || bill.getBillNumber().isEmpty()) {
             bill.setBillNumber("BILL-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase());
         }
@@ -64,13 +76,16 @@ public class BillService {
     }
 
     public Bill updateBill(Long id, Bill bill, String regimeCode) {
-        Optional<Bill> existingBill = billRepository.findById(id);
+        Long companyId = companyContext.requireCompanyId();
+        Optional<Bill> existingBill = billRepository.findByIdAndCompanyId(id, companyId);
         if (existingBill.isPresent()) {
             Bill b = existingBill.get();
-            b.setVendor(bill.getVendor());
+            b.setVendor(vendorRepository.findByIdAndCompanyId(requiredId(bill.getVendor()), companyId)
+                    .orElseThrow(() -> new IllegalArgumentException("Vendor not found")));
             b.setBillDate(bill.getBillDate());
             b.setDueDate(bill.getDueDate());
             b.setNotes(bill.getNotes());
+            resolveExpenseAccounts(bill, companyId);
             b.setLineItems(bill.getLineItems());
             calculateBillTotals(b, regimeCode);
             Bill saved = billRepository.save(b);
@@ -81,31 +96,32 @@ public class BillService {
     }
 
     public Optional<Bill> getBillById(Long id) {
-        return billRepository.findById(id);
+        return billRepository.findByIdAndCompanyId(id, companyContext.requireCompanyId());
     }
 
     public Optional<Bill> getBillByBillNumber(String billNumber) {
-        return billRepository.findByBillNumber(billNumber);
+        return billRepository.findByCompanyIdAndBillNumber(companyContext.requireCompanyId(), billNumber);
     }
 
     public List<Bill> getBillsByVendorId(Long vendorId) {
-        return billRepository.findByVendorIdOrderByBillNumberDesc(vendorId);
+        return billRepository.findByCompanyIdAndVendorIdOrderByBillNumberDesc(companyContext.requireCompanyId(), vendorId);
     }
 
     public List<Bill> getBillsByStatus(BillStatus status) {
-        return billRepository.findByStatusOrderByBillNumberDesc(status);
+        return billRepository.findByCompanyIdAndStatusOrderByBillNumberDesc(companyContext.requireCompanyId(), status);
     }
 
     public List<Bill> getBillsByDateRange(LocalDate startDate, LocalDate endDate) {
-        return billRepository.findByBillDateBetweenOrderByBillDateDesc(startDate, endDate);
+        return billRepository.findByCompanyIdAndBillDateBetweenOrderByBillDateDesc(
+                companyContext.requireCompanyId(), startDate, endDate);
     }
 
     public List<Bill> getAllBills() {
-        return billRepository.findAllByOrderByBillNumberDesc();
+        return billRepository.findAllByCompanyIdOrderByBillNumberDesc(companyContext.requireCompanyId());
     }
 
     public Bill markBillAsReceived(Long id) {
-        Optional<Bill> bill = billRepository.findById(id);
+        Optional<Bill> bill = billRepository.findByIdAndCompanyId(id, companyContext.requireCompanyId());
         if (bill.isPresent()) {
             bill.get().setStatus(BillStatus.RECEIVED);
             return billRepository.save(bill.get());
@@ -114,7 +130,7 @@ public class BillService {
     }
 
     public Bill cancelBill(Long id) {
-        Optional<Bill> bill = billRepository.findById(id);
+        Optional<Bill> bill = billRepository.findByIdAndCompanyId(id, companyContext.requireCompanyId());
         if (bill.isPresent()) {
             Bill b = bill.get();
             billPostingService.reverseBill(b, "Bill cancelled");
@@ -125,7 +141,8 @@ public class BillService {
     }
 
     public List<Bill> getOverdueBills() {
-        List<Bill> bills = billRepository.findByStatusOrderByBillNumberDesc(BillStatus.RECEIVED);
+        List<Bill> bills = billRepository.findByCompanyIdAndStatusOrderByBillNumberDesc(
+                companyContext.requireCompanyId(), BillStatus.RECEIVED);
         return bills.stream()
             .filter(b -> b.getDueDate().isBefore(LocalDate.now()))
             .toList();
@@ -135,8 +152,8 @@ public class BillService {
         String province = bill.getVendor() != null ? bill.getVendor().getProvince() : null;
         String effectiveCode = regimeCode != null ? regimeCode : (province != null ? province : "FED");
 
-        Optional<TaxGroup> groupOpt = taxCodeService.getAllGroups().stream()
-                .filter(g -> g.getCode().equals(effectiveCode))
+        Optional<TaxCode> taxCodeOpt = taxCodeService.getAllCodes().stream()
+                .filter(c -> c.getCode().equals(effectiveCode))
                 .findFirst();
 
         BigDecimal subtotal = bill.getLineItems().stream()
@@ -148,8 +165,8 @@ public class BillService {
         BigDecimal hst = BigDecimal.ZERO;
         BigDecimal qst = BigDecimal.ZERO;
 
-        if (groupOpt.isPresent()) {
-            for (TaxCode item : groupOpt.get().getTaxItems()) {
+        if (taxCodeOpt.isPresent() && taxCodeOpt.get().getPurchaseTaxGroup() != null) {
+            for (TaxItem item : taxCodeOpt.get().getPurchaseTaxGroup().getTaxItems()) {
                 if (Boolean.FALSE.equals(item.getForPurchases())) continue;
 
                 BigDecimal taxAmount = subtotal.multiply(item.getRate()).setScale(2, java.math.RoundingMode.HALF_UP);
@@ -163,7 +180,7 @@ public class BillService {
                 }
             }
         } else {
-            // Fallback to legacy static rates if no group found
+            // Fallback to legacy static rates if no tax code/group found
             TaxRegime regime = invoiceService.resolveRegime(province, regimeCode);
             gst = subtotal.multiply(regime.gstRate()).setScale(2, java.math.RoundingMode.HALF_UP);
             hst = subtotal.multiply(regime.hstRate()).setScale(2, java.math.RoundingMode.HALF_UP);
@@ -177,8 +194,31 @@ public class BillService {
     }
 
     public void deleteBill(Long id) {
-        Optional<Bill> bill = billRepository.findById(id);
+        Optional<Bill> bill = billRepository.findByIdAndCompanyId(id, companyContext.requireCompanyId());
         bill.ifPresent(b -> billPostingService.reverseBill(b, "Bill deleted"));
-        billRepository.deleteById(id);
+        bill.ifPresent(billRepository::delete);
+    }
+
+    private Long requiredId(Vendor vendor) {
+        if (vendor == null || vendor.getId() == null) {
+            throw new IllegalArgumentException("A vendor is required");
+        }
+        return vendor.getId();
+    }
+
+    private void resolveExpenseAccounts(Bill bill, Long companyId) {
+        if (bill.getLineItems() == null) {
+            return;
+        }
+        for (BillLineItem line : bill.getLineItems()) {
+            if (line.getExpenseAccount() != null) {
+                Long accountId = line.getExpenseAccount().getId();
+                if (accountId == null) {
+                    throw new IllegalArgumentException("Expense account is invalid");
+                }
+                line.setExpenseAccount(accountRepository.findByIdAndCompanyId(accountId, companyId)
+                        .orElseThrow(() -> new IllegalArgumentException("Expense account not found")));
+            }
+        }
     }
 }

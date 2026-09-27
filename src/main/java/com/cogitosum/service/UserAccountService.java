@@ -16,37 +16,44 @@ public class UserAccountService {
     @Autowired
     private UserAccountRepository userAccountRepository;
 
+    @Autowired
+    private CurrentCompanyContext companyContext;
+
     public UserAccount createUser(UserAccount userAccount) {
+        userAccount.setCompany(companyContext.requireCompany());
         return userAccountRepository.save(userAccount);
     }
 
     public List<UserAccount> getUsersByCompany(Long companyId) {
-        return userAccountRepository.findByCompanyId(companyId);
+        Long currentCompanyId = companyContext.requireCompanyId();
+        return currentCompanyId.equals(companyId)
+                ? userAccountRepository.findByCompanyId(currentCompanyId)
+                : List.of();
     }
 
     public List<UserAccount> getUsersByRole(UserRole role) {
-        return userAccountRepository.findByRole(role);
+        return userAccountRepository.findByCompanyIdAndRole(companyContext.requireCompanyId(), role);
     }
 
     public List<UserAccount> getAllUsers() {
-        return userAccountRepository.findAll();
+        return userAccountRepository.findByCompanyId(companyContext.requireCompanyId());
     }
 
     public Optional<UserAccount> getUserById(Long id) {
-        return userAccountRepository.findById(id);
+        return userAccountRepository.findByIdAndCompanyId(id, companyContext.requireCompanyId());
     }
 
     public Optional<UserAccount> getUserByEmail(String email) {
-        return userAccountRepository.findByEmail(email);
+        return userAccountRepository.findByEmail(email)
+                .filter(user -> companyContext.requireCompanyId().equals(user.getCompany().getId()));
     }
 
     public UserAccount updateUser(Long id, UserAccount updatedUser) {
-        Optional<UserAccount> existing = userAccountRepository.findById(id);
+        Optional<UserAccount> existing = userAccountRepository.findByIdAndCompanyId(id, companyContext.requireCompanyId());
         if (existing.isEmpty()) {
             return null;
         }
         UserAccount current = existing.get();
-        current.setCompany(updatedUser.getCompany());
         current.setFullName(updatedUser.getFullName());
         current.setEmail(updatedUser.getEmail());
         if (updatedUser.getPasswordHash() != null && !updatedUser.getPasswordHash().isBlank()) {
@@ -58,7 +65,8 @@ public class UserAccountService {
     }
 
     public void deleteUser(Long id) {
-        userAccountRepository.deleteById(id);
+        userAccountRepository.findByIdAndCompanyId(id, companyContext.requireCompanyId())
+                .ifPresent(userAccountRepository::delete);
     }
 
     public Company getCompanyForUser(UserAccount userAccount) {

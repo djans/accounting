@@ -6,11 +6,15 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "general_ledger")
-public class GeneralLedger {
+public class GeneralLedger implements CompanyOwned {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "company_id", nullable = false, updatable = false)
+    private Company company;
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "account_id", nullable = false)
@@ -65,6 +69,16 @@ public class GeneralLedger {
         this.id = id;
     }
 
+    @Override
+    public Company getCompany() {
+        return company;
+    }
+
+    @Override
+    public void setCompany(Company company) {
+        this.company = company;
+    }
+
     public ChartOfAccount getAccount() {
         return account;
     }
@@ -108,4 +122,3 @@ public class GeneralLedger {
         this.lastUpdated = lastUpdated;
     }
 }
-

@@ -9,17 +9,22 @@ import java.time.LocalDateTime;
  * Les numéros d'entreprise / TPS / TVQ servent à justifier les crédits de taxe sur intrants (CTI/RTI).
  */
 @Entity
-@Table(name = "vendors")
-public class Vendor {
+@Table(name = "vendors", uniqueConstraints = @UniqueConstraint(
+        name = "uk_vendors_company_email", columnNames = {"company_id", "email"}))
+public class Vendor implements CompanyOwned {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "company_id", nullable = false, updatable = false)
+    private Company company;
+
     @Column(nullable = false)
     private String name;
 
-    @Column(nullable = false, unique = true)
+    @Column(nullable = false)
     private String email;
 
     @Column(nullable = false)
@@ -104,6 +109,16 @@ public class Vendor {
     // Getters and Setters
     public Long getId() {
         return id;
+    }
+
+    @Override
+    public Company getCompany() {
+        return company;
+    }
+
+    @Override
+    public void setCompany(Company company) {
+        this.company = company;
     }
 
     public void setId(Long id) {

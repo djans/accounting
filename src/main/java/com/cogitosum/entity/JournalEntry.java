@@ -24,7 +24,10 @@ public class JournalEntry {
     
     @Column(nullable = false, precision = 19, scale = 2)
     private BigDecimal credit;
-    
+
+    @Column(nullable = false)
+    private boolean cleared = false;
+
     @Column(length = 500)
     private String description;
     
@@ -80,6 +83,14 @@ public class JournalEntry {
     
     public void setCredit(BigDecimal credit) {
         this.credit = credit;
+    }
+
+    public boolean isCleared() {
+        return cleared;
+    }
+
+    public void setCleared(boolean cleared) {
+        this.cleared = cleared;
     }
     
     public String getDescription() {

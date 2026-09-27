@@ -1,6 +1,8 @@
 package com.cogitosum.service;
 
 import com.cogitosum.entity.Customer;
+import com.cogitosum.entity.ChartOfAccount;
+import com.cogitosum.repository.ChartOfAccountRepository;
 import com.cogitosum.repository.CustomerRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -16,12 +18,22 @@ public class CustomerService {
     @Autowired
     private InvoiceService invoiceService;
 
+    @Autowired
+    private ChartOfAccountRepository chartOfAccountRepository;
+
+    @Autowired
+    private CurrentCompanyContext companyContext;
+
     public Customer createCustomer(Customer customer) {
+        Long companyId = companyContext.requireCompanyId();
+        companyContext.assignCurrentCompany(customer);
+        customer.setSalesTaxAccount(resolveAccount(customer.getSalesTaxAccount(), companyId));
+        customer.setPurchaseTaxAccount(resolveAccount(customer.getPurchaseTaxAccount(), companyId));
         return customerRepository.save(customer);
     }
     
     public Customer updateCustomer(Long id, Customer customer) {
-        Optional<Customer> existingCustomer = customerRepository.findById(id);
+        Optional<Customer> existingCustomer = customerRepository.findByIdAndCompanyId(id, companyContext.requireCompanyId());
         if (existingCustomer.isPresent()) {
             Customer cust = existingCustomer.get();
             cust.setName(customer.getName());
@@ -59,8 +71,8 @@ public class CustomerService {
             cust.setTaxPeriodEnding(customer.getTaxPeriodEnding());
             cust.setTaxLabel(customer.getTaxLabel());
             cust.setSalesTaxRegistrationNumber(customer.getSalesTaxRegistrationNumber());
-            cust.setSalesTaxAccount(customer.getSalesTaxAccount());
-            cust.setPurchaseTaxAccount(customer.getPurchaseTaxAccount());
+            cust.setSalesTaxAccount(resolveAccount(customer.getSalesTaxAccount(), companyContext.requireCompanyId()));
+            cust.setPurchaseTaxAccount(resolveAccount(customer.getPurchaseTaxAccount(), companyContext.requireCompanyId()));
             cust.setTrackSalesTaxSeparately(customer.isTrackSalesTaxSeparately());
             cust.setTrackPurchaseTaxSeparately(customer.isTrackPurchaseTaxSeparately());
             cust.setTaxOnOtherTaxes(customer.isTaxOnOtherTaxes());
@@ -71,29 +83,41 @@ public class CustomerService {
         }
         return null;
     }
+
+    private ChartOfAccount resolveAccount(ChartOfAccount account, Long companyId) {
+        if (account == null) {
+            return null;
+        }
+        if (account.getId() == null) {
+            throw new IllegalArgumentException("Tax account is invalid");
+        }
+        return chartOfAccountRepository.findByIdAndCompanyId(account.getId(), companyId)
+                .orElseThrow(() -> new IllegalArgumentException("Tax account not found"));
+    }
     
     public Optional<Customer> getCustomerById(Long id) {
-        return customerRepository.findById(id);
+        return customerRepository.findByIdAndCompanyId(id, companyContext.requireCompanyId());
     }
     
     public Optional<Customer> getCustomerByEmail(String email) {
-        return customerRepository.findByEmail(email);
+        return customerRepository.findByCompanyIdAndEmail(companyContext.requireCompanyId(), email);
     }
     
     public Optional<Customer> getCustomerByGstNumber(String gstNumber) {
-        return customerRepository.findByGstNumber(gstNumber);
+        return customerRepository.findByCompanyIdAndGstNumber(companyContext.requireCompanyId(), gstNumber);
     }
     
     public List<Customer> getAllCustomers() {
-        return customerRepository.findAllByOrderByBusinessNameAsc();
+        return customerRepository.findAllByCompanyIdOrderByBusinessNameAsc(companyContext.requireCompanyId());
     }
     
     public void deleteCustomer(Long id) {
-        customerRepository.deleteById(id);
+        customerRepository.findByIdAndCompanyId(id, companyContext.requireCompanyId())
+                .ifPresent(customerRepository::delete);
     }
 
     public com.cogitosum.dto.CustomerPaymentDetailsDTO getPaymentDetails(Long customerId) {
-        Customer customer = customerRepository.findById(customerId)
+        Customer customer = customerRepository.findByIdAndCompanyId(customerId, companyContext.requireCompanyId())
                 .orElseThrow(() -> new IllegalArgumentException("Customer not found"));
         
         java.math.BigDecimal balance = invoiceService.getCustomerBalance(customerId);
@@ -121,4 +145,3 @@ public class CustomerService {
         );
     }
 }
-

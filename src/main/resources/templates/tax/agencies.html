@@ -1,42 +1,57 @@
 <!DOCTYPE html>
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments/layout :: head('Tax Agencies')}"></head>
+<head th:replace="~{fragments/layout :: head(#{tax.agencies.title})}"></head>
 <body>
 <div class="portal-shell">
     <div th:replace="~{fragments/layout :: sidebar(${active})}"></div>
     <main class="portal-main">
-        <div th:replace="~{fragments/layout :: topbar('Tax Agencies')}"></div>
+        <div th:replace="~{fragments/layout :: topbar(#{tax.agencies.title})}"></div>
         <section class="portal-content">
             <div th:replace="~{fragments/layout :: flash}"></div>
 
             <div class="portal-card">
                 <div class="d-flex align-items-center justify-content-between">
-                <h3 class="portal-card-title">Configured Agencies</h3>
-                <div>
-                    <button id="agencies-refresh" class="btn-portal btn-sm"><i class="bi bi-arrow-clockwise"></i> Refresh</button>
+                <h3 class="portal-card-title" th:text="#{tax.agencies.configured}">Configured Agencies</h3>
+                <div class="d-flex gap-2">
+                    <a th:href="@{/tax/agencies(showAll=${!showAll})}" class="btn-portal btn-ghost btn-sm">
+                        <i class="bi" th:classappend="${showAll} ? 'bi-eye-slash' : 'bi-eye'"></i>
+                        <span th:text="${showAll} ? #{btn.showActive} : #{btn.showAll}">Show All</span>
+                    </a>
+                    <button id="agencies-refresh" class="btn-portal btn-sm"><i class="bi bi-arrow-clockwise"></i> <span th:text="#{tax.agencies.refresh}">Refresh</span></button>
                     <span id="agencies-spinner" class="spinner-border spinner-border-sm ms-2" style="display:none"></span>
                 </div>
             </div>
                 <table class="table-portal">
                     <thead>
                     <tr>
-                        <th>Code</th>
-                        <th>Name</th>
-                        <th>Account #</th>
-                        <th>Website</th>
+                        <th th:text="#{tax.agencies.code}">Code</th>
+                        <th th:text="#{tax.agencies.name}">Name</th>
+                        <th th:text="#{tax.agencies.accountNum}">Account #</th>
+                        <th th:text="#{tax.agencies.website}">Website</th>
                         <th></th>
                     </tr>
                     </thead>
                     <tbody>
-                    <tr th:each="a : ${agencies}">
-                        <td th:text="${a.code}">CRA</td>
+                    <tr th:each="a : ${agencies}" th:classappend="${!a.active} ? 'text-muted italic'">
+                        <td>
+                            <span th:text="${a.code}">CRA</span>
+                            <span th:if="${!a.active}" class="badge bg-secondary ms-1">Inactive</span>
+                        </td>
                         <td th:text="${a.name}">Canada Revenue Agency</td>
                         <td th:text="${a.accountNumber}">—</td>
                         <td><a th:if="${a.website}" th:href="${a.website}" target="_blank" th:text="${a.website}">link</a></td>
                         <td>
-                            <a th:href="@{/tax/agencies/{id}/report(id=${a.id})}" class="btn-portal btn-ghost btn-sm">
-                                <i class="bi bi-file-earmark-text"></i> Report
-                            </a>
+                            <div class="d-flex gap-1">
+                                <a th:href="@{/tax/agencies/{id}/report(id=${a.id})}" class="btn-portal btn-ghost btn-sm">
+                                    <i class="bi bi-file-earmark-text"></i> <span th:text="#{tax.agencies.report}">Report</span>
+                                </a>
+                                <button type="button" class="btn-portal btn-ghost btn-sm text-danger"
+                                        th:if="${a.active}"
+                                        data-deactivation-type="agency"
+                                        th:data-deactivation-id="${a.id}">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </div>
                         </td>
                     </tr>
                     </tbody>
@@ -44,38 +59,47 @@
             </div>
 
             <div class="portal-card">
-                <h3 class="portal-card-title">Add / Update Agency</h3>
+                <h3 class="portal-card-title" th:text="#{tax.agencies.addUpdate}">Add / Update Agency</h3>
                 <form th:action="@{/tax/agencies}" method="post">
                     <div class="form-grid">
                         <div class="form-field">
-                            <label>Short Code</label>
-                            <input type="text" name="code" required placeholder="CRA, RQ, etc."/>
+                            <label th:text="#{tax.agencies.shortCode}">Short Code</label>
+                            <input type="text" name="code" required th:placeholder="#{tax.agencies.placeholder.code}"/>
                         </div>
                         <div class="form-field">
-                            <label>Name</label>
-                            <input type="text" name="name" required placeholder="Canada Revenue Agency"/>
+                            <label th:text="#{tax.agencies.name}">Name</label>
+                            <input type="text" name="name" required th:placeholder="#{tax.agencies.placeholder.name}"/>
                         </div>
                         <div class="form-field">
-                            <label>Business / Account Number</label>
-                            <input type="text" name="accountNumber" placeholder="123456789 RT 0001"/>
+                            <label th:text="#{tax.agencies.businessNum}">Business / Account Number</label>
+                            <input type="text" name="accountNumber" th:placeholder="#{tax.agencies.placeholder.accountNum}"/>
                         </div>
                         <div class="form-field">
-                            <label>Website</label>
+                            <label th:text="#{tax.agencies.website}">Website</label>
                             <input type="url" name="website" placeholder="https://..."/>
                         </div>
                         <div class="form-field full">
-                            <label>Address</label>
+                            <label th:text="#{tax.agencies.address}">Address</label>
                             <input type="text" name="address"/>
+                        </div>
+                        <div class="form-field">
+                            <label>Status</label>
+                            <select name="active">
+                                <option value="true" selected th:text="#{btn.showActive}">Active</option>
+                                <option value="false" th:text="#{status.cancelled}">Inactive</option>
+                            </select>
                         </div>
                     </div>
                     <div class="form-actions">
-                        <button type="submit" class="btn-portal"><i class="bi bi-check2"></i> Save</button>
+                        <button type="submit" class="btn-portal"><i class="bi bi-check2"></i> <span th:text="#{tax.agencies.save}">Save</span></button>
                     </div>
                 </form>
             </div>
         </section>
     </main>
 </div>
+<div th:replace="~{fragments/layout :: impact-modal}"></div>
+<script th:replace="~{fragments/layout :: impact-js}"></script>
 <script th:src="@{/js/tax-agencies-refresh.js}"></script>
 </body>
 </html>

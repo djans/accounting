@@ -42,11 +42,16 @@ public class TaxFilingService {
     @Autowired
     private GeneralJournalService journalService;
 
+    @Autowired
+    private CurrentCompanyContext companyContext;
+
     @Transactional
     public TaxFilingPeriod createPeriod(Long agencyId, LocalDate start, LocalDate end) {
-        TaxAgency agency = agencyRepository.findById(agencyId)
+        Long companyId = companyContext.requireCompanyId();
+        TaxAgency agency = agencyRepository.findByIdAndCompanyId(agencyId, companyId)
             .orElseThrow(() -> new IllegalArgumentException("Agency not found: " + agencyId));
         TaxFilingPeriod period = new TaxFilingPeriod();
+        period.setCompany(companyContext.requireCompany());
         period.setAgency(agency);
         period.setPeriodStart(start);
         period.setPeriodEnd(end);
@@ -59,7 +64,7 @@ public class TaxFilingService {
 
     @Transactional
     public TaxFilingPeriod calculate(Long periodId) {
-        TaxFilingPeriod period = periodRepository.findById(periodId)
+        TaxFilingPeriod period = periodRepository.findByIdAndCompanyId(periodId, companyContext.requireCompanyId())
             .orElseThrow(() -> new IllegalArgumentException("Period not found: " + periodId));
         if (period.getStatus() == TaxFilingStatus.FILED || period.getStatus() == TaxFilingStatus.PAID) {
             throw new IllegalStateException("Cannot recalculate a filed or paid period");
@@ -75,7 +80,7 @@ public class TaxFilingService {
 
     @Transactional
     public TaxFilingPeriod file(Long periodId, BigDecimal itcAmount, String postedBy) {
-        TaxFilingPeriod period = periodRepository.findById(periodId)
+        TaxFilingPeriod period = periodRepository.findByIdAndCompanyId(periodId, companyContext.requireCompanyId())
             .orElseThrow(() -> new IllegalArgumentException("Period not found: " + periodId));
         if (period.getStatus() != TaxFilingStatus.CALCULATED && period.getStatus() != TaxFilingStatus.OPEN) {
             throw new IllegalStateException("Period must be OPEN or CALCULATED to file. Current: " + period.getStatus());
@@ -108,7 +113,8 @@ public class TaxFilingService {
 
     @Transactional
     public TaxFilingPeriod recordPayment(Long periodId, String bankAccountNumber, LocalDate paymentDate, String postedBy) {
-        TaxFilingPeriod period = periodRepository.findById(periodId)
+        Long companyId = companyContext.requireCompanyId();
+        TaxFilingPeriod period = periodRepository.findByIdAndCompanyId(periodId, companyId)
             .orElseThrow(() -> new IllegalArgumentException("Period not found: " + periodId));
         if (period.getStatus() != TaxFilingStatus.FILED) {
             throw new IllegalStateException("Period must be FILED before recording payment. Current: " + period.getStatus());
@@ -120,7 +126,7 @@ public class TaxFilingService {
             return periodRepository.save(period);
         }
 
-        ChartOfAccount bank = accountRepository.findByAccountNumber(bankAccountNumber)
+        ChartOfAccount bank = accountRepository.findByCompanyIdAndAccountNumber(companyId, bankAccountNumber)
             .orElseThrow(() -> new IllegalArgumentException("Bank account not found: " + bankAccountNumber));
 
         GeneralJournal paymentJournal = buildPaymentJournal(period, bank, paymentDate);
@@ -134,20 +140,20 @@ public class TaxFilingService {
     }
 
     public Optional<TaxFilingPeriod> getById(Long id) {
-        return periodRepository.findById(id);
+        return periodRepository.findByIdAndCompanyId(id, companyContext.requireCompanyId());
     }
 
     public List<TaxFilingPeriod> getByAgency(Long agencyId) {
-        return periodRepository.findByAgencyId(agencyId);
+        return periodRepository.findByCompanyIdAndAgencyId(companyContext.requireCompanyId(), agencyId);
     }
 
     public List<TaxFilingPeriod> getAll() {
-        return periodRepository.findAll();
+        return periodRepository.findAllByCompanyId(companyContext.requireCompanyId());
     }
 
     @Transactional
     public void cancel(Long periodId) {
-        TaxFilingPeriod period = periodRepository.findById(periodId)
+        TaxFilingPeriod period = periodRepository.findByIdAndCompanyId(periodId, companyContext.requireCompanyId())
             .orElseThrow(() -> new IllegalArgumentException("Period not found: " + periodId));
         if (period.getStatus() == TaxFilingStatus.PAID) {
             throw new IllegalStateException("Cannot cancel a PAID period");
@@ -157,7 +163,9 @@ public class TaxFilingService {
     }
 
     public List<TaxContributionDTO> getTaxCollectedDetail(TaxAgency agency, LocalDate start, LocalDate end) {
-        List<Invoice> invoices = invoiceRepository.findByInvoiceDateBetweenOrderByInvoiceDateDesc(start, end);
+        companyContext.requireCurrentCompany(agency);
+        List<Invoice> invoices = invoiceRepository.findByCompanyIdAndInvoiceDateBetweenOrderByInvoiceDateDesc(
+                companyContext.requireCompanyId(), start, end);
         List<TaxContributionDTO> details = new ArrayList<>();
         for (Invoice inv : invoices) {
             if (inv.getStatus() == InvoiceStatus.CANCELLED) continue;
@@ -177,7 +185,9 @@ public class TaxFilingService {
     }
 
     public List<TaxContributionDTO> getItcDetail(TaxAgency agency, LocalDate start, LocalDate end) {
-        List<Bill> bills = billRepository.findByBillDateBetweenOrderByBillDateDesc(start, end);
+        companyContext.requireCurrentCompany(agency);
+        List<Bill> bills = billRepository.findByCompanyIdAndBillDateBetweenOrderByBillDateDesc(
+                companyContext.requireCompanyId(), start, end);
         List<TaxContributionDTO> details = new ArrayList<>();
         for (Bill bill : bills) {
             if (bill.getStatus() == BillStatus.CANCELLED) continue;
@@ -213,7 +223,9 @@ public class TaxFilingService {
      * CRA collects TPS (gstAmount) and HST (hstAmount); Revenu Quebec collects TVQ (qstAmount).
      */
     public BigDecimal sumTaxCollected(TaxAgency agency, LocalDate start, LocalDate end) {
-        List<Invoice> invoices = invoiceRepository.findByInvoiceDateBetweenOrderByInvoiceDateDesc(start, end);
+        companyContext.requireCurrentCompany(agency);
+        List<Invoice> invoices = invoiceRepository.findByCompanyIdAndInvoiceDateBetweenOrderByInvoiceDateDesc(
+                companyContext.requireCompanyId(), start, end);
         BigDecimal sum = BigDecimal.ZERO;
         for (Invoice inv : invoices) {
             if (inv.getStatus() == InvoiceStatus.CANCELLED) continue;
@@ -244,8 +256,10 @@ public class TaxFilingService {
     }
 
     private ItcComponents itcComponents(TaxAgency agency, LocalDate start, LocalDate end) {
+        companyContext.requireCurrentCompany(agency);
         ItcComponents c = new ItcComponents();
-        for (Bill bill : billRepository.findByBillDateBetweenOrderByBillDateDesc(start, end)) {
+        for (Bill bill : billRepository.findByCompanyIdAndBillDateBetweenOrderByBillDateDesc(
+                companyContext.requireCompanyId(), start, end)) {
             if (bill.getStatus() == BillStatus.CANCELLED) continue;
             BigDecimal gst = bill.getGstAmount() == null ? BigDecimal.ZERO : bill.getGstAmount();
             BigDecimal hst = bill.getHstAmount() == null ? BigDecimal.ZERO : bill.getHstAmount();
@@ -365,7 +379,7 @@ public class TaxFilingService {
     }
 
     private ChartOfAccount lookupAccount(String number, String errorMsg) {
-        return accountRepository.findByAccountNumber(number)
+        return accountRepository.findByCompanyIdAndAccountNumber(companyContext.requireCompanyId(), number)
             .orElseThrow(() -> new IllegalStateException(errorMsg));
     }
 }

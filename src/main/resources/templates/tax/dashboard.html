@@ -1,65 +1,72 @@
 <!DOCTYPE html>
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments/layout :: head('Sales Tax Dashboard')}"></head>
+<head th:replace="~{fragments/layout :: head(#{tax.dash.title})}"></head>
 <body>
 <div class="portal-shell">
     <div th:replace="~{fragments/layout :: sidebar(${active})}"></div>
     <main class="portal-main">
-        <div th:replace="~{fragments/layout :: topbar('Sales Tax (TPS / TVQ)')}"></div>
+        <div th:replace="~{fragments/layout :: topbar(#{nav.section.tax})}"></div>
         <section class="portal-content">
             <div th:replace="~{fragments/layout :: flash}"></div>
 
             <div class="hero-header d-flex align-items-start justify-content-between">
                 <div>
-                    <h2>Sales Tax Management</h2>
-                    <p>Track TPS/GST collected for the CRA and TVQ/QST collected for Revenu Quebec. File periodic returns, record payments, and reconcile the payable accounts against the General Ledger.</p>
+                    <h2 th:text="#{tax.dash.mgmt}">Sales Tax Management</h2>
+                    <p th:text="#{tax.dash.description}">Track TPS/GST collected for the CRA and TVQ/QST collected for Revenu Quebec. File periodic returns, record payments, and reconcile the payable accounts against the General Ledger.</p>
                 </div>
-                <div>
-                    <button id="tax-dashboard-refresh" class="btn-portal btn-sm"><i class="bi bi-arrow-clockwise"></i> Refresh</button>
+                <div class="d-flex gap-2 align-items-center">
+                    <a th:href="@{/tax(showAll=${!showAll})}" class="btn-portal btn-ghost btn-sm">
+                        <i class="bi" th:classappend="${showAll} ? 'bi-eye-slash' : 'bi-eye'"></i>
+                        <span th:text="${showAll} ? #{btn.showActive} : #{btn.showAll}">Show All</span>
+                    </a>
+                    <button id="tax-dashboard-refresh" class="btn-portal btn-sm"><i class="bi bi-arrow-clockwise"></i> <span th:text="#{tax.dash.refresh}">Refresh</span></button>
                     <span id="tax-dashboard-spinner" class="spinner-border spinner-border-sm ms-2" style="display:none"></span>
                 </div>
             </div>
 
             <div class="stat-grid">
                 <div class="stat-card">
-                    <div class="stat-label">Tax Agencies</div>
+                    <div class="stat-label" th:text="#{tax.dash.agencies}">Tax Agencies</div>
                     <div id="agencies-count" class="stat-value" th:text="${#lists.size(agencies)}">0</div>
-                    <div class="stat-sub">Configured agencies</div>
+                    <div class="stat-sub" th:text="#{tax.dash.agencies.desc}">Configured agencies</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-label">Tax Codes</div>
+                    <div class="stat-label" th:text="#{tax.dash.codes}">Tax Codes</div>
                     <div id="codes-count" class="stat-value" th:text="${#lists.size(codes)}">0</div>
-                    <div class="stat-sub">Rates available</div>
+                    <div class="stat-sub" th:text="#{tax.dash.codes.desc}">Rates available</div>
                 </div>
                 <div class="stat-card is-warning">
-                    <div class="stat-label">Open Periods</div>
+                    <div class="stat-label" th:text="#{tax.dash.openPeriods}">Open Periods</div>
                     <div id="open-count" class="stat-value" th:text="${openCount}">0</div>
-                    <div class="stat-sub">Not yet filed</div>
+                    <div class="stat-sub" th:text="#{tax.dash.openPeriods.desc}">Not yet filed</div>
                 </div>
                 <div class="stat-card is-accent">
-                    <div class="stat-label">Filed (Unpaid)</div>
+                    <div class="stat-label" th:text="#{tax.dash.filedUnpaid}">Filed (Unpaid)</div>
                     <div id="filed-count" class="stat-value" th:text="${filedCount}">0</div>
-                    <div class="stat-sub">Awaiting payment</div>
+                    <div class="stat-sub" th:text="#{tax.dash.filedUnpaid.desc}">Awaiting payment</div>
                 </div>
             </div>
 
             <div class="portal-card">
                 <h3 class="portal-card-title">
-                    Recent Filing Periods
-                    <a th:href="@{/tax/periods}" class="btn-portal btn-ghost btn-sm">All periods <i class="bi bi-arrow-right"></i></a>
+                    <span th:text="#{tax.dash.recentPeriods}">Recent Filing Periods</span>
+                    <a th:href="@{/tax/periods}" class="btn-portal btn-ghost btn-sm">
+                        <span th:text="#{tax.dash.allPeriods}">All periods</span> <i class="bi bi-arrow-right"></i>
+                    </a>
                 </h3>
                 <div th:if="${#lists.isEmpty(periods)}" class="empty-state">
-                    No filing periods yet. <a th:href="@{/tax/periods}">Create one</a>.
+                    <span th:text="#{tax.dash.noPeriods}">No filing periods yet.</span>
+                    <a th:href="@{/tax/periods}" th:text="#{tax.dash.createOne}">Create one</a>.
                 </div>
                 <table th:if="${not #lists.isEmpty(periods)}" class="table-portal">
                     <thead>
                     <tr>
-                        <th>Agency</th>
-                        <th>Period</th>
-                        <th>Status</th>
-                        <th class="num">Collected</th>
-                        <th class="num">ITC</th>
-                        <th class="num">Net Owing</th>
+                        <th th:text="#{tax.dash.agency}">Agency</th>
+                        <th th:text="#{tax.dash.period}">Period</th>
+                        <th th:text="#{tax.dash.status}">Status</th>
+                        <th class="num" th:text="#{tax.dash.collected}">Collected</th>
+                        <th class="num" th:text="#{tax.dash.itc}">ITC</th>
+                        <th class="num" th:text="#{tax.dash.netOwing}">Net Owing</th>
                     </tr>
                     </thead>
                     <tbody>
@@ -79,15 +86,18 @@
             </div>
 
             <div class="portal-card">
-                <h3 class="portal-card-title">Tax Agencies</h3>
+                <h3 class="portal-card-title" th:text="#{tax.dash.agencies}">Tax Agencies</h3>
                 <table class="table-portal">
-                    <thead><tr><th>Code</th><th>Name</th><th></th></tr></thead>
+                    <thead><tr><th th:text="#{table.code}">Code</th><th th:text="#{table.name}">Name</th><th></th></tr></thead>
                     <tbody>
-                    <tr th:each="a : ${agencies}">
-                        <td th:text="${a.code}">CRA</td>
+                    <tr th:each="a : ${agencies}" th:classappend="${!a.active} ? 'text-muted italic'">
+                        <td>
+                            <span th:text="${a.code}">CRA</span>
+                            <span th:if="${!a.active}" class="badge bg-secondary ms-1">Inactive</span>
+                        </td>
                         <td th:text="${a.name}">Canada Revenue Agency</td>
                         <td><a th:href="@{/tax/agencies/{id}/report(id=${a.id})}" class="btn-portal btn-ghost btn-sm">
-                            <i class="bi bi-file-earmark-text"></i> Agency Report
+                            <i class="bi bi-file-earmark-text"></i> <span th:text="#{tax.dash.agencyReport}">Agency Report</span>
                         </a></td>
                     </tr>
                     </tbody>

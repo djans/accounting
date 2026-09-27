@@ -6,6 +6,8 @@ import com.cogitosum.entity.BillPayment;
 import com.cogitosum.entity.PaymentStatus;
 import com.cogitosum.repository.BillRepository;
 import com.cogitosum.repository.BillPaymentRepository;
+import com.cogitosum.repository.ChartOfAccountRepository;
+import com.cogitosum.entity.ChartOfAccount;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
@@ -29,7 +31,21 @@ public class BillPaymentService {
     @Autowired
     private BillPaymentPostingService billPaymentPostingService;
 
+    @Autowired
+    private ChartOfAccountRepository accountRepository;
+
+    @Autowired
+    private CurrentCompanyContext companyContext;
+
     public BillPayment recordPayment(BillPayment payment) {
+        Long companyId = companyContext.requireCompanyId();
+        payment.setCompany(companyContext.requireCompany());
+        if (payment.getBill() == null || payment.getBill().getId() == null) {
+            throw new IllegalArgumentException("Bill is required");
+        }
+        payment.setBill(billRepository.findByIdAndCompanyId(payment.getBill().getId(), companyId)
+                .orElseThrow(() -> new IllegalArgumentException("Bill not found")));
+        payment.setBankAccount(resolveAccount(payment.getBankAccount(), companyId));
         if (payment.getTransactionId() == null || payment.getTransactionId().isEmpty()) {
             payment.setTransactionId("VTXN-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase());
         }
@@ -48,27 +64,27 @@ public class BillPaymentService {
     }
 
     public Optional<BillPayment> getPaymentById(Long id) {
-        return paymentRepository.findById(id);
+        return paymentRepository.findByIdAndCompanyId(id, companyContext.requireCompanyId());
     }
 
     public List<BillPayment> getPaymentsByBillId(Long billId) {
-        return paymentRepository.findByBillId(billId);
+        return paymentRepository.findByCompanyIdAndBillId(companyContext.requireCompanyId(), billId);
     }
 
     public List<BillPayment> getPaymentsByStatus(PaymentStatus status) {
-        return paymentRepository.findByStatus(status);
+        return paymentRepository.findByCompanyIdAndStatus(companyContext.requireCompanyId(), status);
     }
 
     public List<BillPayment> getPaymentsByDateRange(LocalDate startDate, LocalDate endDate) {
-        return paymentRepository.findByPaymentDateBetween(startDate, endDate);
+        return paymentRepository.findByCompanyIdAndPaymentDateBetween(companyContext.requireCompanyId(), startDate, endDate);
     }
 
     public List<BillPayment> getAllPayments() {
-        return paymentRepository.findAll();
+        return paymentRepository.findAllByCompanyId(companyContext.requireCompanyId());
     }
 
     public BillPayment markPaymentAsCompleted(Long id) {
-        Optional<BillPayment> payment = paymentRepository.findById(id);
+        Optional<BillPayment> payment = paymentRepository.findByIdAndCompanyId(id, companyContext.requireCompanyId());
         if (payment.isPresent()) {
             payment.get().setStatus(PaymentStatus.COMPLETED);
             BillPayment savedPayment = paymentRepository.save(payment.get());
@@ -79,7 +95,7 @@ public class BillPaymentService {
     }
 
     public BillPayment refundPayment(Long id) {
-        Optional<BillPayment> payment = paymentRepository.findById(id);
+        Optional<BillPayment> payment = paymentRepository.findByIdAndCompanyId(id, companyContext.requireCompanyId());
         if (payment.isPresent()) {
             BillPayment p = payment.get();
             billPaymentPostingService.reversePayment(p, "Payment refunded");
@@ -97,13 +113,13 @@ public class BillPaymentService {
     }
 
     public void deletePayment(Long id) {
-        Optional<BillPayment> payment = paymentRepository.findById(id);
+        Optional<BillPayment> payment = paymentRepository.findByIdAndCompanyId(id, companyContext.requireCompanyId());
         payment.ifPresent(p -> billPaymentPostingService.reversePayment(p, "Payment deleted"));
-        paymentRepository.deleteById(id);
+        payment.ifPresent(paymentRepository::delete);
     }
 
     private void updateBillPaymentStatus(Long billId, BigDecimal paymentAmount) {
-        Optional<Bill> bill = billRepository.findById(billId);
+        Optional<Bill> bill = billRepository.findByIdAndCompanyId(billId, companyContext.requireCompanyId());
         if (bill.isPresent()) {
             Bill b = bill.get();
             BigDecimal newPaidAmount = b.getPaidAmount().add(paymentAmount);
@@ -117,5 +133,16 @@ public class BillPaymentService {
 
             billRepository.save(b);
         }
+    }
+
+    private ChartOfAccount resolveAccount(ChartOfAccount account, Long companyId) {
+        if (account == null) {
+            return null;
+        }
+        if (account.getId() == null) {
+            throw new IllegalArgumentException("Bank account is invalid");
+        }
+        return accountRepository.findByIdAndCompanyId(account.getId(), companyId)
+                .orElseThrow(() -> new IllegalArgumentException("Bank account not found"));
     }
 }

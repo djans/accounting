@@ -20,8 +20,12 @@ public class BillingReportService {
     @Autowired
     private InvoiceRepository invoiceRepository;
 
+    @Autowired
+    private CurrentCompanyContext companyContext;
+
     public Map<String, BigDecimal> getRevenueReport(LocalDate startDate, LocalDate endDate) {
-        List<Invoice> invoices = invoiceRepository.findByInvoiceDateBetweenOrderByInvoiceDateDesc(startDate, endDate);
+        List<Invoice> invoices = invoiceRepository.findByCompanyIdAndInvoiceDateBetweenOrderByInvoiceDateDesc(
+                companyContext.requireCompanyId(), startDate, endDate);
 
         BigDecimal totalRevenue = BigDecimal.ZERO;
         BigDecimal totalPaid = BigDecimal.ZERO;
@@ -55,9 +59,10 @@ public class BillingReportService {
         LocalDate sixtyDaysAgo = asOf.minusDays(60);
         LocalDate ninetyDaysAgo = asOf.minusDays(90);
 
-        List<Invoice> invoices = invoiceRepository.findByStatusOrderByInvoiceNumberDesc(InvoiceStatus.SENT);
-        invoices.addAll(invoiceRepository.findByStatusOrderByInvoiceNumberDesc(InvoiceStatus.PARTIALLY_PAID));
-        invoices.addAll(invoiceRepository.findByStatusOrderByInvoiceNumberDesc(InvoiceStatus.OVERDUE));
+        Long companyId = companyContext.requireCompanyId();
+        List<Invoice> invoices = invoiceRepository.findByCompanyIdAndStatusOrderByInvoiceNumberDesc(companyId, InvoiceStatus.SENT);
+        invoices.addAll(invoiceRepository.findByCompanyIdAndStatusOrderByInvoiceNumberDesc(companyId, InvoiceStatus.PARTIALLY_PAID));
+        invoices.addAll(invoiceRepository.findByCompanyIdAndStatusOrderByInvoiceNumberDesc(companyId, InvoiceStatus.OVERDUE));
 
         BigDecimal current = BigDecimal.ZERO;
         BigDecimal days30 = BigDecimal.ZERO;
@@ -97,9 +102,10 @@ public class BillingReportService {
 
     public List<Map<String, Object>> getAgingSummary(LocalDate asOf) {
         Map<Long, Map<String, Object>> byCustomer = new LinkedHashMap<>();
-        List<Invoice> invoices = new ArrayList<>(invoiceRepository.findByStatusOrderByInvoiceNumberDesc(InvoiceStatus.SENT));
-        invoices.addAll(invoiceRepository.findByStatusOrderByInvoiceNumberDesc(InvoiceStatus.PARTIALLY_PAID));
-        invoices.addAll(invoiceRepository.findByStatusOrderByInvoiceNumberDesc(InvoiceStatus.OVERDUE));
+        Long companyId = companyContext.requireCompanyId();
+        List<Invoice> invoices = new ArrayList<>(invoiceRepository.findByCompanyIdAndStatusOrderByInvoiceNumberDesc(companyId, InvoiceStatus.SENT));
+        invoices.addAll(invoiceRepository.findByCompanyIdAndStatusOrderByInvoiceNumberDesc(companyId, InvoiceStatus.PARTIALLY_PAID));
+        invoices.addAll(invoiceRepository.findByCompanyIdAndStatusOrderByInvoiceNumberDesc(companyId, InvoiceStatus.OVERDUE));
 
         for (Invoice invoice : invoices) {
             if (invoice.getCustomer() == null || invoice.getDueDate() == null) continue;
@@ -132,20 +138,22 @@ public class BillingReportService {
     public Map<String, Object> getInvoiceStatusSummary() {
         Map<String, Object> summary = new HashMap<>();
 
-        summary.put("draft", invoiceRepository.findByStatusOrderByInvoiceNumberDesc(InvoiceStatus.DRAFT).size());
-        summary.put("sent", invoiceRepository.findByStatusOrderByInvoiceNumberDesc(InvoiceStatus.SENT).size());
-        summary.put("viewed", invoiceRepository.findByStatusOrderByInvoiceNumberDesc(InvoiceStatus.VIEWED).size());
-        summary.put("partiallyPaid", invoiceRepository.findByStatusOrderByInvoiceNumberDesc(InvoiceStatus.PARTIALLY_PAID).size());
-        summary.put("paid", invoiceRepository.findByStatusOrderByInvoiceNumberDesc(InvoiceStatus.PAID).size());
-        summary.put("overdue", invoiceRepository.findByStatusOrderByInvoiceNumberDesc(InvoiceStatus.OVERDUE).size());
-        summary.put("cancelled", invoiceRepository.findByStatusOrderByInvoiceNumberDesc(InvoiceStatus.CANCELLED).size());
-        summary.put("refunded", invoiceRepository.findByStatusOrderByInvoiceNumberDesc(InvoiceStatus.REFUNDED).size());
+        Long companyId = companyContext.requireCompanyId();
+        summary.put("draft", invoiceRepository.findByCompanyIdAndStatusOrderByInvoiceNumberDesc(companyId, InvoiceStatus.DRAFT).size());
+        summary.put("sent", invoiceRepository.findByCompanyIdAndStatusOrderByInvoiceNumberDesc(companyId, InvoiceStatus.SENT).size());
+        summary.put("viewed", invoiceRepository.findByCompanyIdAndStatusOrderByInvoiceNumberDesc(companyId, InvoiceStatus.VIEWED).size());
+        summary.put("partiallyPaid", invoiceRepository.findByCompanyIdAndStatusOrderByInvoiceNumberDesc(companyId, InvoiceStatus.PARTIALLY_PAID).size());
+        summary.put("paid", invoiceRepository.findByCompanyIdAndStatusOrderByInvoiceNumberDesc(companyId, InvoiceStatus.PAID).size());
+        summary.put("overdue", invoiceRepository.findByCompanyIdAndStatusOrderByInvoiceNumberDesc(companyId, InvoiceStatus.OVERDUE).size());
+        summary.put("cancelled", invoiceRepository.findByCompanyIdAndStatusOrderByInvoiceNumberDesc(companyId, InvoiceStatus.CANCELLED).size());
+        summary.put("refunded", invoiceRepository.findByCompanyIdAndStatusOrderByInvoiceNumberDesc(companyId, InvoiceStatus.REFUNDED).size());
 
         return summary;
     }
 
     public Map<String, BigDecimal> getTaxSummary(LocalDate startDate, LocalDate endDate) {
-        List<Invoice> invoices = invoiceRepository.findByInvoiceDateBetweenOrderByInvoiceDateDesc(startDate, endDate);
+        List<Invoice> invoices = invoiceRepository.findByCompanyIdAndInvoiceDateBetweenOrderByInvoiceDateDesc(
+                companyContext.requireCompanyId(), startDate, endDate);
 
         BigDecimal totalGst = BigDecimal.ZERO;
         BigDecimal totalHst = BigDecimal.ZERO;

@@ -20,6 +20,7 @@ public class TransferService {
     @Autowired private TransferRepository transferRepository;
     @Autowired private ChartOfAccountService accountService;
     @Autowired private GeneralJournalService generalJournalService;
+    @Autowired private CurrentCompanyContext companyContext;
 
     @Transactional
     public Transfer createTransfer(Long fromAccountId, Long toAccountId, BigDecimal amount, LocalDate transferDate, String notes, String postedBy) {
@@ -59,6 +60,7 @@ public class TransferService {
         GeneralJournal posted = generalJournalService.postJournal(saved.getId(), postedBy != null ? postedBy : "portal");
 
         Transfer t = new Transfer();
+        t.setCompany(companyContext.requireCompany());
         t.setFromAccount(from);
         t.setToAccount(to);
         t.setAmount(amount);
@@ -70,7 +72,7 @@ public class TransferService {
     }
 
     public List<Transfer> getAllTransfers() {
-        return transferRepository.findAll();
+        return transferRepository.findAllByCompanyId(companyContext.requireCompanyId());
     }
 
     private boolean isTransferAccount(ChartOfAccount account) {

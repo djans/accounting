@@ -4,14 +4,19 @@ import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "tax_agencies")
-public class TaxAgency {
+@Table(name = "tax_agencies", uniqueConstraints = @UniqueConstraint(
+        name = "uk_tax_agencies_company_code", columnNames = {"company_id", "code"}))
+public class TaxAgency implements CompanyOwned {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, unique = true)
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "company_id", nullable = false, updatable = false)
+    private Company company;
+
+    @Column(nullable = false)
     private String code;
 
     @Column(nullable = false)
@@ -25,6 +30,9 @@ public class TaxAgency {
 
     @Column
     private String accountNumber;
+    
+    @Column(nullable = false)
+    private Boolean isActive = true;
 
     @Column(nullable = false)
     private LocalDateTime createdAt;
@@ -45,6 +53,10 @@ public class TaxAgency {
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
+    @Override
+    public Company getCompany() { return company; }
+    @Override
+    public void setCompany(Company company) { this.company = company; }
     public String getCode() { return code; }
     public void setCode(String code) { this.code = code; }
     public String getName() { return name; }
@@ -55,6 +67,8 @@ public class TaxAgency {
     public void setWebsite(String website) { this.website = website; }
     public String getAccountNumber() { return accountNumber; }
     public void setAccountNumber(String accountNumber) { this.accountNumber = accountNumber; }
+    public Boolean getActive() { return isActive; }
+    public void setActive(Boolean active) { isActive = active; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }

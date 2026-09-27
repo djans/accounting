@@ -1,6 +1,8 @@
 package com.cogitosum.service;
 
 import com.cogitosum.entity.Vendor;
+import com.cogitosum.entity.ChartOfAccount;
+import com.cogitosum.repository.ChartOfAccountRepository;
 import com.cogitosum.repository.VendorRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -13,12 +15,21 @@ public class VendorService {
     @Autowired
     private VendorRepository vendorRepository;
 
+    @Autowired
+    private CurrentCompanyContext companyContext;
+
+    @Autowired
+    private ChartOfAccountRepository chartOfAccountRepository;
+
     public Vendor createVendor(Vendor vendor) {
+        Long companyId = companyContext.requireCompanyId();
+        companyContext.assignCurrentCompany(vendor);
+        applyAccounts(vendor, vendor, companyId);
         return vendorRepository.save(vendor);
     }
 
     public Vendor updateVendor(Long id, Vendor vendor) {
-        Optional<Vendor> existingVendor = vendorRepository.findById(id);
+        Optional<Vendor> existingVendor = vendorRepository.findByIdAndCompanyId(id, companyContext.requireCompanyId());
         if (existingVendor.isPresent()) {
             Vendor v = existingVendor.get();
             v.setName(vendor.getName());
@@ -57,15 +68,16 @@ public class VendorService {
             v.setTaxPeriodEnding(vendor.getTaxPeriodEnding());
             v.setTaxLabel(vendor.getTaxLabel());
             v.setSalesTaxRegistrationNumber(vendor.getSalesTaxRegistrationNumber());
-            v.setSalesTaxAccount(vendor.getSalesTaxAccount());
-            v.setPurchaseTaxAccount(vendor.getPurchaseTaxAccount());
+            Long companyId = companyContext.requireCompanyId();
+            v.setSalesTaxAccount(resolveAccount(vendor.getSalesTaxAccount(), companyId));
+            v.setPurchaseTaxAccount(resolveAccount(vendor.getPurchaseTaxAccount(), companyId));
             v.setTrackSalesTaxSeparately(vendor.isTrackSalesTaxSeparately());
             v.setTrackPurchaseTaxSeparately(vendor.isTrackPurchaseTaxSeparately());
             v.setTaxOnOtherTaxes(vendor.isTaxOnOtherTaxes());
             v.setTaxIncludedOnExpenses(vendor.isTaxIncludedOnExpenses());
-            v.setDefaultExpenseAccount1(vendor.getDefaultExpenseAccount1());
-            v.setDefaultExpenseAccount2(vendor.getDefaultExpenseAccount2());
-            v.setDefaultExpenseAccount3(vendor.getDefaultExpenseAccount3());
+            v.setDefaultExpenseAccount1(resolveAccount(vendor.getDefaultExpenseAccount1(), companyId));
+            v.setDefaultExpenseAccount2(resolveAccount(vendor.getDefaultExpenseAccount2(), companyId));
+            v.setDefaultExpenseAccount3(resolveAccount(vendor.getDefaultExpenseAccount3(), companyId));
             v.setVendorType(vendor.getVendorType());
             v.setCustomFields(vendor.getCustomFields());
             v.setInactive(vendor.isInactive());
@@ -74,19 +86,39 @@ public class VendorService {
         return null;
     }
 
+    private void applyAccounts(Vendor target, Vendor source, Long companyId) {
+        target.setSalesTaxAccount(resolveAccount(source.getSalesTaxAccount(), companyId));
+        target.setPurchaseTaxAccount(resolveAccount(source.getPurchaseTaxAccount(), companyId));
+        target.setDefaultExpenseAccount1(resolveAccount(source.getDefaultExpenseAccount1(), companyId));
+        target.setDefaultExpenseAccount2(resolveAccount(source.getDefaultExpenseAccount2(), companyId));
+        target.setDefaultExpenseAccount3(resolveAccount(source.getDefaultExpenseAccount3(), companyId));
+    }
+
+    private ChartOfAccount resolveAccount(ChartOfAccount account, Long companyId) {
+        if (account == null) {
+            return null;
+        }
+        if (account.getId() == null) {
+            throw new IllegalArgumentException("Account is invalid");
+        }
+        return chartOfAccountRepository.findByIdAndCompanyId(account.getId(), companyId)
+                .orElseThrow(() -> new IllegalArgumentException("Account not found"));
+    }
+
     public Optional<Vendor> getVendorById(Long id) {
-        return vendorRepository.findById(id);
+        return vendorRepository.findByIdAndCompanyId(id, companyContext.requireCompanyId());
     }
 
     public Optional<Vendor> getVendorByEmail(String email) {
-        return vendorRepository.findByEmail(email);
+        return vendorRepository.findByCompanyIdAndEmail(companyContext.requireCompanyId(), email);
     }
 
     public List<Vendor> getAllVendors() {
-        return vendorRepository.findAllByOrderByBusinessNameAsc();
+        return vendorRepository.findAllByCompanyIdOrderByBusinessNameAsc(companyContext.requireCompanyId());
     }
 
     public void deleteVendor(Long id) {
-        vendorRepository.deleteById(id);
+        vendorRepository.findByIdAndCompanyId(id, companyContext.requireCompanyId())
+                .ifPresent(vendorRepository::delete);
     }
 }

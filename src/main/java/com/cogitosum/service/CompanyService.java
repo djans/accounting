@@ -14,28 +14,31 @@ public class CompanyService {
     @Autowired
     private CompanyRepository companyRepository;
 
+    @Autowired
+    private CurrentCompanyContext companyContext;
+
     public Company createCompany(Company company) {
-        return companyRepository.save(company);
+        throw new UnsupportedOperationException("Companies are created only during controlled bootstrap");
     }
 
     public List<Company> getAllCompanies() {
-        return companyRepository.findAll();
+        return List.of(companyContext.requireCompany());
     }
 
     public Optional<Company> getCompanyById(Long id) {
-        return companyRepository.findById(id);
+        Company current = companyContext.requireCompany();
+        return current.getId().equals(id) ? Optional.of(current) : Optional.empty();
     }
 
     public Optional<Company> getCompanyByEmail(String email) {
-        return companyRepository.findByEmail(email);
+        return getAllCompanies().stream().filter(company -> company.getEmail().equalsIgnoreCase(email)).findFirst();
     }
 
     public Company updateCompany(Long id, Company company) {
-        Optional<Company> existing = companyRepository.findById(id);
-        if (existing.isEmpty()) {
+        Company current = companyContext.requireCompany();
+        if (!current.getId().equals(id)) {
             return null;
         }
-        Company current = existing.get();
         current.setName(company.getName());
         current.setLegalName(company.getLegalName());
         current.setEmail(company.getEmail());
@@ -55,6 +58,6 @@ public class CompanyService {
     }
 
     public void deleteCompany(Long id) {
-        companyRepository.deleteById(id);
+        throw new UnsupportedOperationException("Companies cannot be deleted through the application");
     }
 }

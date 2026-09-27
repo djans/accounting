@@ -1,33 +1,33 @@
 <!DOCTYPE html>
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments/layout :: head('Tax Reconciliation')}"></head>
+<head th:replace="~{fragments/layout :: head(#{nav.reconciliation})}"></head>
 <body>
 <div class="portal-shell">
     <div th:replace="~{fragments/layout :: sidebar(${active})}"></div>
     <main class="portal-main">
-        <div th:replace="~{fragments/layout :: topbar('Tax Reconciliation')}"></div>
+        <div th:replace="~{fragments/layout :: topbar(#{nav.reconciliation})}"></div>
         <section class="portal-content">
             <div th:replace="~{fragments/layout :: flash}"></div>
 
             <div class="portal-card">
                 <div class="d-flex align-items-center justify-content-between">
-                    <h3 class="portal-card-title">Payable Account Balances</h3>
+                    <h3 class="portal-card-title" th:text="#{tax.recon.title}">Payable Account Balances</h3>
                     <div>
-                        <button id="recon-refresh" class="btn-portal btn-sm"><i class="bi bi-arrow-clockwise"></i> Refresh</button>
+                        <button id="recon-refresh" class="btn-portal btn-sm"><i class="bi bi-arrow-clockwise"></i> <span th:text="#{tax.recon.refresh}">Refresh</span></button>
                         <span id="recon-spinner" class="spinner-border spinner-border-sm ms-2" style="display:none"></span>
                     </div>
                 </div>
-                <p class="text-muted">
+                <p class="text-muted" th:text="#{tax.recon.description}">
                     Live balance on each tax payable account in the General Ledger.
                     This is what you currently owe to each agency from invoices already posted, minus any ITC adjustments or payments.
                 </p>
                 <table class="table-portal">
                     <thead>
                     <tr>
-                        <th>Agency</th>
-                        <th>Tax Code</th>
-                        <th>Account</th>
-                        <th class="num">GL Balance</th>
+                        <th th:text="#{tax.recon.agency}">Agency</th>
+                        <th th:text="#{tax.recon.taxCode}">Tax Code</th>
+                        <th th:text="#{tax.recon.account}">Account</th>
+                        <th class="num" th:text="#{tax.recon.glBalance}">GL Balance</th>
                     </tr>
                     </thead>
                     <tbody id="recon-tbody">

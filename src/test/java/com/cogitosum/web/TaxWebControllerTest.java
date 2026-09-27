@@ -18,6 +18,7 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Optional;
 
+import static org.hamcrest.Matchers.containsString;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.*;
@@ -48,7 +49,7 @@ public class TaxWebControllerTest {
 
     @Test
     public void codes_ReturnsView() throws Exception {
-        when(taxCodeService.getAll()).thenReturn(new ArrayList<>());
+        when(taxCodeService.getAllCodes()).thenReturn(new ArrayList<>());
         when(taxCodeService.getAllGroups()).thenReturn(new ArrayList<>());
         when(taxAgencyService.getAll()).thenReturn(new ArrayList<>());
         when(accountRepository.findAllByOrderByAccountNumberAsc()).thenReturn(new ArrayList<>());
@@ -61,18 +62,14 @@ public class TaxWebControllerTest {
 
     @Test
     public void saveCode_Success() throws Exception {
-        TaxAgency agency = new TaxAgency();
-        agency.setId(1L);
-        when(taxAgencyService.getById(1L)).thenReturn(Optional.of(agency));
         when(taxCodeService.createCode(any(TaxCode.class))).thenReturn(new TaxCode());
+        when(taxCodeService.getGroupById(anyLong())).thenReturn(Optional.of(new TaxGroup()));
 
         mockMvc.perform(post("/tax/codes")
                 .param("code", "TPS")
                 .param("name", "TPS 5%")
-                .param("rate", "0.05")
-                .param("agencyId", "1")
-                .param("forSales", "true")
-                .param("forPurchases", "true"))
+                .param("salesTaxGroupId", "1")
+                .param("purchaseTaxGroupId", "2"))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/tax/codes"))
                 .andExpect(flash().attributeExists("flashSuccess"));
@@ -82,12 +79,22 @@ public class TaxWebControllerTest {
 
     @Test
     public void deleteCode_Success() throws Exception {
-        mockMvc.perform(get("/tax/codes/delete/1"))
+        mockMvc.perform(post("/tax/codes/delete/1"))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/tax/codes"))
-                .andExpect(flash().attribute("flashSuccess", "Tax code deleted"));
+                .andExpect(flash().attribute("flashSuccess", "Tax code deactivated"));
 
         verify(taxCodeService).deleteCode(1L);
+    }
+
+    @Test
+    public void deleteCode_Failure() throws Exception {
+        doThrow(new RuntimeException("FK constraint")).when(taxCodeService).deleteCode(anyLong());
+
+        mockMvc.perform(post("/tax/codes/delete/1"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/tax/codes"))
+                .andExpect(flash().attribute("flashError", containsString("Could not deactivate tax code: FK constraint")));
     }
 
     @Test
@@ -109,11 +116,51 @@ public class TaxWebControllerTest {
 
     @Test
     public void deleteGroup_Success() throws Exception {
-        mockMvc.perform(get("/tax/groups/delete/1"))
+        mockMvc.perform(post("/tax/groups/delete/1"))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/tax/codes"))
-                .andExpect(flash().attribute("flashSuccess", "Tax group deleted"));
+                .andExpect(flash().attribute("flashSuccess", "Tax group deactivated"));
 
         verify(taxCodeService).deleteGroup(1L);
+    }
+
+    @Test
+    public void deleteItem_Success() throws Exception {
+        mockMvc.perform(post("/tax/items/delete/1"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/tax/codes"))
+                .andExpect(flash().attribute("flashSuccess", "Tax item deactivated"));
+
+        verify(taxCodeService).deleteItem(1L);
+    }
+
+    @Test
+    public void reconciliation_ReturnsView() throws Exception {
+        com.cogitosum.entity.TaxAgency agency = new com.cogitosum.entity.TaxAgency();
+        agency.setCode("CRA");
+        agency.setName("CRA Name");
+        
+        com.cogitosum.entity.TaxItem item = new com.cogitosum.entity.TaxItem();
+        item.setCode("TPS");
+        item.setName("TPS Name");
+        
+        com.cogitosum.entity.ChartOfAccount acc = new com.cogitosum.entity.ChartOfAccount();
+        acc.setId(1L);
+        acc.setAccountNumber("2310");
+        acc.setAccountName("TPS Payable");
+        item.setPayableAccount(acc);
+        
+        java.util.List<com.cogitosum.entity.TaxAgency> agencies = new java.util.ArrayList<>();
+        agencies.add(agency);
+        when(taxAgencyService.getAll()).thenReturn(agencies);
+        
+        java.util.List<com.cogitosum.entity.TaxItem> items = new java.util.ArrayList<>();
+        items.add(item);
+        when(taxCodeService.getItemsByAgency(any())).thenReturn(items);
+        
+        mockMvc.perform(get("/tax/reconciliation"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("tax/reconciliation"))
+                .andExpect(model().attributeExists("rows"));
     }
 }

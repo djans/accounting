@@ -4,17 +4,22 @@ import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "customers")
-public class Customer {
+@Table(name = "customers", uniqueConstraints = @UniqueConstraint(
+        name = "uk_customers_company_email", columnNames = {"company_id", "email"}))
+public class Customer implements CompanyOwned {
     
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "company_id", nullable = false, updatable = false)
+    private Company company;
     
     @Column(nullable = false)
     private String name;
     
-    @Column(nullable = false, unique = true)
+    @Column(nullable = false)
     private String email;
     
     @Column(nullable = false)
@@ -101,6 +106,16 @@ public class Customer {
     
     public void setId(Long id) {
         this.id = id;
+    }
+
+    @Override
+    public Company getCompany() {
+        return company;
+    }
+
+    @Override
+    public void setCompany(Company company) {
+        this.company = company;
     }
     
     public String getName() {
@@ -463,4 +478,3 @@ public class Customer {
         this.updatedAt = updatedAt;
     }
 }
-

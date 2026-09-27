@@ -11,6 +11,7 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
@@ -45,16 +46,22 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-            .csrf(AbstractHttpConfigurer::disable)
+            .csrf(csrf -> csrf.csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse()))
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/auth/me").authenticated()
-                .requestMatchers("/api/auth/**").permitAll()
-                .requestMatchers("/login", "/css/**", "/js/**", "/vendor/**").permitAll()
+                .requestMatchers(HttpMethod.POST, "/login").permitAll()
+                .requestMatchers("/login", "/favicon.ico", "/css/**", "/js/**", "/vendor/**").permitAll()
                 .requestMatchers("/database/backup/**").hasRole("ADMIN")
-                .requestMatchers("/api/companies/**", "/api/users/**", "/api/bank-accounts/**").hasAnyRole("ADMIN", "ACCOUNTANT", "BOOKKEEPER")
-                .anyRequest().permitAll())
+                .requestMatchers("/database/migration/**").hasRole("ADMIN")
+                .requestMatchers("/companies/**", "/users/**", "/api/companies/**", "/api/users/**").hasRole("ADMIN")
+                .requestMatchers("/reconcile/**").hasAnyRole("ADMIN", "ACCOUNTANT", "BOOKKEEPER")
+                .requestMatchers(HttpMethod.POST, "/**").hasAnyRole("ADMIN", "ACCOUNTANT", "BOOKKEEPER")
+                .requestMatchers(HttpMethod.PUT, "/**").hasAnyRole("ADMIN", "ACCOUNTANT", "BOOKKEEPER")
+                .requestMatchers(HttpMethod.PATCH, "/**").hasAnyRole("ADMIN", "ACCOUNTANT", "BOOKKEEPER")
+                .requestMatchers(HttpMethod.DELETE, "/**").hasAnyRole("ADMIN", "ACCOUNTANT", "BOOKKEEPER")
+                .anyRequest().authenticated())
             .formLogin(form -> form
                 .loginPage("/login")
                 .defaultSuccessUrl("/", false)

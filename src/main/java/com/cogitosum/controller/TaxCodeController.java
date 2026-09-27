@@ -16,13 +16,13 @@ public class TaxCodeController {
     private TaxCodeService service;
 
     @GetMapping
-    public List<TaxCode> list(@RequestParam(required = false) Long agencyId) {
-        return agencyId == null ? service.getAll() : service.getByAgency(agencyId);
+    public List<TaxCode> list() {
+        return service.getAllCodes();
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<TaxCode> get(@PathVariable Long id) {
-        return service.getById(id).map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
+        return service.getCodeById(id).map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
     }
 
     @PostMapping

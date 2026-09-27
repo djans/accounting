@@ -18,6 +18,9 @@
                               th:text="${invoice.status}"></span>
                     </span>
                     <span>
+                        <a th:href="@{/invoices/{id}/pdf(id=${invoice.id})}" class="btn-portal btn-ghost btn-sm">
+                            <i class="bi bi-file-earmark-pdf"></i> <span th:text="#{invoice.pdf.download}">Download PDF</span>
+                        </a>
                         <a th:if="${invoice.status.name() == 'DRAFT'}"
                            th:href="@{/invoices/{id}/edit(id=${invoice.id})}" class="btn-portal btn-ghost btn-sm">
                             <i class="bi bi-pencil"></i> Edit
@@ -107,6 +110,73 @@
                     <div class="stat-label">Notes</div>
                     <div th:text="${invoice.notes}"></div>
                 </div>
+            </div>
+
+            <div class="portal-card">
+                <h3 class="portal-card-title" th:text="#{attachments.title}">Attachments</h3>
+                <form th:action="@{/invoices/{id}/attachments(id=${invoice.id})}" method="post"
+                      enctype="multipart/form-data">
+                    <div class="form-grid">
+                        <div class="form-field">
+                            <label for="invoiceAttachment" th:text="#{attachments.file}">File</label>
+                            <input id="invoiceAttachment" name="file" type="file" required="required"
+                                   accept="application/pdf,image/jpeg,image/png"/>
+                            <small class="text-muted" th:text="#{attachments.hint}">PDF, JPEG, or PNG; 10 MB maximum.</small>
+                        </div>
+                    </div>
+                    <div class="form-actions">
+                        <button class="btn-portal btn-ghost btn-sm" type="submit">
+                            <i class="bi bi-paperclip"></i> <span th:text="#{attachments.upload}">Upload attachment</span>
+                        </button>
+                    </div>
+                </form>
+                <div th:if="${#lists.isEmpty(attachments)}" class="empty-state" th:text="#{attachments.none}">
+                    No attachments yet.
+                </div>
+                <table th:if="${not #lists.isEmpty(attachments)}" class="table-portal">
+                    <thead><tr>
+                        <th th:text="#{attachments.filename}">File</th>
+                        <th th:text="#{attachments.size}">Size</th>
+                        <th th:text="#{attachments.actions}">Actions</th>
+                    </tr></thead>
+                    <tbody>
+                    <tr th:each="attachment : ${attachments}">
+                        <td th:text="${attachment.filename}">document.pdf</td>
+                        <td th:text="${attachment.contentLength + ' bytes'}">0 bytes</td>
+                        <td>
+                            <a class="btn-portal btn-ghost btn-sm"
+                               th:href="@{/invoices/{invoiceId}/attachments/{attachmentId}(invoiceId=${invoice.id},attachmentId=${attachment.id})}"
+                               th:text="#{attachments.download}">Download</a>
+                            <form th:action="@{/invoices/{invoiceId}/attachments/{attachmentId}/delete(invoiceId=${invoice.id},attachmentId=${attachment.id})}"
+                                  method="post" style="display:inline">
+                                <button type="submit" class="btn-portal btn-danger btn-sm"
+                                        th:text="#{attachments.delete}">Delete</button>
+                            </form>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="portal-card" th:if="${invoice.status.name() == 'DRAFT'}">
+                <h3 class="portal-card-title" th:text="#{invoice.email.title}">Email invoice</h3>
+                <p class="text-muted" th:text="#{invoice.email.hint}">
+                    Sending attaches a PDF and marks the invoice as sent only after SMTP accepts it.
+                </p>
+                <form th:action="@{/invoices/{id}/email(id=${invoice.id})}" method="post">
+                    <div class="form-grid">
+                        <div class="form-field">
+                            <label for="invoiceRecipient" th:text="#{invoice.email.recipient}">Recipient email</label>
+                            <input id="invoiceRecipient" type="email" name="recipient"
+                                   th:value="${invoice.customer.email}" required="required"/>
+                        </div>
+                    </div>
+                    <div class="form-actions">
+                        <button class="btn-portal btn-sm" type="submit">
+                            <i class="bi bi-send"></i> <span th:text="#{invoice.email.send}">Email invoice</span>
+                        </button>
+                    </div>
+                </form>
             </div>
 
             <div class="portal-card">

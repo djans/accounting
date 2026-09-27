@@ -12,14 +12,19 @@ import java.util.List;
  * Les montants de taxe (gst/qst/hst) représentent la taxe <b>payée</b>, récupérable en CTI/RTI.
  */
 @Entity
-@Table(name = "bills")
-public class Bill {
+@Table(name = "bills", uniqueConstraints = @UniqueConstraint(
+        name = "uk_bills_company_number", columnNames = {"company_id", "bill_number"}))
+public class Bill implements CompanyOwned {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, unique = true)
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "company_id", nullable = false, updatable = false)
+    private Company company;
+
+    @Column(nullable = false)
     private String billNumber;
 
     @ManyToOne(fetch = FetchType.EAGER)
@@ -110,6 +115,16 @@ public class Bill {
 
     public void setId(Long id) {
         this.id = id;
+    }
+
+    @Override
+    public Company getCompany() {
+        return company;
+    }
+
+    @Override
+    public void setCompany(Company company) {
+        this.company = company;
     }
 
     public String getBillNumber() {

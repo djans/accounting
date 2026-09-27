@@ -7,11 +7,15 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "tax_filing_periods")
-public class TaxFilingPeriod {
+public class TaxFilingPeriod implements CompanyOwned {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "company_id", nullable = false, updatable = false)
+    private Company company;
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "agency_id", nullable = false)
@@ -76,6 +80,10 @@ public class TaxFilingPeriod {
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
+    @Override
+    public Company getCompany() { return company; }
+    @Override
+    public void setCompany(Company company) { this.company = company; }
     public TaxAgency getAgency() { return agency; }
     public void setAgency(TaxAgency agency) { this.agency = agency; }
     public LocalDate getPeriodStart() { return periodStart; }

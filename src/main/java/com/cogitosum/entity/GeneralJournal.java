@@ -7,14 +7,19 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Table(name = "general_journals")
-public class GeneralJournal {
+@Table(name = "general_journals", uniqueConstraints = @UniqueConstraint(
+        name = "uk_general_journals_company_number", columnNames = {"company_id", "journal_number"}))
+public class GeneralJournal implements CompanyOwned {
     
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "company_id", nullable = false, updatable = false)
+    private Company company;
     
-    @Column(nullable = false, unique = true)
+    @Column(nullable = false)
     private String journalNumber;
     
     @Column(nullable = false)
@@ -65,6 +70,16 @@ public class GeneralJournal {
     
     public void setId(Long id) {
         this.id = id;
+    }
+
+    @Override
+    public Company getCompany() {
+        return company;
+    }
+
+    @Override
+    public void setCompany(Company company) {
+        this.company = company;
     }
     
     public String getJournalNumber() {
@@ -147,4 +162,3 @@ public class GeneralJournal {
         this.updatedAt = updatedAt;
     }
 }
-

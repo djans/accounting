@@ -4,8 +4,10 @@ import com.cogitosum.entity.Invoice;
 import com.cogitosum.entity.InvoiceStatus;
 import com.cogitosum.entity.Payment;
 import com.cogitosum.entity.PaymentStatus;
+import com.cogitosum.entity.ChartOfAccount;
 import com.cogitosum.repository.InvoiceRepository;
 import com.cogitosum.repository.PaymentRepository;
+import com.cogitosum.repository.ChartOfAccountRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
@@ -26,7 +28,19 @@ public class PaymentService {
     @Autowired
     private PaymentPostingService paymentPostingService;
 
+    @Autowired
+    private ChartOfAccountRepository accountRepository;
+
+    @Autowired
+    private CurrentCompanyContext companyContext;
+
     public Payment recordPayment(Payment payment) {
+        Long companyId = companyContext.requireCompanyId();
+        payment.setCompany(companyContext.requireCompany());
+        payment.setInvoice(invoiceRepository.findByIdAndCompanyId(requiredId(payment.getInvoice(), "Invoice"), companyId)
+                .orElseThrow(() -> new IllegalArgumentException("Invoice not found")));
+        payment.setBankAccount(resolveAccount(payment.getBankAccount(), companyId, "Bank account"));
+        payment.setArAccount(resolveAccount(payment.getArAccount(), companyId, "A/R account"));
         if (payment.getTransactionId() == null || payment.getTransactionId().isEmpty()) {
             payment.setTransactionId("TXN-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase());
         }
@@ -45,35 +59,35 @@ public class PaymentService {
     }
 
     public Optional<Payment> getPaymentById(Long id) {
-        return paymentRepository.findById(id);
+        return paymentRepository.findByIdAndCompanyId(id, companyContext.requireCompanyId());
     }
 
     public Optional<Payment> getPaymentByTransactionId(String transactionId) {
-        return paymentRepository.findByTransactionId(transactionId);
+        return paymentRepository.findByCompanyIdAndTransactionId(companyContext.requireCompanyId(), transactionId);
     }
 
     public List<Payment> getPaymentsByInvoiceId(Long invoiceId) {
-        return paymentRepository.findByInvoiceId(invoiceId);
+        return paymentRepository.findByCompanyIdAndInvoiceId(companyContext.requireCompanyId(), invoiceId);
     }
 
     public List<Payment> getPaymentsByStatus(PaymentStatus status) {
-        return paymentRepository.findByStatus(status);
+        return paymentRepository.findByCompanyIdAndStatus(companyContext.requireCompanyId(), status);
     }
 
     public List<Payment> getPaymentsByDateRange(LocalDate startDate, LocalDate endDate) {
-        return paymentRepository.findByPaymentDateBetween(startDate, endDate);
+        return paymentRepository.findByCompanyIdAndPaymentDateBetween(companyContext.requireCompanyId(), startDate, endDate);
     }
 
     public List<Payment> getAllPayments() {
-        return paymentRepository.findAll();
+        return paymentRepository.findAllByCompanyId(companyContext.requireCompanyId());
     }
 
     public java.util.List<Payment> getPaymentsByMethod(com.cogitosum.entity.PaymentMethod paymentMethod) {
-        return paymentRepository.findByPaymentMethod(paymentMethod);
+        return paymentRepository.findByCompanyIdAndPaymentMethod(companyContext.requireCompanyId(), paymentMethod);
     }
 
     public Payment markPaymentAsCompleted(Long id) {
-        Optional<Payment> payment = paymentRepository.findById(id);
+        Optional<Payment> payment = paymentRepository.findByIdAndCompanyId(id, companyContext.requireCompanyId());
         if (payment.isPresent()) {
             payment.get().setStatus(PaymentStatus.COMPLETED);
             Payment savedPayment = paymentRepository.save(payment.get());
@@ -84,7 +98,7 @@ public class PaymentService {
     }
 
     public Payment refundPayment(Long id) {
-        Optional<Payment> payment = paymentRepository.findById(id);
+        Optional<Payment> payment = paymentRepository.findByIdAndCompanyId(id, companyContext.requireCompanyId());
         if (payment.isPresent()) {
             Payment p = payment.get();
             paymentPostingService.reversePayment(p, "Payment refunded");
@@ -102,13 +116,13 @@ public class PaymentService {
     }
 
     public void deletePayment(Long id) {
-        Optional<Payment> payment = paymentRepository.findById(id);
+        Optional<Payment> payment = paymentRepository.findByIdAndCompanyId(id, companyContext.requireCompanyId());
         payment.ifPresent(p -> paymentPostingService.reversePayment(p, "Payment deleted"));
-        paymentRepository.deleteById(id);
+        payment.ifPresent(paymentRepository::delete);
     }
 
     private void updateInvoicePaymentStatus(Long invoiceId, BigDecimal paymentAmount) {
-        Optional<Invoice> invoice = invoiceRepository.findById(invoiceId);
+        Optional<Invoice> invoice = invoiceRepository.findByIdAndCompanyId(invoiceId, companyContext.requireCompanyId());
         if (invoice.isPresent()) {
             Invoice inv = invoice.get();
             BigDecimal newPaidAmount = inv.getPaidAmount().add(paymentAmount);
@@ -124,5 +138,22 @@ public class PaymentService {
             invoiceRepository.save(inv);
         }
     }
-}
 
+    private Long requiredId(Invoice invoice, String name) {
+        if (invoice == null || invoice.getId() == null) {
+            throw new IllegalArgumentException(name + " is required");
+        }
+        return invoice.getId();
+    }
+
+    private ChartOfAccount resolveAccount(ChartOfAccount account, Long companyId, String name) {
+        if (account == null) {
+            return null;
+        }
+        if (account.getId() == null) {
+            throw new IllegalArgumentException(name + " is invalid");
+        }
+        return accountRepository.findByIdAndCompanyId(account.getId(), companyId)
+                .orElseThrow(() -> new IllegalArgumentException(name + " not found"));
+    }
+}

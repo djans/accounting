@@ -1,37 +1,37 @@
 <!DOCTYPE html>
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments/layout :: head('Tax Filing Periods')}"></head>
+<head th:replace="~{fragments/layout :: head(#{tax.periods.title})}"></head>
 <body>
 <div class="portal-shell">
     <div th:replace="~{fragments/layout :: sidebar(${active})}"></div>
     <main class="portal-main">
-        <div th:replace="~{fragments/layout :: topbar('Tax Filing Periods')}"></div>
+        <div th:replace="~{fragments/layout :: topbar(#{tax.periods.title})}"></div>
         <section class="portal-content">
             <div th:replace="~{fragments/layout :: flash}"></div>
 
             <div class="portal-card">
                 <div class="d-flex align-items-center justify-content-between">
-                    <h3 class="portal-card-title">All Filing Periods</h3>
+                    <h3 class="portal-card-title" th:text="#{tax.periods.all}">All Filing Periods</h3>
                     <div>
-                        <button id="periods-refresh" class="btn-portal btn-sm"><i class="bi bi-arrow-clockwise"></i> Refresh</button>
+                        <button id="periods-refresh" class="btn-portal btn-sm"><i class="bi bi-arrow-clockwise"></i> <span th:text="#{tax.periods.refresh}">Refresh</span></button>
                         <span id="periods-spinner" class="spinner-border spinner-border-sm ms-2" style="display:none"></span>
                     </div>
                 </div>
-                <div th:if="${#lists.isEmpty(periods)}" class="empty-state">
+                <div th:if="${#lists.isEmpty(periods)}" class="empty-state" th:text="#{tax.periods.noPeriods}">
                     No periods yet. Create one below.
                 </div>
                 <table th:if="${not #lists.isEmpty(periods)}" class="table-portal">
                     <thead>
                     <tr>
-                        <th>Agency</th>
-                        <th>Start</th>
-                        <th>End</th>
-                        <th>Status</th>
-                        <th class="num">Collected</th>
-                        <th class="num">ITC</th>
-                        <th class="num">Net Owing</th>
-                        <th>Filed</th>
-                        <th>Paid</th>
+                        <th th:text="#{tax.periods.agency}">Agency</th>
+                        <th th:text="#{tax.periods.start}">Start</th>
+                        <th th:text="#{tax.periods.end}">End</th>
+                        <th th:text="#{tax.periods.status}">Status</th>
+                        <th class="num" th:text="#{tax.periods.collected}">Collected</th>
+                        <th class="num" th:text="#{tax.periods.itc}">ITC</th>
+                        <th class="num" th:text="#{tax.periods.netOwing}">Net Owing</th>
+                        <th th:text="#{tax.periods.filed}">Filed</th>
+                        <th th:text="#{tax.periods.paid}">Paid</th>
                     </tr>
                     </thead>
                     <tbody>
@@ -53,27 +53,27 @@
             </div>
 
             <div class="portal-card">
-                <h3 class="portal-card-title">New Filing Period</h3>
+                <h3 class="portal-card-title" th:text="#{tax.periods.new}">New Filing Period</h3>
                 <form th:action="@{/tax/periods}" method="post">
                     <div class="form-grid">
                         <div class="form-field">
-                            <label>Agency</label>
+                            <label th:text="#{tax.periods.agency}">Agency</label>
                             <select name="agencyId" required>
-                                <option value="">Select…</option>
-                                <option th:each="a : ${agencies}" th:value="${a.id}" th:text="${a.code + ' — ' + a.name}"></option>
+                                <option value="" th:text="#{tax.periods.selectAgency}">Select…</option>
+                                <option th:each="a : ${agencies}" th:if="${a.active}" th:value="${a.id}" th:text="${a.code + ' — ' + a.name}"></option>
                             </select>
                         </div>
                         <div class="form-field">
-                            <label>Period Start</label>
+                            <label th:text="#{tax.periods.periodStart}">Period Start</label>
                             <input type="date" name="periodStart" required/>
                         </div>
                         <div class="form-field">
-                            <label>Period End</label>
+                            <label th:text="#{tax.periods.periodEnd}">Period End</label>
                             <input type="date" name="periodEnd" required/>
                         </div>
                     </div>
                     <div class="form-actions">
-                        <button type="submit" class="btn-portal"><i class="bi bi-plus-lg"></i> Create Period</button>
+                        <button type="submit" class="btn-portal"><i class="bi bi-plus-lg"></i> <span th:text="#{tax.periods.create}">Create Period</span></button>
                     </div>
                 </form>
             </div>

@@ -15,5 +15,11 @@ public interface GeneralJournalRepository extends JpaRepository<GeneralJournal, 
     List<GeneralJournal> findByStatus(JournalStatus status);
     List<GeneralJournal> findByJournalDateBetween(LocalDate startDate, LocalDate endDate);
     List<GeneralJournal> findByStatusAndJournalDateBetween(JournalStatus status, LocalDate startDate, LocalDate endDate);
+    Optional<GeneralJournal> findByIdAndCompanyId(Long id, Long companyId);
+    Optional<GeneralJournal> findByCompanyIdAndJournalNumber(Long companyId, String journalNumber);
+    List<GeneralJournal> findByCompanyIdAndStatus(Long companyId, JournalStatus status);
+    List<GeneralJournal> findByCompanyIdAndJournalDateBetween(Long companyId, LocalDate startDate, LocalDate endDate);
+    List<GeneralJournal> findByCompanyIdAndStatusAndJournalDateBetween(
+            Long companyId, JournalStatus status, LocalDate startDate, LocalDate endDate);
+    List<GeneralJournal> findAllByCompanyId(Long companyId);
 }
-

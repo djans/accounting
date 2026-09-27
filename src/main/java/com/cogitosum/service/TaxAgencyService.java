@@ -14,12 +14,16 @@ public class TaxAgencyService {
     @Autowired
     private TaxAgencyRepository taxAgencyRepository;
 
+    @Autowired
+    private CurrentCompanyContext companyContext;
+
     public TaxAgency createAgency(TaxAgency agency) {
+        companyContext.assignCurrentCompany(agency);
         return taxAgencyRepository.save(agency);
     }
 
     public TaxAgency updateAgency(Long id, TaxAgency agency) {
-        Optional<TaxAgency> existing = taxAgencyRepository.findById(id);
+        Optional<TaxAgency> existing = taxAgencyRepository.findByIdAndCompanyId(id, companyContext.requireCompanyId());
         if (existing.isPresent()) {
             TaxAgency a = existing.get();
             a.setCode(agency.getCode());
@@ -27,24 +31,34 @@ public class TaxAgencyService {
             a.setAddress(agency.getAddress());
             a.setWebsite(agency.getWebsite());
             a.setAccountNumber(agency.getAccountNumber());
+            a.setActive(agency.getActive());
             return taxAgencyRepository.save(a);
         }
         return null;
     }
 
     public Optional<TaxAgency> getById(Long id) {
-        return taxAgencyRepository.findById(id);
+        return taxAgencyRepository.findByIdAndCompanyId(id, companyContext.requireCompanyId());
     }
 
     public Optional<TaxAgency> getByCode(String code) {
-        return taxAgencyRepository.findByCode(code);
+        return taxAgencyRepository.findByCompanyIdAndCode(companyContext.requireCompanyId(), code);
     }
 
     public List<TaxAgency> getAll() {
-        return taxAgencyRepository.findAllByOrderByCodeAsc();
+        return taxAgencyRepository.findAllByCompanyIdOrderByCodeAsc(companyContext.requireCompanyId());
+    }
+
+    public List<TaxAgency> getActiveAgencies() {
+        return taxAgencyRepository.findByCompanyIdAndIsActiveOrderByCodeAsc(companyContext.requireCompanyId(), true);
     }
 
     public void deleteAgency(Long id) {
-        taxAgencyRepository.deleteById(id);
+        Optional<TaxAgency> existing = taxAgencyRepository.findByIdAndCompanyId(id, companyContext.requireCompanyId());
+        if (existing.isPresent()) {
+            TaxAgency a = existing.get();
+            a.setActive(false);
+            taxAgencyRepository.save(a);
+        }
     }
 }

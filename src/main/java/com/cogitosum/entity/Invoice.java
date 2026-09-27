@@ -8,14 +8,19 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Table(name = "invoices")
-public class Invoice {
+@Table(name = "invoices", uniqueConstraints = @UniqueConstraint(
+        name = "uk_invoices_company_number", columnNames = {"company_id", "invoice_number"}))
+public class Invoice implements CompanyOwned {
     
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "company_id", nullable = false, updatable = false)
+    private Company company;
     
-    @Column(nullable = false, unique = true)
+    @Column(nullable = false)
     private String invoiceNumber;
     
     @ManyToOne(fetch = FetchType.EAGER)
@@ -109,6 +114,16 @@ public class Invoice {
     
     public void setId(Long id) {
         this.id = id;
+    }
+
+    @Override
+    public Company getCompany() {
+        return company;
+    }
+
+    @Override
+    public void setCompany(Company company) {
+        this.company = company;
     }
     
     public String getInvoiceNumber() {

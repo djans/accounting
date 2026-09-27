@@ -32,6 +32,9 @@ public class BillPaymentPostingService {
     @Autowired
     private ChartOfAccountRepository accountRepository;
 
+    @Autowired
+    private CurrentCompanyContext companyContext;
+
     @Transactional
     public void postPayment(BillPayment payment) {
         if (payment.getBankAccount() == null) return; // no bank → skip posting
@@ -44,7 +47,7 @@ public class BillPaymentPostingService {
 
     @Transactional
     public void reversePayment(BillPayment payment, String reason) {
-        Optional<GeneralJournal> existing = journalRepository.findAll().stream()
+        Optional<GeneralJournal> existing = journalRepository.findAllByCompanyId(companyContext.requireCompanyId()).stream()
             .filter(j -> ("BILLPAYMENT-" + payment.getId()).equals(j.getReference()))
             .filter(j -> j.getStatus() == JournalStatus.POSTED)
             .findFirst();
@@ -52,7 +55,7 @@ public class BillPaymentPostingService {
     }
 
     private GeneralJournal buildPaymentJournal(BillPayment payment) {
-        ChartOfAccount ap = accountRepository.findByAccountNumber(AP_ACCOUNT)
+        ChartOfAccount ap = accountRepository.findByCompanyIdAndAccountNumber(companyContext.requireCompanyId(), AP_ACCOUNT)
             .orElseThrow(() -> new IllegalStateException("Accounts Payable account (2000) not seeded"));
 
         GeneralJournal jl = new GeneralJournal();

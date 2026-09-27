@@ -16,16 +16,20 @@ public class FiscalYearService {
     @Autowired
     private FiscalYearRepository fiscalYearRepository;
 
+    @Autowired
+    private CurrentCompanyContext companyContext;
+
     public FiscalYear createFiscalYear(FiscalYear fiscalYear) {
+        companyContext.assignCurrentCompany(fiscalYear);
         return fiscalYearRepository.save(fiscalYear);
     }
 
     public Optional<FiscalYear> getById(Long id) {
-        return fiscalYearRepository.findById(id);
+        return fiscalYearRepository.findByIdAndCompanyId(id, companyContext.requireCompanyId());
     }
 
     public List<FiscalYear> getAll() {
-        return fiscalYearRepository.findAll();
+        return fiscalYearRepository.findAllByCompanyId(companyContext.requireCompanyId());
     }
 
     /**
@@ -34,11 +38,12 @@ public class FiscalYearService {
      */
     public boolean isLocked(LocalDate date) {
         if (date == null) return false;
-        return fiscalYearRepository.findByStatus(FiscalYearStatus.CLOSED).stream()
+        return fiscalYearRepository.findByCompanyIdAndStatus(companyContext.requireCompanyId(), FiscalYearStatus.CLOSED).stream()
             .anyMatch(fy -> fy.covers(date));
     }
 
     public void deleteFiscalYear(Long id) {
-        fiscalYearRepository.deleteById(id);
+        fiscalYearRepository.findByIdAndCompanyId(id, companyContext.requireCompanyId())
+                .ifPresent(fiscalYearRepository::delete);
     }
 }

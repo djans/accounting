@@ -4,6 +4,7 @@ import com.cogitosum.entity.*;
 import com.cogitosum.service.BillPaymentService;
 import com.cogitosum.service.BillService;
 import com.cogitosum.service.ChartOfAccountService;
+import com.cogitosum.service.DocumentAttachmentService;
 import com.cogitosum.service.VendorService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
@@ -24,6 +25,7 @@ public class BillWebController {
     @Autowired private VendorService vendorService;
     @Autowired private BillPaymentService billPaymentService;
     @Autowired private ChartOfAccountService accountService;
+    @Autowired private DocumentAttachmentService attachmentService;
 
     @GetMapping
     public String list(Model model) {
@@ -96,6 +98,7 @@ public class BillWebController {
                     model.addAttribute("payments", billPaymentService.getPaymentsByBillId(id));
                     model.addAttribute("methods", PaymentMethod.values());
                     model.addAttribute("bankAccounts", bankAccountChoices());
+                    model.addAttribute("attachments", attachmentService.listBillAttachments(id));
                     return "bills/detail";
                 })
                 .orElseGet(() -> {

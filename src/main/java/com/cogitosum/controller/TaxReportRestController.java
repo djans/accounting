@@ -2,9 +2,11 @@ package com.cogitosum.controller;
 
 import com.cogitosum.entity.TaxAgency;
 import com.cogitosum.entity.TaxCode;
+import com.cogitosum.entity.TaxItem;
 import com.cogitosum.service.TaxAgencyService;
 import com.cogitosum.service.TaxCodeService;
 import com.cogitosum.service.TaxFilingService;
+import com.cogitosum.service.CurrentCompanyContext;
 import com.cogitosum.repository.GeneralLedgerRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -23,18 +25,20 @@ public class TaxReportRestController {
     @Autowired private TaxCodeService codeService;
     @Autowired private TaxFilingService filingService;
     @Autowired private GeneralLedgerRepository ledgerRepository;
+    @Autowired private CurrentCompanyContext companyContext;
 
     @GetMapping("/reconciliation")
     public ResponseEntity<List<Map<String, Object>>> reconciliation() {
         List<Map<String, Object>> rows = new ArrayList<>();
         for (TaxAgency agency : agencyService.getAll()) {
-            for (TaxCode code : codeService.getByAgency(agency.getId())) {
-                if (code.getPayableAccount() == null) continue;
+            for (TaxItem item : codeService.getItemsByAgency(agency.getId())) {
+                if (item.getPayableAccount() == null) continue;
                 Map<String, Object> row = new HashMap<>();
                 row.put("agency", agency);
-                row.put("code", code);
-                row.put("account", code.getPayableAccount());
-                BigDecimal balance = ledgerRepository.findByAccountId(code.getPayableAccount().getId())
+                row.put("code", item);
+                row.put("account", item.getPayableAccount());
+                BigDecimal balance = ledgerRepository.findByCompanyIdAndAccountId(
+                        companyContext.requireCompanyId(), item.getPayableAccount().getId())
                     .map(gl -> gl.getCreditBalance().subtract(gl.getDebitBalance()))
                     .orElse(BigDecimal.ZERO);
                 row.put("glBalance", balance);
@@ -51,7 +55,7 @@ public class TaxReportRestController {
 
     @GetMapping("/codes")
     public ResponseEntity<List<TaxCode>> codes() {
-        return ResponseEntity.ok(codeService.getAll());
+        return ResponseEntity.ok(codeService.getAllCodes());
     }
 
     @GetMapping("/periods")
@@ -72,4 +76,3 @@ public class TaxReportRestController {
             .orElse(ResponseEntity.notFound().build());
     }
 }
-

@@ -4,14 +4,19 @@ import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "chart_of_accounts")
-public class ChartOfAccount {
+@Table(name = "chart_of_accounts", uniqueConstraints = @UniqueConstraint(
+        name = "uk_chart_of_accounts_company_number", columnNames = {"company_id", "account_number"}))
+public class ChartOfAccount implements CompanyOwned {
     
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "company_id", nullable = false, updatable = false)
+    private Company company;
     
-    @Column(nullable = false, unique = true)
+    @Column(nullable = false)
     private String accountNumber;
     
     @Column(nullable = false)
@@ -69,6 +74,16 @@ public class ChartOfAccount {
     
     public void setId(Long id) {
         this.id = id;
+    }
+
+    @Override
+    public Company getCompany() {
+        return company;
+    }
+
+    @Override
+    public void setCompany(Company company) {
+        this.company = company;
     }
     
     public String getAccountNumber() {

@@ -169,8 +169,14 @@ public class DatabaseBackupService {
             if (sqlType == Types.TIME || sqlType == Types.TIME_WITH_TIMEZONE) {
                 return java.sql.Time.valueOf(text.substring(0, 8));
             }
+            if (sqlType == Types.BINARY || sqlType == Types.VARBINARY
+                    || sqlType == Types.LONGVARBINARY || sqlType == Types.BLOB) {
+                return value.binaryValue();
+            }
         } catch (RuntimeException e) {
             throw new IllegalArgumentException("Invalid value for SQL type " + sqlType + ": " + text, e);
+        } catch (IOException e) {
+            throw new IllegalArgumentException("Invalid binary value for SQL type " + sqlType, e);
         }
         return text;
     }

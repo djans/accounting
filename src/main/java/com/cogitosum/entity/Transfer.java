@@ -7,11 +7,15 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "transfers")
-public class Transfer {
+public class Transfer implements CompanyOwned {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "company_id", nullable = false, updatable = false)
+    private Company company;
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "from_account_id", nullable = false)
@@ -44,6 +48,10 @@ public class Transfer {
     // Getters and setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
+    @Override
+    public Company getCompany() { return company; }
+    @Override
+    public void setCompany(Company company) { this.company = company; }
 
     public ChartOfAccount getFromAccount() { return fromAccount; }
     public void setFromAccount(ChartOfAccount fromAccount) { this.fromAccount = fromAccount; }

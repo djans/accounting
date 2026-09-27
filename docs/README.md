@@ -29,6 +29,35 @@ mvn spring-boot:run
 http://localhost:8080
 ```
 
+### Optional invoice email
+
+PDF downloads are available from each invoice. Email delivery is disabled by
+default so a local installation never attempts an SMTP handoff unexpectedly.
+Set these environment variables to enable it:
+
+```text
+APP_INVOICE_MAIL_ENABLED=true
+SMTP_HOST=smtp.example.com
+SMTP_PORT=587
+SMTP_USERNAME=...
+SMTP_PASSWORD=...
+INVOICE_MAIL_FROM=accounts@example.com
+```
+
+Credentials are runtime configuration only; do not place them in source files.
+The email action attaches the generated PDF and only marks/posts a draft invoice
+after the SMTP sender accepts the message.
+
+### Invoice and bill attachments
+
+Invoice and bill detail pages accept PDF, JPEG, and PNG files up to 10 MiB.
+Both the browser-reported content type and the binary signature must match.
+Attachment metadata and blob content are stored separately in the database; no
+uploads are published as static files. List, download, and delete operations
+are authenticated, company-scoped, and downloads use attachment disposition
+with `nosniff` and `no-store` headers. Attachments are included automatically
+by the existing JSON backup/restore format.
+
 ### Run with Docker
 ```bash
 # Build Docker image
@@ -202,4 +231,3 @@ For issues and questions, refer to `API_DOCUMENTATION.md` for detailed endpoint 
 5. Deploy to production environment
 
 Happy Billing! 🎉
-

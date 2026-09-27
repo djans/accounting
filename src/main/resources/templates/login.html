@@ -13,6 +13,7 @@
                 Vous êtes déconnecté.
             </div>
             <form th:action="@{/login}" method="post">
+                <input type="hidden" th:if="${_csrf != null}" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
                 <div class="form-field">
                     <label for="username" th:text="#{auth.login.email}">Adresse courriel</label>
                     <input id="username" name="username" type="email" autocomplete="username" required/>
@@ -26,7 +27,7 @@
                 </button>
             </form>
             <p class="text-muted small" style="margin-top:1.5rem;" th:text="#{auth.login.initialCredentials}">
-                Première installation : admin@accounting.local / admin123
+                Define the initial administrator environment variables before the first startup.
             </p>
         </div>
     </section>

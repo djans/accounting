@@ -19,9 +19,16 @@ public class GeneralLedgerService {
     @Autowired
     private ChartOfAccountRepository chartOfAccountRepository;
 
+    @Autowired
+    private CurrentCompanyContext companyContext;
+
     public GeneralLedger createLedgerAccount(ChartOfAccount account) {
+        Long companyId = companyContext.requireCompanyId();
+        ChartOfAccount ownedAccount = chartOfAccountRepository.findByIdAndCompanyId(account.getId(), companyId)
+                .orElseThrow(() -> new IllegalArgumentException("Account not found"));
         GeneralLedger ledger = new GeneralLedger();
-        ledger.setAccount(account);
+        ledger.setCompany(companyContext.requireCompany());
+        ledger.setAccount(ownedAccount);
         ledger.setDebitBalance(BigDecimal.ZERO);
         ledger.setCreditBalance(BigDecimal.ZERO);
         ledger.setBalance(BigDecimal.ZERO);
@@ -29,23 +36,24 @@ public class GeneralLedgerService {
     }
 
     public Optional<GeneralLedger> getLedgerByAccountId(Long accountId) {
-        return generalLedgerRepository.findByAccountId(accountId);
+        return generalLedgerRepository.findByCompanyIdAndAccountId(companyContext.requireCompanyId(), accountId);
     }
 
     public List<GeneralLedger> getAllLedgerAccounts() {
-        return generalLedgerRepository.findAllByOrderByAccountAccountNumberAsc();
+        return generalLedgerRepository.findAllByCompanyIdOrderByAccountAccountNumberAsc(companyContext.requireCompanyId());
     }
 
     public GeneralLedger getLedger(Long id) {
-        return generalLedgerRepository.findById(id)
+        return generalLedgerRepository.findByIdAndCompanyId(id, companyContext.requireCompanyId())
                 .orElseThrow(() -> new IllegalArgumentException("Ledger account not found: " + id));
     }
 
     public GeneralLedger updateLedger(Long id, Long accountId, BigDecimal debitAmount, BigDecimal creditAmount) {
         GeneralLedger ledger = getLedger(id);
-        ChartOfAccount account = chartOfAccountRepository.findById(accountId)
+        Long companyId = companyContext.requireCompanyId();
+        ChartOfAccount account = chartOfAccountRepository.findByIdAndCompanyId(accountId, companyId)
                 .orElseThrow(() -> new IllegalArgumentException("Account not found: " + accountId));
-        generalLedgerRepository.findByAccountId(accountId)
+        generalLedgerRepository.findByCompanyIdAndAccountId(companyId, accountId)
                 .filter(other -> !other.getId().equals(id))
                 .ifPresent(other -> {
                     throw new IllegalArgumentException("That account already has a General Ledger entry");
@@ -64,7 +72,8 @@ public class GeneralLedgerService {
     }
 
     public GeneralLedger updateBalance(Long accountId, BigDecimal debitAmount, BigDecimal creditAmount) {
-        Optional<GeneralLedger> ledger = generalLedgerRepository.findByAccountId(accountId);
+        Optional<GeneralLedger> ledger = generalLedgerRepository.findByCompanyIdAndAccountId(
+                companyContext.requireCompanyId(), accountId);
         if (ledger.isPresent()) {
             GeneralLedger gl = ledger.get();
             gl.setDebitBalance(gl.getDebitBalance().add(debitAmount));

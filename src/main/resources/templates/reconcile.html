@@ -2,31 +2,45 @@
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
 <head th:replace="~{fragments/layout :: head(#{nav.reconcile})}"></head>
 <body>
-<div th:replace="~{fragments/layout :: sidebar('accounting')}"></div>
-<main class="portal-main">
-    <div th:replace="~{fragments/layout :: topbar(#{nav.reconcile})}"></div>
-    <section class="portal-content">
-        <div th:replace="~{fragments/layout :: flash}"></div>
-        <div class="portal-card">
-            <h3>Reconcile</h3>
-            <table class="table-portal table">
-                <thead>
-                <tr>
-                    <th>Account #</th>
-                    <th>Account</th>
-                    <th class="num">Balance</th>
-                </tr>
-                </thead>
-                <tbody>
-                <tr th:each="r : ${rows}">
-                    <td th:text="${r.accountNumber}">1001</td>
-                    <td th:text="${r.accountName}">Bank A</td>
-                    <td class="num" th:text="${r.balance != null ? #numbers.formatCurrency(r.balance) : '-'}">$0.00</td>
-                </tr>
-                </tbody>
-            </table>
-        </div>
-    </section>
-</main>
+<div class="portal-shell">
+    <div th:replace="~{fragments/layout :: sidebar('reconcile')}"></div>
+    <main class="portal-main">
+        <div th:replace="~{fragments/layout :: topbar(#{nav.reconcile})}"></div>
+        <section class="portal-content">
+            <div th:replace="~{fragments/layout :: flash}"></div>
+            <div class="portal-card">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h3 class="mb-0" th:text="#{nav.reconcile}">Rapprochement</h3>
+                </div>
+                <table class="table-portal table">
+                    <thead>
+                    <tr>
+                        <th th:text="#{table.accountNum}">N° de compte</th>
+                        <th th:text="#{table.account}">Compte</th>
+                        <th class="num" th:text="#{table.balance}">Solde</th>
+                        <th class="text-center" th:text="#{btn.actions}">Actions</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="r : ${rows}">
+                        <td th:text="${r.account.accountNumber}">1001</td>
+                        <td th:text="${r.account.accountName}">Bank A</td>
+                        <td class="num" th:text="${#numbers.formatCurrency(r.balance)}">$0.00</td>
+                        <td class="text-center">
+                            <a th:href="@{/reconcile/account/{id}(id=${r.account.id})}" class="btn btn-sm btn-outline-primary" th:text="#{btn.reconcile}">Reconcile</a>
+                        </td>
+                    </tr>
+                    <tr th:if="${#lists.isEmpty(rows)}">
+                        <td colspan="4" class="text-center text-muted py-4">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <span th:text="#{reconcile.noAccountsFound}">No bank accounts found for reconciliation.</span>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+</div>
 </body>
 </html>

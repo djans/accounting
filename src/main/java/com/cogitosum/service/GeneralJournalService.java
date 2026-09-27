@@ -6,6 +6,7 @@ import com.cogitosum.entity.JournalStatus;
 import com.cogitosum.entity.GeneralLedger;
 import com.cogitosum.repository.GeneralJournalRepository;
 import com.cogitosum.repository.GeneralLedgerRepository;
+import com.cogitosum.repository.ChartOfAccountRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -32,8 +33,16 @@ public class GeneralJournalService {
     @Autowired
     private FiscalYearService fiscalYearService;
 
+    @Autowired
+    private ChartOfAccountRepository chartOfAccountRepository;
+
+    @Autowired
+    private CurrentCompanyContext companyContext;
+
     @Transactional
     public GeneralJournal createJournal(GeneralJournal journal) {
+        Long companyId = companyContext.requireCompanyId();
+        journal.setCompany(companyContext.requireCompany());
         // Generate unique journal number
         if (journal.getJournalNumber() == null || journal.getJournalNumber().isEmpty()) {
             journal.setJournalNumber("JL-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase());
@@ -47,6 +56,7 @@ public class GeneralJournalService {
         if (journal.getEntries() != null) {
             for (JournalEntry entry : journal.getEntries()) {
                 entry.setJournal(journal);
+                entry.setAccount(resolveAccount(entry.getAccount(), companyId));
             }
         }
 
@@ -63,7 +73,8 @@ public class GeneralJournalService {
 
     @Transactional
     public GeneralJournal postJournal(Long journalId, String postedBy) {
-        Optional<GeneralJournal> journal = generalJournalRepository.findById(journalId);
+        Optional<GeneralJournal> journal = generalJournalRepository.findByIdAndCompanyId(
+                journalId, companyContext.requireCompanyId());
         if (journal.isPresent()) {
             GeneralJournal jl = journal.get();
 
@@ -97,7 +108,8 @@ public class GeneralJournalService {
 
     @Transactional
     public GeneralJournal updateJournal(Long id, GeneralJournal journal) {
-        Optional<GeneralJournal> existingJournal = generalJournalRepository.findById(id);
+        Long companyId = companyContext.requireCompanyId();
+        Optional<GeneralJournal> existingJournal = generalJournalRepository.findByIdAndCompanyId(id, companyId);
         if (existingJournal.isPresent()) {
             GeneralJournal jl = existingJournal.get();
 
@@ -112,6 +124,7 @@ public class GeneralJournalService {
             if (journal.getEntries() != null) {
                 for (JournalEntry entry : journal.getEntries()) {
                     entry.setJournal(jl);
+                    entry.setAccount(resolveAccount(entry.getAccount(), companyId));
                     jl.getEntries().add(entry);
                 }
             }
@@ -126,7 +139,8 @@ public class GeneralJournalService {
 
     @Transactional
     public GeneralJournal reverseJournal(Long journalId, String reversalReason) {
-        Optional<GeneralJournal> journal = generalJournalRepository.findById(journalId);
+        Optional<GeneralJournal> journal = generalJournalRepository.findByIdAndCompanyId(
+                journalId, companyContext.requireCompanyId());
         if (journal.isPresent()) {
             GeneralJournal originalJournal = journal.get();
 
@@ -168,37 +182,39 @@ public class GeneralJournalService {
     }
 
     public Optional<GeneralJournal> getJournalById(Long id) {
-        return generalJournalRepository.findById(id);
+        return generalJournalRepository.findByIdAndCompanyId(id, companyContext.requireCompanyId());
     }
 
     public Optional<GeneralJournal> getJournalByNumber(String journalNumber) {
-        return generalJournalRepository.findByJournalNumber(journalNumber);
+        return generalJournalRepository.findByCompanyIdAndJournalNumber(companyContext.requireCompanyId(), journalNumber);
     }
 
     public List<GeneralJournal> getJournalsByStatus(JournalStatus status) {
-        return generalJournalRepository.findByStatus(status);
+        return generalJournalRepository.findByCompanyIdAndStatus(companyContext.requireCompanyId(), status);
     }
 
     public List<GeneralJournal> getJournalsByDateRange(LocalDate startDate, LocalDate endDate) {
-        return generalJournalRepository.findByJournalDateBetween(startDate, endDate);
+        return generalJournalRepository.findByCompanyIdAndJournalDateBetween(
+                companyContext.requireCompanyId(), startDate, endDate);
     }
 
     public List<GeneralJournal> getPostedJournalsByDateRange(LocalDate startDate, LocalDate endDate) {
-        return generalJournalRepository.findByStatusAndJournalDateBetween(JournalStatus.POSTED, startDate, endDate);
+        return generalJournalRepository.findByCompanyIdAndStatusAndJournalDateBetween(
+                companyContext.requireCompanyId(), JournalStatus.POSTED, startDate, endDate);
     }
 
     public List<GeneralJournal> getAllJournals() {
-        return generalJournalRepository.findAll();
+        return generalJournalRepository.findAllByCompanyId(companyContext.requireCompanyId());
     }
 
     @Transactional
     public void deleteJournal(Long id) {
-        Optional<GeneralJournal> journal = generalJournalRepository.findById(id);
+        Optional<GeneralJournal> journal = generalJournalRepository.findByIdAndCompanyId(id, companyContext.requireCompanyId());
         if (journal.isPresent()) {
             if (!journal.get().getStatus().equals(JournalStatus.DRAFT)) {
                 throw new IllegalArgumentException("Only DRAFT journals can be deleted");
             }
-            generalJournalRepository.deleteById(id);
+            generalJournalRepository.delete(journal.get());
         }
     }
 
@@ -225,12 +241,22 @@ public class GeneralJournalService {
 
             // Defense-in-depth: if no GL row exists for this account yet, create one
             // so a posting can never silently drop entries.
-            GeneralLedger gl = generalLedgerRepository.findByAccountId(entry.getAccount().getId())
+            GeneralLedger gl = generalLedgerRepository.findByCompanyIdAndAccountId(
+                    companyContext.requireCompanyId(), entry.getAccount().getId())
                     .orElseGet(() -> generalLedgerService.createLedgerAccount(entry.getAccount()));
 
             gl.setDebitBalance(gl.getDebitBalance().add(entry.getDebit()));
             gl.setCreditBalance(gl.getCreditBalance().add(entry.getCredit()));
             generalLedgerRepository.save(gl);
         }
+    }
+
+    private com.cogitosum.entity.ChartOfAccount resolveAccount(
+            com.cogitosum.entity.ChartOfAccount account, Long companyId) {
+        if (account == null || account.getId() == null) {
+            throw new IllegalArgumentException("Journal entry is missing an account reference");
+        }
+        return chartOfAccountRepository.findByIdAndCompanyId(account.getId(), companyId)
+                .orElseThrow(() -> new IllegalArgumentException("Account not found"));
     }
 }

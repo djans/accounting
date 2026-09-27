@@ -10,11 +10,15 @@ import java.time.LocalDate;
  */
 @Entity
 @Table(name = "bill_payments")
-public class BillPayment {
+public class BillPayment implements CompanyOwned {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "company_id", nullable = false, updatable = false)
+    private Company company;
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "bill_id", nullable = false)
@@ -71,6 +75,16 @@ public class BillPayment {
 
     public void setId(Long id) {
         this.id = id;
+    }
+
+    @Override
+    public Company getCompany() {
+        return company;
+    }
+
+    @Override
+    public void setCompany(Company company) {
+        this.company = company;
     }
 
     public Bill getBill() {

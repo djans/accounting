@@ -16,5 +16,11 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
     List<Payment> findByStatus(PaymentStatus status);
     List<Payment> findByPaymentDateBetween(LocalDate startDate, LocalDate endDate);
     java.util.List<Payment> findByPaymentMethod(com.cogitosum.entity.PaymentMethod paymentMethod);
+    Optional<Payment> findByIdAndCompanyId(Long id, Long companyId);
+    Optional<Payment> findByCompanyIdAndTransactionId(Long companyId, String transactionId);
+    List<Payment> findByCompanyIdAndInvoiceId(Long companyId, Long invoiceId);
+    List<Payment> findByCompanyIdAndStatus(Long companyId, PaymentStatus status);
+    List<Payment> findByCompanyIdAndPaymentDateBetween(Long companyId, LocalDate startDate, LocalDate endDate);
+    List<Payment> findAllByCompanyId(Long companyId);
+    List<Payment> findByCompanyIdAndPaymentMethod(Long companyId, com.cogitosum.entity.PaymentMethod paymentMethod);
 }
-

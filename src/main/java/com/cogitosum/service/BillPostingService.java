@@ -37,6 +37,9 @@ public class BillPostingService {
     @Autowired
     private ChartOfAccountRepository accountRepository;
 
+    @Autowired
+    private CurrentCompanyContext companyContext;
+
     @Transactional
     public void postBill(Bill bill) {
         if (bill.getStatus() == BillStatus.CANCELLED) return;
@@ -59,7 +62,7 @@ public class BillPostingService {
     }
 
     private void reversePriorPosting(Bill bill, String reason) {
-        Optional<GeneralJournal> existing = journalRepository.findAll().stream()
+        Optional<GeneralJournal> existing = journalRepository.findAllByCompanyId(companyContext.requireCompanyId()).stream()
             .filter(j -> ("BILL-" + bill.getId()).equals(j.getReference()))
             .filter(j -> j.getStatus() == JournalStatus.POSTED)
             .findFirst();
@@ -118,7 +121,7 @@ public class BillPostingService {
     }
 
     private ChartOfAccount lookup(String accountNumber) {
-        return accountRepository.findByAccountNumber(accountNumber)
+        return accountRepository.findByCompanyIdAndAccountNumber(companyContext.requireCompanyId(), accountNumber)
             .orElseThrow(() -> new IllegalStateException("Required account not seeded: " + accountNumber));
     }
 }

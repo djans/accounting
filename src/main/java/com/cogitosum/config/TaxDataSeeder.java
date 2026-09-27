@@ -1,39 +1,49 @@
 package com.cogitosum.config;
 
 import com.cogitosum.entity.*;
-import com.cogitosum.repository.ChartOfAccountRepository;
-import com.cogitosum.repository.TaxAgencyRepository;
-import com.cogitosum.repository.TaxCodeRepository;
-import com.cogitosum.repository.TaxGroupRepository;
+import com.cogitosum.repository.*;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
 
 @Component
+@Order(2)
+@ConditionalOnProperty(name = "app.seed.reference-data.enabled", havingValue = "true", matchIfMissing = true)
 public class TaxDataSeeder implements CommandLineRunner {
 
     private final ChartOfAccountRepository accounts;
     private final TaxAgencyRepository agencies;
     private final TaxCodeRepository codes;
+    private final TaxItemRepository items;
     private final TaxGroupRepository taxGroups;
+    private final BootstrapCompanyProvider bootstrapCompanyProvider;
+    private Company company;
 
     public TaxDataSeeder(ChartOfAccountRepository accounts,
                          TaxAgencyRepository agencies,
                          TaxCodeRepository codes,
-                         TaxGroupRepository taxGroups) {
+                         TaxItemRepository items,
+                         TaxGroupRepository taxGroups,
+                         BootstrapCompanyProvider bootstrapCompanyProvider) {
         this.accounts = accounts;
         this.agencies = agencies;
         this.codes = codes;
+        this.items = items;
         this.taxGroups = taxGroups;
+        this.bootstrapCompanyProvider = bootstrapCompanyProvider;
     }
 
     @Override
     public void run(String... args) {
+        company = bootstrapCompanyProvider.requireBootstrapCompany();
         seedAccounts();
         seedAgencies();
-        seedCodes();
+        seedItems();
         seedGroups();
+        seedCodes();
     }
 
     private void seedAccounts() {
@@ -116,29 +126,29 @@ public class TaxDataSeeder implements CommandLineRunner {
         ensureAgency("MRQ2013", "Ministere du Revenue (TPS/TVQ_2013)", null);
     }
 
-    private void seedCodes() {
-        TaxAgency cra = agencies.findByCode("CRA").orElseThrow();
-        TaxAgency rq = agencies.findByCode("RQ").orElseThrow();
-        TaxAgency mrq2013 = agencies.findByCode("MRQ2013").orElseThrow();
+    private void seedItems() {
+        TaxAgency cra = agencies.findByCompanyIdAndCode(company.getId(), "CRA").orElseThrow();
+        TaxAgency rq = agencies.findByCompanyIdAndCode(company.getId(), "RQ").orElseThrow();
+        TaxAgency mrq2013 = agencies.findByCompanyIdAndCode(company.getId(), "MRQ2013").orElseThrow();
 
-        ChartOfAccount tpsPayable = accounts.findByAccountNumber("2310").orElseThrow();
-        ChartOfAccount tvqPayable = accounts.findByAccountNumber("2320").orElseThrow();
-        ChartOfAccount hstPayable = accounts.findByAccountNumber("2330").orElseThrow();
-        ChartOfAccount tpsItc = accounts.findByAccountNumber("1300").orElseThrow();
-        ChartOfAccount tvqItc = accounts.findByAccountNumber("1310").orElseThrow();
-        ChartOfAccount hstItc = accounts.findByAccountNumber("1320").orElseThrow();
-        ChartOfAccount combined2013 = accounts.findByAccountNumber("1330").orElseThrow();
+        ChartOfAccount tpsPayable = accounts.findByCompanyIdAndAccountNumber(company.getId(), "2310").orElseThrow();
+        ChartOfAccount tvqPayable = accounts.findByCompanyIdAndAccountNumber(company.getId(), "2320").orElseThrow();
+        ChartOfAccount hstPayable = accounts.findByCompanyIdAndAccountNumber(company.getId(), "2330").orElseThrow();
+        ChartOfAccount tpsItc = accounts.findByCompanyIdAndAccountNumber(company.getId(), "1300").orElseThrow();
+        ChartOfAccount tvqItc = accounts.findByCompanyIdAndAccountNumber(company.getId(), "1310").orElseThrow();
+        ChartOfAccount hstItc = accounts.findByCompanyIdAndAccountNumber(company.getId(), "1320").orElseThrow();
+        ChartOfAccount combined2013 = accounts.findByCompanyIdAndAccountNumber(company.getId(), "1330").orElseThrow();
 
-        ensureCode("TPS", "Taxe sur les produits et services (5%)", new BigDecimal("0.05000"), cra, tpsPayable, tpsItc);
-        ensureCode("TVQ", "Taxe de vente du Quebec (9.975%)", new BigDecimal("0.09975"), rq, tvqPayable, tvqItc);
-        ensureCode("HST-ON", "Ontario HST (13%)", new BigDecimal("0.13000"), cra, hstPayable, hstItc);
-        ensureCode("HST-15", "Maritime HST (15%)", new BigDecimal("0.15000"), cra, hstPayable, hstItc);
+        ensureItem("TPS", "Taxe sur les produits et services (5%)", new BigDecimal("0.05000"), cra, tpsPayable, tpsItc);
+        ensureItem("TVQ", "Taxe de vente du Quebec (9.975%)", new BigDecimal("0.09975"), rq, tvqPayable, tvqItc);
+        ensureItem("HST-ON", "Ontario HST (13%)", new BigDecimal("0.13000"), cra, hstPayable, hstItc);
+        ensureItem("HST-15", "Maritime HST (15%)", new BigDecimal("0.15000"), cra, hstPayable, hstItc);
 
         // Données 2013
-        ensureCode("S13-TPS", "TPS/GST_2013 (5%)", new BigDecimal("0.05000"), mrq2013, combined2013, combined2013);
-        ensureCode("S13-TVQ", "TVQ/QST_2013 (9.98%)", new BigDecimal("0.09980"), mrq2013, combined2013, combined2013);
-        ensureCode("S13-TPS-ITC", "TPS(CTI)/GST(ITC)_2013 (5%)", new BigDecimal("0.05000"), mrq2013, combined2013, combined2013);
-        ensureCode("S13-TVQ-ITC", "TVQ(CTI)/QST(ITC) (9.98%)", new BigDecimal("0.09980"), mrq2013, combined2013, combined2013);
+        ensureItem("S13-TPS", "TPS/GST_2013 (5%)", new BigDecimal("0.05000"), mrq2013, combined2013, combined2013);
+        ensureItem("S13-TVQ", "TVQ/QST_2013 (9.98%)", new BigDecimal("0.09980"), mrq2013, combined2013, combined2013);
+        ensureItem("S13-TPS-ITC", "TPS(CTI)/GST(ITC)_2013 (5%)", new BigDecimal("0.05000"), mrq2013, combined2013, combined2013);
+        ensureItem("S13-TVQ-ITC", "TVQ(CTI)/QST(ITC) (9.98%)", new BigDecimal("0.09980"), mrq2013, combined2013, combined2013);
     }
 
     private void seedGroups() {
@@ -148,19 +158,27 @@ public class TaxDataSeeder implements CommandLineRunner {
         ensureGroup("FED", "Fédéral (TPS seulement)", "TPS");
     }
 
+    private void seedCodes() {
+        ensureCode("QC", "Québec (TPS+TVQ)", "QC", "QC");
+        ensureCode("ON", "Ontario (HST 13%)", "ON", "ON");
+        ensureCode("MARITIME", "Maritimes (HST 15%)", "MARITIME", "MARITIME");
+        ensureCode("FED", "Fédéral (TPS)", "FED", "FED");
+    }
+
     private void ensureGroup(String code, String name, String... itemCodes) {
-        if (taxGroups.findByCode(code).isPresent()) return;
+        if (taxGroups.findByCompanyIdAndCode(company.getId(), code).isPresent()) return;
         TaxGroup g = new TaxGroup();
+        g.setCompany(company);
         g.setCode(code);
         g.setName(name);
         for (String ic : itemCodes) {
-            codes.findByCode(ic).ifPresent(g.getTaxItems()::add);
+            items.findByCompanyIdAndCode(company.getId(), ic).ifPresent(g.getTaxItems()::add);
         }
         taxGroups.save(g);
     }
 
     private void ensureAccount(String number, String name, AccountType type, String description) {
-        var existing = accounts.findByAccountNumber(number);
+        var existing = accounts.findByCompanyIdAndAccountNumber(company.getId(), number);
         if (existing.isPresent()) {
             ChartOfAccount account = existing.get();
             if (account.getCategory() == null) {
@@ -170,6 +188,7 @@ public class TaxDataSeeder implements CommandLineRunner {
             return;
         }
         ChartOfAccount a = new ChartOfAccount();
+        a.setCompany(company);
         a.setAccountNumber(number);
         a.setAccountName(name);
         a.setAccountType(type);
@@ -192,26 +211,40 @@ public class TaxDataSeeder implements CommandLineRunner {
     }
 
     private void ensureAgency(String code, String name, String website) {
-        if (agencies.findByCode(code).isPresent()) return;
+        if (agencies.findByCompanyIdAndCode(company.getId(), code).isPresent()) return;
         TaxAgency a = new TaxAgency();
+        a.setCompany(company);
         a.setCode(code);
         a.setName(name);
         a.setWebsite(website);
         agencies.save(a);
     }
 
-    private void ensureCode(String code, String name, BigDecimal rate, TaxAgency agency,
+    private void ensureItem(String code, String name, BigDecimal rate, TaxAgency agency,
                             ChartOfAccount payable, ChartOfAccount itc) {
-        if (codes.findByCode(code).isPresent()) return;
+        if (items.findByCompanyIdAndCode(company.getId(), code).isPresent()) return;
+        TaxItem i = new TaxItem();
+        i.setCompany(company);
+        i.setCode(code);
+        i.setName(name);
+        i.setRate(rate);
+        i.setAgency(agency);
+        i.setPayableAccount(payable);
+        i.setItcAccount(itc);
+        i.setForSales(true);
+        i.setForPurchases(true);
+        i.setActive(true);
+        items.save(i);
+    }
+
+    private void ensureCode(String code, String name, String salesGroupCode, String purchaseGroupCode) {
+        if (codes.findByCompanyIdAndCode(company.getId(), code).isPresent()) return;
         TaxCode c = new TaxCode();
+        c.setCompany(company);
         c.setCode(code);
         c.setName(name);
-        c.setRate(rate);
-        c.setAgency(agency);
-        c.setPayableAccount(payable);
-        c.setItcAccount(itc);
-        c.setForSales(true);
-        c.setForPurchases(true);
+        taxGroups.findByCompanyIdAndCode(company.getId(), salesGroupCode).ifPresent(c::setSalesTaxGroup);
+        taxGroups.findByCompanyIdAndCode(company.getId(), purchaseGroupCode).ifPresent(c::setPurchaseTaxGroup);
         c.setActive(true);
         codes.save(c);
     }

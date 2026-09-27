@@ -18,7 +18,17 @@ public class GlobalModelAdvice {
 
     @ModelAttribute("requestURI")
     public String requestURI(HttpServletRequest request) {
-        return request.getRequestURI();
+        String uri = request.getRequestURI();
+        String query = request.getQueryString();
+        if (query == null) {
+            return uri;
+        }
+        // Remove existing lang parameter to avoid duplication
+        query = java.util.Arrays.stream(query.split("&"))
+                .filter(p -> !p.startsWith("lang="))
+                .collect(java.util.stream.Collectors.joining("&"));
+        
+        return query.isEmpty() ? uri : uri + "?" + query;
     }
 
     @ModelAttribute("currentUser")

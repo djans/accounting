@@ -5,15 +5,24 @@ import com.cogitosum.entity.Invoice;
 import com.cogitosum.entity.InvoiceStatus;
 import com.cogitosum.entity.LineItem;
 import com.cogitosum.service.CustomerService;
+import com.cogitosum.service.DocumentAttachmentService;
+import com.cogitosum.service.InvoiceEmailService;
+import com.cogitosum.service.InvoicePdfService;
 import com.cogitosum.service.InvoiceService;
 import com.cogitosum.service.PaymentService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.CacheControl;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
@@ -25,6 +34,9 @@ public class InvoiceWebController {
     @Autowired private InvoiceService invoiceService;
     @Autowired private CustomerService customerService;
     @Autowired private PaymentService paymentService;
+    @Autowired private InvoicePdfService invoicePdfService;
+    @Autowired private InvoiceEmailService invoiceEmailService;
+    @Autowired private DocumentAttachmentService attachmentService;
 
     @GetMapping
     public String list(Model model) {
@@ -172,6 +184,7 @@ public class InvoiceWebController {
                 .map(inv -> {
                     model.addAttribute("invoice", inv);
                     model.addAttribute("payments", paymentService.getPaymentsByInvoiceId(id));
+                    model.addAttribute("attachments", attachmentService.listInvoiceAttachments(id));
                     return "invoices/detail";
                 })
                 .orElseGet(() -> {
@@ -184,6 +197,32 @@ public class InvoiceWebController {
     public String send(@PathVariable Long id, RedirectAttributes ra) {
         invoiceService.markInvoiceAsSent(id);
         ra.addFlashAttribute("flashSuccess", "Invoice marked as sent");
+        return "redirect:/invoices/" + id;
+    }
+
+    @GetMapping("/{id}/pdf")
+    public ResponseEntity<byte[]> pdf(@PathVariable Long id) {
+        return invoicePdfService.downloadInvoice(id)
+                .map(pdf -> ResponseEntity.ok()
+                        .contentType(MediaType.APPLICATION_PDF)
+                        .cacheControl(CacheControl.noStore().cachePrivate())
+                        .header("X-Content-Type-Options", "nosniff")
+                        .header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.attachment()
+                                .filename(pdf.filename(), StandardCharsets.UTF_8).build().toString())
+                        .contentLength(pdf.content().length)
+                        .body(pdf.content()))
+                .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
+    @PostMapping("/{id}/email")
+    public String email(@PathVariable Long id, @RequestParam(required = false) String recipient,
+                        RedirectAttributes ra) {
+        try {
+            invoiceEmailService.emailInvoice(id, recipient);
+            ra.addFlashAttribute("flashSuccess", "Invoice emailed and marked as sent.");
+        } catch (Exception e) {
+            ra.addFlashAttribute("flashError", "Could not email invoice: " + e.getMessage());
+        }
         return "redirect:/invoices/" + id;
     }
 

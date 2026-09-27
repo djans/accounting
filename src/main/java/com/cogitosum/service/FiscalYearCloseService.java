@@ -44,9 +44,13 @@ public class FiscalYearCloseService {
     @Autowired
     private AccountingReportService reportService;
 
+    @Autowired
+    private CurrentCompanyContext companyContext;
+
     @Transactional
     public FiscalYear close(Long fiscalYearId, String postedBy) {
-        FiscalYear fy = fiscalYearRepository.findById(fiscalYearId)
+        Long companyId = companyContext.requireCompanyId();
+        FiscalYear fy = fiscalYearRepository.findByIdAndCompanyId(fiscalYearId, companyId)
             .orElseThrow(() -> new IllegalArgumentException("Fiscal year not found: " + fiscalYearId));
         if (fy.getStatus() == FiscalYearStatus.CLOSED) {
             throw new IllegalStateException("L'exercice est déjà clôturé");
@@ -65,14 +69,16 @@ public class FiscalYearCloseService {
         BigDecimal totalExpenses = BigDecimal.ZERO;
 
         // Dr each revenue account by its (credit-normal) balance to zero it out.
-        for (ChartOfAccount acct : accountRepository.findByAccountTypeOrderByAccountNumberAsc(AccountType.REVENUE)) {
+        for (ChartOfAccount acct : accountRepository.findByCompanyIdAndAccountTypeOrderByAccountNumberAsc(
+                companyId, AccountType.REVENUE)) {
             BigDecimal bal = balanceOf(acct);
             if (bal.signum() == 0) continue;
             entries.add(entry(acct, bal, BigDecimal.ZERO, "Clôture — " + acct.getAccountName(), line++));
             totalRevenue = totalRevenue.add(bal);
         }
         // Cr each expense account by its (debit-normal) balance to zero it out.
-        for (ChartOfAccount acct : accountRepository.findByAccountTypeOrderByAccountNumberAsc(AccountType.EXPENSE)) {
+        for (ChartOfAccount acct : accountRepository.findByCompanyIdAndAccountTypeOrderByAccountNumberAsc(
+                companyId, AccountType.EXPENSE)) {
             BigDecimal bal = balanceOf(acct);
             if (bal.signum() == 0) continue;
             entries.add(entry(acct, BigDecimal.ZERO, bal, "Clôture — " + acct.getAccountName(), line++));
@@ -108,7 +114,8 @@ public class FiscalYearCloseService {
 
     @Transactional
     public FiscalYear reopen(Long fiscalYearId) {
-        FiscalYear fy = fiscalYearRepository.findById(fiscalYearId)
+        Long companyId = companyContext.requireCompanyId();
+        FiscalYear fy = fiscalYearRepository.findByIdAndCompanyId(fiscalYearId, companyId)
             .orElseThrow(() -> new IllegalArgumentException("Fiscal year not found: " + fiscalYearId));
         if (fy.getStatus() != FiscalYearStatus.CLOSED) {
             throw new IllegalStateException("Seul un exercice clôturé peut être rouvert");
@@ -130,7 +137,7 @@ public class FiscalYearCloseService {
     }
 
     private BigDecimal balanceOf(ChartOfAccount acct) {
-        return ledgerRepository.findByAccountId(acct.getId())
+        return ledgerRepository.findByCompanyIdAndAccountId(companyContext.requireCompanyId(), acct.getId())
             .map(GeneralLedger::getBalance)
             .orElse(BigDecimal.ZERO);
     }
@@ -146,7 +153,7 @@ public class FiscalYearCloseService {
     }
 
     private ChartOfAccount lookup(String accountNumber) {
-        return accountRepository.findByAccountNumber(accountNumber)
+        return accountRepository.findByCompanyIdAndAccountNumber(companyContext.requireCompanyId(), accountNumber)
             .orElseThrow(() -> new IllegalStateException("Required account not seeded: " + accountNumber));
     }
 }

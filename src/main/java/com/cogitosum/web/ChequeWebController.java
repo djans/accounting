@@ -40,7 +40,7 @@ public class ChequeWebController {
         model.addAttribute("customers", customerService.getAllCustomers());
         model.addAttribute("accounts", accountService.getAllAccounts().stream().filter(a -> Boolean.TRUE.equals(a.getActive())).toList());
         model.addAttribute("bankAccounts", bankAccounts());
-        model.addAttribute("taxCodes", taxCodeService.getActive());
+        model.addAttribute("taxCodes", taxCodeService.getActiveCodes());
         model.addAttribute("nextChequeNumber", chequeService.nextNumber());
         model.addAttribute("today", LocalDate.now());
         model.addAttribute("active", "cheques-new");

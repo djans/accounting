@@ -64,7 +64,7 @@ class TaxReportRestControllerTest {
         when(code.getCode()).thenReturn("TPS");
         when(code.getName()).thenReturn("TPS 5%");
 
-        when(codeService.getAll()).thenReturn(List.of(code));
+        when(codeService.getAllCodes()).thenReturn(List.of(code));
 
         mockMvc.perform(get("/api/tax/codes").accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())

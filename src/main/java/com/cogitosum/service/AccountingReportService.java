@@ -31,8 +31,12 @@ public class AccountingReportService {
     @Autowired
     private JournalEntryRepository journalEntryRepository;
 
+    @Autowired
+    private CurrentCompanyContext companyContext;
+
     public Map<String, Object> getTrialBalance() {
-        List<GeneralLedger> ledgers = generalLedgerRepository.findAllByOrderByAccountAccountNumberAsc();
+        Long companyId = companyContext.requireCompanyId();
+        List<GeneralLedger> ledgers = generalLedgerRepository.findAllByCompanyIdOrderByAccountAccountNumberAsc(companyId);
 
         BigDecimal totalDebits = BigDecimal.ZERO;
         BigDecimal totalCredits = BigDecimal.ZERO;
@@ -43,7 +47,7 @@ public class AccountingReportService {
             categoryTotals.put(type, BigDecimal.ZERO);
         }
 
-        for (ChartOfAccount account : chartOfAccountRepository.findAllByOrderByAccountNumberAsc()) {
+        for (ChartOfAccount account : chartOfAccountRepository.findAllByCompanyIdOrderByAccountNumberAsc(companyId)) {
             Map<String, Object> accountData = new HashMap<>();
             accountData.put("accountNumber", account.getAccountNumber());
             accountData.put("accountId", account.getId());
@@ -138,7 +142,8 @@ public class AccountingReportService {
     public Map<String, Object> getAccountDetail(Long accountId) {
         Map<String, Object> detail = new HashMap<>();
 
-        Optional<GeneralLedger> ledger = generalLedgerRepository.findByAccountId(accountId);
+        Optional<GeneralLedger> ledger = generalLedgerRepository.findByCompanyIdAndAccountId(
+                companyContext.requireCompanyId(), accountId);
         if (ledger.isPresent()) {
             GeneralLedger gl = ledger.get();
             detail.put("accountId", gl.getAccount().getId());
@@ -155,7 +160,8 @@ public class AccountingReportService {
     }
 
     public List<Map<String, Object>> getAccountTransactions(Long accountId) {
-        List<JournalEntry> entries = journalEntryRepository.findByAccountId(accountId);
+        List<JournalEntry> entries = journalEntryRepository.findByJournalCompanyIdAndAccountId(
+                companyContext.requireCompanyId(), accountId);
         return entries.stream()
                 .map(e -> {
                     Map<String, Object> row = new HashMap<>();
@@ -186,10 +192,13 @@ public class AccountingReportService {
         AccountType primaryType = accountTypes.length > 0 ? accountTypes[0] : null;
 
         for (AccountType type : accountTypes) {
-            List<ChartOfAccount> accounts = chartOfAccountRepository.findByAccountTypeOrderByAccountNumberAsc(type);
+            Long companyId = companyContext.requireCompanyId();
+            List<ChartOfAccount> accounts = chartOfAccountRepository
+                    .findByCompanyIdAndAccountTypeOrderByAccountNumberAsc(companyId, type);
 
             for (ChartOfAccount account : accounts) {
-                Optional<GeneralLedger> ledger = generalLedgerRepository.findByAccountId(account.getId());
+                Optional<GeneralLedger> ledger = generalLedgerRepository.findByCompanyIdAndAccountId(
+                        companyId, account.getId());
                 if (ledger.isEmpty()) {
                     continue;
                 }

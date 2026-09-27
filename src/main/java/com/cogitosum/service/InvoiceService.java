@@ -1,11 +1,8 @@
 package com.cogitosum.service;
 
-import com.cogitosum.entity.Invoice;
-import com.cogitosum.entity.InvoiceStatus;
-import com.cogitosum.entity.LineItem;
-import com.cogitosum.entity.TaxCode;
-import com.cogitosum.entity.TaxGroup;
+import com.cogitosum.entity.*;
 import com.cogitosum.repository.InvoiceRepository;
+import com.cogitosum.repository.CustomerRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,6 +24,12 @@ public class InvoiceService {
 
     @Autowired
     private TaxCodeService taxCodeService;
+
+    @Autowired
+    private CustomerRepository customerRepository;
+
+    @Autowired
+    private CurrentCompanyContext companyContext;
     
     // Canadian tax rates - default federal GST when no province match
     private static final BigDecimal GST_RATE = new BigDecimal("0.05");      // 5% TPS
@@ -53,6 +56,10 @@ public class InvoiceService {
     }
 
     public Invoice createInvoice(Invoice invoice, String regimeCode) {
+        Long companyId = companyContext.requireCompanyId();
+        invoice.setCompany(companyContext.requireCompany());
+        invoice.setCustomer(customerRepository.findByIdAndCompanyId(requiredId(invoice.getCustomer(), "customer"), companyId)
+                .orElseThrow(() -> new IllegalArgumentException("Customer not found")));
         if (invoice.getInvoiceNumber() == null || invoice.getInvoiceNumber().isEmpty()) {
             invoice.setInvoiceNumber(suggestNextInvoiceNumber());
         }
@@ -75,7 +82,8 @@ public class InvoiceService {
 
     @Transactional
     public Invoice updateInvoice(Long id, Invoice invoice, String regimeCode) {
-        Optional<Invoice> existingInvoice = invoiceRepository.findById(id);
+        Long companyId = companyContext.requireCompanyId();
+        Optional<Invoice> existingInvoice = invoiceRepository.findByIdAndCompanyId(id, companyId);
         if (existingInvoice.isPresent()) {
             Invoice inv = existingInvoice.get();
             if (!canEdit(inv)) {
@@ -88,7 +96,8 @@ public class InvoiceService {
                     ? List.of()
                     : invoice.getLineItems();
             inv.getLineItems().clear();
-            inv.setCustomer(invoice.getCustomer());
+            inv.setCustomer(customerRepository.findByIdAndCompanyId(requiredId(invoice.getCustomer(), "customer"), companyId)
+                    .orElseThrow(() -> new IllegalArgumentException("Customer not found")));
             inv.setInvoiceNumber(invoice.getInvoiceNumber());
             inv.setInvoiceDate(invoice.getInvoiceDate());
             inv.setDueDate(invoice.getDueDate());
@@ -110,7 +119,7 @@ public class InvoiceService {
     }
 
     public String suggestNextInvoiceNumber() {
-        return invoiceRepository.findTopByOrderByIdDesc()
+        return invoiceRepository.findTopByCompanyIdOrderByIdDesc(companyContext.requireCompanyId())
             .map(Invoice::getInvoiceNumber)
             .map(this::incrementInvoiceNumber)
             .orElse("INV-001");
@@ -126,9 +135,10 @@ public class InvoiceService {
     }
 
     public Invoice duplicateInvoice(Long id) {
-        Invoice source = invoiceRepository.findById(id)
+        Invoice source = invoiceRepository.findByIdAndCompanyId(id, companyContext.requireCompanyId())
             .orElseThrow(() -> new IllegalArgumentException("Invoice not found"));
         Invoice copy = new Invoice();
+        copy.setCompany(companyContext.requireCompany());
         copy.setInvoiceNumber(suggestNextInvoiceNumber());
         copy.setCustomer(source.getCustomer());
         copy.setInvoiceDate(LocalDate.now());
@@ -149,32 +159,34 @@ public class InvoiceService {
         return invoiceRepository.save(copy);
     }
     public Optional<Invoice> getInvoiceById(Long id) {
-        return invoiceRepository.findById(id);
+        return invoiceRepository.findByIdAndCompanyId(id, companyContext.requireCompanyId());
     }
     
     public Optional<Invoice> getInvoiceByInvoiceNumber(String invoiceNumber) {
-        return invoiceRepository.findByInvoiceNumber(invoiceNumber);
+        return invoiceRepository.findByCompanyIdAndInvoiceNumber(companyContext.requireCompanyId(), invoiceNumber);
     }
     
     public List<Invoice> getInvoicesByCustomerId(Long customerId) {
-        return invoiceRepository.findByCustomerIdOrderByInvoiceNumberDesc(customerId);
+        return invoiceRepository.findByCompanyIdAndCustomerIdOrderByInvoiceNumberDesc(
+                companyContext.requireCompanyId(), customerId);
     }
 
     public List<Invoice> getInvoicesByStatus(InvoiceStatus status) {
-        return invoiceRepository.findByStatusOrderByInvoiceNumberDesc(status);
+        return invoiceRepository.findByCompanyIdAndStatusOrderByInvoiceNumberDesc(companyContext.requireCompanyId(), status);
     }
 
     public List<Invoice> getInvoicesByDateRange(LocalDate startDate, LocalDate endDate) {
-        return invoiceRepository.findByInvoiceDateBetweenOrderByInvoiceDateDesc(startDate, endDate);
+        return invoiceRepository.findByCompanyIdAndInvoiceDateBetweenOrderByInvoiceDateDesc(
+                companyContext.requireCompanyId(), startDate, endDate);
     }
 
     public List<Invoice> getAllInvoices() {
-        return invoiceRepository.findAllByOrderByInvoiceNumberDesc();
+        return invoiceRepository.findAllByCompanyIdOrderByInvoiceNumberDesc(companyContext.requireCompanyId());
     }
     
     @Transactional
     public Invoice markInvoiceAsSent(Long id) {
-        Optional<Invoice> invoice = invoiceRepository.findById(id);
+        Optional<Invoice> invoice = invoiceRepository.findByIdAndCompanyId(id, companyContext.requireCompanyId());
         if (invoice.isPresent()) {
             Invoice inv = invoice.get();
             if (inv.getStatus() != InvoiceStatus.DRAFT) {
@@ -192,7 +204,7 @@ public class InvoiceService {
     }
     
     public Invoice markInvoiceAsViewed(Long id) {
-        Optional<Invoice> invoice = invoiceRepository.findById(id);
+        Optional<Invoice> invoice = invoiceRepository.findByIdAndCompanyId(id, companyContext.requireCompanyId());
         if (invoice.isPresent()) {
             invoice.get().setStatus(InvoiceStatus.VIEWED);
             return invoiceRepository.save(invoice.get());
@@ -201,7 +213,7 @@ public class InvoiceService {
     }
     
     public Invoice cancelInvoice(Long id) {
-        Optional<Invoice> invoice = invoiceRepository.findById(id);
+        Optional<Invoice> invoice = invoiceRepository.findByIdAndCompanyId(id, companyContext.requireCompanyId());
         if (invoice.isPresent()) {
             Invoice inv = invoice.get();
             invoicePostingService.reverseInvoice(inv, "Invoice cancelled");
@@ -212,7 +224,8 @@ public class InvoiceService {
     }
     
     public List<Invoice> getOverdueInvoices() {
-        List<Invoice> invoices = invoiceRepository.findByStatusOrderByInvoiceNumberDesc(InvoiceStatus.SENT);
+        List<Invoice> invoices = invoiceRepository.findByCompanyIdAndStatusOrderByInvoiceNumberDesc(
+                companyContext.requireCompanyId(), InvoiceStatus.SENT);
         return invoices.stream()
             .filter(inv -> inv.getDueDate().isBefore(LocalDate.now()))
             .toList();
@@ -226,8 +239,8 @@ public class InvoiceService {
         String province = invoice.getCustomer() != null ? invoice.getCustomer().getProvince() : null;
         String effectiveCode = regimeCode != null ? regimeCode : (province != null ? province : "FED");
         
-        Optional<TaxGroup> groupOpt = taxCodeService.getAllGroups().stream()
-                .filter(g -> g.getCode().equals(effectiveCode))
+        Optional<TaxCode> taxCodeOpt = taxCodeService.getAllCodes().stream()
+                .filter(c -> c.getCode().equals(effectiveCode))
                 .findFirst();
 
         BigDecimal subtotal = invoice.getLineItems().stream()
@@ -239,8 +252,8 @@ public class InvoiceService {
         BigDecimal hst = BigDecimal.ZERO;
         BigDecimal qst = BigDecimal.ZERO;
 
-        if (groupOpt.isPresent()) {
-            for (TaxCode item : groupOpt.get().getTaxItems()) {
+        if (taxCodeOpt.isPresent() && taxCodeOpt.get().getSalesTaxGroup() != null) {
+            for (TaxItem item : taxCodeOpt.get().getSalesTaxGroup().getTaxItems()) {
                 if (Boolean.FALSE.equals(item.getForSales())) continue;
                 
                 BigDecimal taxAmount = subtotal.multiply(item.getRate()).setScale(2, java.math.RoundingMode.HALF_UP);
@@ -254,7 +267,7 @@ public class InvoiceService {
                 }
             }
         } else {
-            // Fallback to legacy static rates if no group found
+            // Fallback to legacy static rates if no tax code/group found
             TaxRegime regime = resolveRegime(province, regimeCode);
             gst = subtotal.multiply(regime.gstRate()).setScale(2, java.math.RoundingMode.HALF_UP);
             hst = subtotal.multiply(regime.hstRate()).setScale(2, java.math.RoundingMode.HALF_UP);
@@ -320,7 +333,8 @@ public class InvoiceService {
     }
     
     public List<Invoice> getUnpaidInvoicesByCustomerId(Long customerId) {
-        return invoiceRepository.findByCustomerIdOrderByInvoiceNumberDesc(customerId).stream()
+        return invoiceRepository.findByCompanyIdAndCustomerIdOrderByInvoiceNumberDesc(
+                companyContext.requireCompanyId(), customerId).stream()
                 .filter(inv -> inv.getStatus() != InvoiceStatus.PAID 
                             && inv.getStatus() != InvoiceStatus.CANCELLED
                             && inv.getStatus() != InvoiceStatus.DRAFT
@@ -335,8 +349,15 @@ public class InvoiceService {
     }
 
     public void deleteInvoice(Long id) {
-        Optional<Invoice> invoice = invoiceRepository.findById(id);
+        Optional<Invoice> invoice = invoiceRepository.findByIdAndCompanyId(id, companyContext.requireCompanyId());
         invoice.ifPresent(inv -> invoicePostingService.reverseInvoice(inv, "Invoice deleted"));
-        invoiceRepository.deleteById(id);
+        invoice.ifPresent(invoiceRepository::delete);
+    }
+
+    private Long requiredId(Object related, String name) {
+        if (!(related instanceof Customer customer) || customer.getId() == null) {
+            throw new IllegalArgumentException("A " + name + " is required");
+        }
+        return customer.getId();
     }
 }

@@ -99,6 +99,52 @@
                 </div>
             </div>
 
+            <div class="portal-card">
+                <h3 class="portal-card-title" th:text="#{attachments.title}">Attachments</h3>
+                <form th:action="@{/bills/{id}/attachments(id=${bill.id})}" method="post"
+                      enctype="multipart/form-data">
+                    <div class="form-grid">
+                        <div class="form-field">
+                            <label for="billAttachment" th:text="#{attachments.file}">File</label>
+                            <input id="billAttachment" name="file" type="file" required="required"
+                                   accept="application/pdf,image/jpeg,image/png"/>
+                            <small class="text-muted" th:text="#{attachments.hint}">PDF, JPEG, or PNG; 10 MB maximum.</small>
+                        </div>
+                    </div>
+                    <div class="form-actions">
+                        <button class="btn-portal btn-ghost btn-sm" type="submit">
+                            <i class="bi bi-paperclip"></i> <span th:text="#{attachments.upload}">Upload attachment</span>
+                        </button>
+                    </div>
+                </form>
+                <div th:if="${#lists.isEmpty(attachments)}" class="empty-state" th:text="#{attachments.none}">
+                    No attachments yet.
+                </div>
+                <table th:if="${not #lists.isEmpty(attachments)}" class="table-portal">
+                    <thead><tr>
+                        <th th:text="#{attachments.filename}">File</th>
+                        <th th:text="#{attachments.size}">Size</th>
+                        <th th:text="#{attachments.actions}">Actions</th>
+                    </tr></thead>
+                    <tbody>
+                    <tr th:each="attachment : ${attachments}">
+                        <td th:text="${attachment.filename}">document.pdf</td>
+                        <td th:text="${attachment.contentLength + ' bytes'}">0 bytes</td>
+                        <td>
+                            <a class="btn-portal btn-ghost btn-sm"
+                               th:href="@{/bills/{billId}/attachments/{attachmentId}(billId=${bill.id},attachmentId=${attachment.id})}"
+                               th:text="#{attachments.download}">Download</a>
+                            <form th:action="@{/bills/{billId}/attachments/{attachmentId}/delete(billId=${bill.id},attachmentId=${attachment.id})}"
+                                  method="post" style="display:inline">
+                                <button type="submit" class="btn-portal btn-danger btn-sm"
+                                        th:text="#{attachments.delete}">Delete</button>
+                            </form>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
             <div class="portal-card" th:if="${bill.status.name() != 'CANCELLED' and bill.status.name() != 'PAID'}">
                 <h3 class="portal-card-title">Enregistrer un paiement</h3>
                 <p class="text-muted">

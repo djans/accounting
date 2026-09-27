@@ -15,4 +15,10 @@ public interface BillPaymentRepository extends JpaRepository<BillPayment, Long> 
     List<BillPayment> findByBillId(Long billId);
     List<BillPayment> findByStatus(PaymentStatus status);
     List<BillPayment> findByPaymentDateBetween(LocalDate startDate, LocalDate endDate);
+    Optional<BillPayment> findByIdAndCompanyId(Long id, Long companyId);
+    Optional<BillPayment> findByCompanyIdAndTransactionId(Long companyId, String transactionId);
+    List<BillPayment> findByCompanyIdAndBillId(Long companyId, Long billId);
+    List<BillPayment> findByCompanyIdAndStatus(Long companyId, PaymentStatus status);
+    List<BillPayment> findByCompanyIdAndPaymentDateBetween(Long companyId, LocalDate startDate, LocalDate endDate);
+    List<BillPayment> findAllByCompanyId(Long companyId);
 }

@@ -37,6 +37,9 @@ public class InvoicePostingService {
     @Autowired
     private ChartOfAccountRepository accountRepository;
 
+    @Autowired
+    private CurrentCompanyContext companyContext;
+
     @Transactional
     public void postInvoice(Invoice invoice) {
         if (invoice.getStatus() == InvoiceStatus.CANCELLED) return;
@@ -59,13 +62,13 @@ public class InvoicePostingService {
     }
 
     public boolean hasPostedJournal(Invoice invoice) {
-        return journalRepository.findAll().stream()
+        return journalRepository.findAllByCompanyId(companyContext.requireCompanyId()).stream()
             .anyMatch(j -> ("INVOICE-" + invoice.getId()).equals(j.getReference())
                 && j.getStatus() == JournalStatus.POSTED);
     }
 
     private void reversePriorPosting(Invoice invoice, String reason) {
-        Optional<GeneralJournal> existing = journalRepository.findAll().stream()
+        Optional<GeneralJournal> existing = journalRepository.findAllByCompanyId(companyContext.requireCompanyId()).stream()
             .filter(j -> ("INVOICE-" + invoice.getId()).equals(j.getReference()))
             .filter(j -> j.getStatus() == JournalStatus.POSTED)
             .findFirst();
@@ -119,7 +122,7 @@ public class InvoicePostingService {
     }
 
     private ChartOfAccount lookup(String accountNumber) {
-        return accountRepository.findByAccountNumber(accountNumber)
+        return accountRepository.findByCompanyIdAndAccountNumber(companyContext.requireCompanyId(), accountNumber)
             .orElseThrow(() -> new IllegalStateException("Required account not seeded: " + accountNumber));
     }
 }

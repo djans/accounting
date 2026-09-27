@@ -11,5 +11,7 @@ import java.util.Optional;
 public interface GeneralLedgerRepository extends JpaRepository<GeneralLedger, Long> {
     List<GeneralLedger> findAllByOrderByAccountAccountNumberAsc();
     Optional<GeneralLedger> findByAccountId(Long accountId);
+    Optional<GeneralLedger> findByIdAndCompanyId(Long id, Long companyId);
+    List<GeneralLedger> findAllByCompanyIdOrderByAccountAccountNumberAsc(Long companyId);
+    Optional<GeneralLedger> findByCompanyIdAndAccountId(Long companyId, Long accountId);
 }
-
