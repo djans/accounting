@@ -3,6 +3,8 @@ package com.cogitosum.repository;
 import com.cogitosum.entity.GeneralJournal;
 import com.cogitosum.entity.JournalStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
@@ -23,4 +25,16 @@ public interface GeneralJournalRepository extends JpaRepository<GeneralJournal, 
     List<GeneralJournal> findByCompanyIdAndStatusAndJournalDateBetween(
             Long companyId, JournalStatus status, LocalDate startDate, LocalDate endDate);
     List<GeneralJournal> findAllByCompanyId(Long companyId);
+
+    @Query("""
+            SELECT journal
+            FROM GeneralJournal journal
+            WHERE journal.company.id = :companyId
+            ORDER BY CASE WHEN journal.status = :postedStatus THEN 0 ELSE 1 END,
+                     CASE WHEN journal.status = :postedStatus THEN journal.postedDate ELSE journal.createdAt END DESC,
+                     journal.id DESC
+            """)
+    List<GeneralJournal> findAllByCompanyIdOrderByPostedFirstAndRecent(
+            @Param("companyId") Long companyId,
+            @Param("postedStatus") JournalStatus postedStatus);
 }

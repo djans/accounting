@@ -664,6 +664,9 @@ CREATE TABLE IF NOT EXISTS transfers (
     transfer_date DATE NULL,
     notes VARCHAR(1000) NULL,
     journal_id BIGINT NULL,
+    status VARCHAR(16) NOT NULL DEFAULT 'DRAFT',
+    voided_at DATETIME NULL,
+    void_reason VARCHAR(500) NULL,
     created_at DATETIME(6) NOT NULL,
     PRIMARY KEY (id),
     KEY idx_transfers_company (company_id),
@@ -672,6 +675,26 @@ CREATE TABLE IF NOT EXISTS transfers (
     CONSTRAINT fk_transfers_to_account FOREIGN KEY (to_account_id) REFERENCES chart_of_accounts (id),
     CONSTRAINT fk_transfers_journal FOREIGN KEY (journal_id) REFERENCES general_journals (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+SET @transfer_status_sql = (SELECT IF(
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE()
+        AND TABLE_NAME = 'transfers' AND COLUMN_NAME = 'status') > 0,
+    'SELECT 1',
+    'ALTER TABLE transfers ADD COLUMN status VARCHAR(16) NOT NULL DEFAULT ''POSTED'''));
+PREPARE stmt FROM @transfer_status_sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+ALTER TABLE transfers MODIFY COLUMN status VARCHAR(16) NOT NULL DEFAULT 'DRAFT';
+
+SET @transfer_voided_at_sql = (SELECT IF(
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE()
+        AND TABLE_NAME = 'transfers' AND COLUMN_NAME = 'voided_at') > 0,
+    'SELECT 1', 'ALTER TABLE transfers ADD COLUMN voided_at DATETIME NULL'));
+PREPARE stmt FROM @transfer_voided_at_sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @transfer_void_reason_sql = (SELECT IF(
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE()
+        AND TABLE_NAME = 'transfers' AND COLUMN_NAME = 'void_reason') > 0,
+    'SELECT 1', 'ALTER TABLE transfers ADD COLUMN void_reason VARCHAR(500) NULL'));
+PREPARE stmt FROM @transfer_void_reason_sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 -- Protected invoice and bill attachments. Metadata and file content are
 -- deliberately separate so list operations never retrieve binary content.

@@ -37,12 +37,25 @@ public class Transfer implements CompanyOwned {
     @JoinColumn(name = "journal_id")
     private GeneralJournal journal;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 16)
+    private TransferStatus status = TransferStatus.DRAFT;
+
+    @Column(name = "voided_at")
+    private LocalDateTime voidedAt;
+
+    @Column(name = "void_reason", length = 500)
+    private String voidReason;
+
     @Column(nullable = false)
     private LocalDateTime createdAt;
 
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
+        if (status == null) {
+            status = TransferStatus.DRAFT;
+        }
     }
 
     // Getters and setters
@@ -70,6 +83,15 @@ public class Transfer implements CompanyOwned {
 
     public GeneralJournal getJournal() { return journal; }
     public void setJournal(GeneralJournal journal) { this.journal = journal; }
+
+    public TransferStatus getStatus() { return status; }
+    public void setStatus(TransferStatus status) { this.status = status; }
+
+    public LocalDateTime getVoidedAt() { return voidedAt; }
+    public void setVoidedAt(LocalDateTime voidedAt) { this.voidedAt = voidedAt; }
+
+    public String getVoidReason() { return voidReason; }
+    public void setVoidReason(String voidReason) { this.voidReason = voidReason; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
 }

@@ -1,30 +1,120 @@
 <!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments/layout :: head('Transfers')}"></head>
+<html lang="en" th:lang="${#locale.language}" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(#{transfers.title})}"></head>
 <body>
 <div class="portal-shell">
     <div th:replace="~{fragments/layout :: sidebar('transfers')}"></div>
     <main class="portal-main">
-        <div th:replace="~{fragments/layout :: topbar('Transfers')}"></div>
+        <div th:replace="~{fragments/layout :: topbar(#{transfers.title})}"></div>
         <section class="portal-content">
+            <div th:replace="~{fragments/layout :: flash}"></div>
             <div class="portal-card">
-                <div th:replace="~{fragments/layout :: flash}"></div>
-                <h2>Transfers</h2>
-                <a th:href="@{/transfers/new}" class="btn-portal">Transfer Funds</a>
+                <h3 class="portal-card-title" th:text="#{transfers.title}">Transfers</h3>
+                <a th:href="@{/transfers/new}" class="btn-portal icon-action transfer-new-action"
+                   data-bs-toggle="tooltip" data-bs-placement="top"
+                   th:title="#{transfers.newDraft}" th:attr="aria-label=#{transfers.newDraft}">
+                    <i class="bi bi-plus-lg" aria-hidden="true"></i>
+                </a>
                 <table class="table-portal" th:if="${not #lists.isEmpty(transfers)}">
-                    <thead><tr><th th:text="#{table.date}">Date</th><th th:text="#{table.from}">From</th><th th:text="#{table.to}">To</th><th class="num" th:text="#{table.amount}">Amount</th><th th:text="#{table.memo}">Memo</th></tr></thead>
-                    <tbody><tr th:each="transfer : ${transfers}">
-                        <td th:text="${transfer.transferDate}"></td>
-                        <td th:text="${transfer.fromAccount.accountNumber + ' — ' + transfer.fromAccount.accountName}"></td>
-                        <td th:text="${transfer.toAccount.accountNumber + ' — ' + transfer.toAccount.accountName}"></td>
-                        <td class="num" th:text="${#numbers.formatCurrency(transfer.amount)}"></td>
+                    <thead>
+                    <tr>
+                        <th th:text="#{table.date}">Date</th>
+                        <th th:text="#{table.from}">From</th>
+                        <th th:text="#{table.to}">To</th>
+                        <th class="num" th:text="#{table.amount}">Amount</th>
+                        <th th:text="#{table.memo}">Memo</th>
+                        <th th:text="#{table.status}">Status</th>
+                        <th th:text="#{table.actions}">Actions</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="transfer : ${transfers}">
+                        <td th:text="${transfer.transferDate}">2026-01-01</td>
+                        <td th:text="${transfer.fromAccount.accountNumber + ' — ' + transfer.fromAccount.accountName}">1000 — Bank</td>
+                        <td th:text="${transfer.toAccount.accountNumber + ' — ' + transfer.toAccount.accountName}">1010 — Savings</td>
+                        <td class="num" th:text="${#numbers.formatCurrency(transfer.amount)}">$0.00</td>
                         <td th:text="${transfer.notes}"></td>
-                    </tr></tbody>
+                        <td>
+                            <span class="badge-pill"
+                                  th:classappend="${' ' + #strings.toLowerCase(transfer.status.name())}"
+                                  th:text="${#messages.msg('transfers.status.' + #strings.toLowerCase(transfer.status.name()))}">DRAFT</span>
+                            <div th:if="${transfer.voidReason != null}" class="text-muted small"
+                                 th:text="${#messages.msg('transfers.voidReason') + ': ' + transfer.voidReason}">Reason</div>
+                            <div th:if="${transfer.voidedAt != null}" class="text-muted small">
+                                <span th:text="#{transfers.reversedAt}">Reversed on</span>
+                                <span th:text="${transfer.voidedAt}">2026-01-01T00:00</span>
+                            </div>
+                        </td>
+                        <td class="transfer-actions">
+                            <a th:href="@{/transfers/{id}/copy(id=${transfer.id})}"
+                               class="btn-portal btn-ghost btn-sm icon-action"
+                               data-bs-toggle="tooltip" data-bs-placement="top"
+                               th:title="#{transfers.copy}" th:attr="aria-label=#{transfers.copy}">
+                                <i class="bi bi-copy" aria-hidden="true"></i>
+                            </a>
+                            <a th:if="${transfer.status.name() == 'DRAFT'}"
+                               th:href="@{/transfers/{id}/edit(id=${transfer.id})}"
+                               class="btn-portal btn-ghost btn-sm icon-action"
+                               data-bs-toggle="tooltip" data-bs-placement="top"
+                               th:title="#{transfers.edit}" th:attr="aria-label=#{transfers.edit}">
+                                <i class="bi bi-pencil-square" aria-hidden="true"></i>
+                            </a>
+                            <form th:if="${transfer.status.name() == 'DRAFT'}"
+                                  th:action="@{/transfers/{id}/delete(id=${transfer.id})}" method="post">
+                                <button class="btn-portal btn-ghost btn-sm icon-action" type="submit"
+                                        data-bs-toggle="tooltip" data-bs-placement="top"
+                                        th:title="#{transfers.deleteDraft}"
+                                        th:attr="aria-label=#{transfers.deleteDraft}, data-confirm-message=${#messages.msg('transfers.confirmDeleteDraft')}"
+                                        onclick="return confirm(this.dataset.confirmMessage)">
+                                    <i class="bi bi-trash" aria-hidden="true"></i>
+                                </button>
+                            </form>
+                            <form th:if="${transfer.status.name() == 'DRAFT'}"
+                                  th:action="@{/transfers/{id}/post(id=${transfer.id})}" method="post">
+                                <button class="btn-portal btn-sm icon-action" type="submit"
+                                        data-bs-toggle="tooltip" data-bs-placement="top"
+                                        th:title="#{transfers.post}" th:attr="aria-label=#{transfers.post}">
+                                    <i class="bi bi-check-circle" aria-hidden="true"></i>
+                                </button>
+                            </form>
+                            <form th:if="${transfer.status.name() == 'POSTED'}"
+                                  th:action="@{/transfers/{id}/void(id=${transfer.id})}" method="post">
+                                <input type="text" name="reason" maxlength="500" required
+                                       th:placeholder="#{transfers.voidReasonPlaceholder}"
+                                       th:attr="aria-label=${#messages.msg('transfers.voidReason')}"/>
+                                <button class="btn-portal btn-ghost btn-sm icon-action" type="submit"
+                                        data-bs-toggle="tooltip" data-bs-placement="top"
+                                        th:title="#{transfers.reverse}"
+                                        th:attr="aria-label=#{transfers.reverse}, data-confirm-message=${#messages.msg('transfers.confirmReverse')}"
+                                        onclick="return confirm(this.dataset.confirmMessage)">
+                                    <i class="bi bi-arrow-counterclockwise" aria-hidden="true"></i>
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    </tbody>
                 </table>
-                <div th:if="${#lists.isEmpty(transfers)}" class="empty-state">No transfers recorded yet.</div>
+                <div th:if="${#lists.isEmpty(transfers)}" class="empty-state" th:text="#{transfers.empty}">
+                    No transfers recorded yet.
+                </div>
             </div>
         </section>
     </main>
 </div>
+<style>
+    .transfer-new-action { margin-bottom: 1rem; }
+    .transfer-actions { white-space: nowrap; }
+    .transfer-actions form { display: inline-flex; align-items: center; margin: 0; }
+    .transfer-actions form input { width: 12rem; }
+    .icon-action { width: 2.25rem; height: 2.25rem; justify-content: center; padding: 0.25rem; }
+    .btn-portal.icon-action i { margin: 0; }
+</style>
+<script>
+    document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(function (element) {
+        if (window.bootstrap && window.bootstrap.Tooltip) {
+            new window.bootstrap.Tooltip(element);
+        }
+    });
+</script>
 </body>
 </html>

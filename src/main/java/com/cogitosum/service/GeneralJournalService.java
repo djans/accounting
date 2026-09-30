@@ -204,7 +204,8 @@ public class GeneralJournalService {
     }
 
     public List<GeneralJournal> getAllJournals() {
-        return generalJournalRepository.findAllByCompanyId(companyContext.requireCompanyId());
+        return generalJournalRepository.findAllByCompanyIdOrderByPostedFirstAndRecent(
+                companyContext.requireCompanyId(), JournalStatus.POSTED);
     }
 
     @Transactional
