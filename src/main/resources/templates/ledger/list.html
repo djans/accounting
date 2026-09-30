@@ -16,13 +16,13 @@
                 <table th:if="${not #lists.isEmpty(ledgers)}" class="table-portal">
                     <thead>
                     <tr>
-                        <th>Account #</th>
-                        <th>Account Name</th>
-                        <th>Type</th>
-                        <th class="num">Total Debits</th>
-                        <th class="num">Total Credits</th>
-                        <th class="num">Balance</th>
-                        <th>Last Updated</th>
+                        <th th:text="#{table.accountNum}">Account #</th>
+                        <th th:text="#{table.accountName}">Account Name</th>
+                        <th th:text="#{table.type}">Type</th>
+                        <th class="num" th:text="#{table.totalDebits}">Total Debits</th>
+                        <th class="num" th:text="#{table.totalCredits}">Total Credits</th>
+                        <th class="num" th:text="#{table.balance}">Balance</th>
+                        <th th:text="#{table.lastUpdated}">Last Updated</th>
                         <th></th>
                     </tr>
                     </thead>

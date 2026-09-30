@@ -77,11 +77,11 @@
                 <table class="table-portal table-sm">
                     <thead>
                     <tr>
-                        <th>Code</th>
-                        <th>Name</th>
-                        <th>Components</th>
-                        <th>Total Rate</th>
-                        <th>Actions</th>
+                        <th th:text="#{table.code}">Code</th>
+                        <th th:text="#{table.name}">Name</th>
+                        <th th:text="#{table.components}">Components</th>
+                        <th th:text="#{table.totalRate}">Total Rate</th>
+                        <th th:text="#{table.actions}">Actions</th>
                     </tr>
                     </thead>
                     <tbody>
@@ -134,13 +134,13 @@
                 <table class="table-portal table-sm">
                     <thead>
                     <tr>
-                        <th>Code</th>
-                        <th>Name</th>
-                        <th>Agency</th>
-                        <th class="num">Rate</th>
-                        <th>Sales</th>
-                        <th>Purchases</th>
-                        <th>Actions</th>
+                        <th th:text="#{table.code}">Code</th>
+                        <th th:text="#{table.name}">Name</th>
+                        <th th:text="#{table.agency}">Agency</th>
+                        <th class="num" th:text="#{table.rate}">Rate</th>
+                        <th th:text="#{table.sales}">Sales</th>
+                        <th th:text="#{table.purchases}">Purchases</th>
+                        <th th:text="#{table.actions}">Actions</th>
                     </tr>
                     </thead>
                     <tbody>
@@ -187,46 +187,46 @@
                 <div class="modal-dialog">
                     <div class="modal-content">
                         <div class="modal-header">
-                            <h5 class="modal-title text-dark" id="taxCodeModalLabel">Add / Update Tax Code</h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            <h5 class="modal-title text-dark" id="taxCodeModalLabel" th:text="#{tax.codes.addUpdateCode}">Add / Update Tax Code</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" th:attr="aria-label=#{btn.close}"></button>
                         </div>
                         <form th:action="@{/tax/codes}" method="post" id="tax-code-form">
                             <div class="modal-body">
                                 <input type="hidden" name="id" id="tax-code-id"/>
                                 <div class="form-grid">
                                     <div class="form-field full">
-                                        <label>Tax Code</label>
-                                        <input type="text" name="code" id="tax-code-input" required placeholder="S, H, E, Z"/>
+                                        <label th:text="#{form.taxCode}">Tax Code</label>
+                                        <input type="text" name="code" id="tax-code-input" required th:placeholder="#{form.taxCodeExample}"/>
                                     </div>
                                     <div class="form-field full">
-                                        <label>Name</label>
+                                        <label th:text="#{form.name}">Name</label>
                                         <input type="text" name="name" id="tax-name-input" required/>
                                     </div>
                                     <div class="form-field full">
-                                        <label>Sales Tax Group</label>
+                                        <label th:text="#{form.salesTaxGroup}">Sales Tax Group</label>
                                         <select name="salesTaxGroupId" id="sales-group-input">
-                                            <option value="">— Select Group —</option>
+                                            <option value="" th:text="#{select.chooseTaxGroup}">— Select Group —</option>
                                             <option th:each="g : ${groups}" th:if="${g.active}" th:value="${g.id}" th:text="${g.code + ' — ' + g.name}"></option>
                                         </select>
                                     </div>
                                     <div class="form-field full">
-                                        <label>Purchase Tax Group</label>
+                                        <label th:text="#{form.purchaseTaxGroup}">Purchase Tax Group</label>
                                         <select name="purchaseTaxGroupId" id="purchase-group-input">
-                                            <option value="">— Select Group —</option>
+                                            <option value="" th:text="#{select.chooseTaxGroup}">— Select Group —</option>
                                             <option th:each="g : ${groups}" th:if="${g.active}" th:value="${g.id}" th:text="${g.code + ' — ' + g.name}"></option>
                                         </select>
                                     </div>
                                     <div class="form-field full">
                                         <label class="d-flex align-items-center gap-2">
                                             <input type="checkbox" name="active" id="taxCodeActive" value="true" checked>
-                                            Active
+                                            <span th:text="#{select.active}">Active</span>
                                         </label>
                                     </div>
                                 </div>
                             </div>
                             <div class="modal-footer">
-                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                                <button type="submit" class="btn-portal"><i class="bi bi-check2"></i> Save Code</button>
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" th:text="#{btn.cancel}">Cancel</button>
+                                <button type="submit" class="btn-portal"><i class="bi bi-check2"></i> <span th:text="#{tax.codes.saveCode}">Save Code</span></button>
                             </div>
                         </form>
                     </div>
@@ -238,65 +238,65 @@
                 <div class="modal-dialog modal-lg">
                     <div class="modal-content">
                         <div class="modal-header">
-                            <h5 class="modal-title text-dark" id="taxItemModalLabel">Add / Update Tax Item</h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            <h5 class="modal-title text-dark" id="taxItemModalLabel" th:text="#{tax.codes.addUpdateItem}">Add / Update Tax Item</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" th:attr="aria-label=#{btn.close}"></button>
                         </div>
                         <form th:action="@{/tax/items}" method="post" id="item-form">
                             <div class="modal-body">
                                 <input type="hidden" name="id" id="item-id"/>
                                 <div class="form-grid">
                                     <div class="form-field">
-                                        <label>Code</label>
-                                        <input type="text" name="code" id="item-code-input" required placeholder="TPS, TVQ, HST-ON"/>
+                                        <label th:text="#{form.taxCode}">Code</label>
+                                        <input type="text" name="code" id="item-code-input" required th:placeholder="#{form.taxItemCodeExample}"/>
                                     </div>
                                     <div class="form-field">
-                                        <label>Name</label>
+                                        <label th:text="#{form.name}">Name</label>
                                         <input type="text" name="name" id="item-name-input" required/>
                                     </div>
                                     <div class="form-field">
-                                        <label>Rate (e.g. 0.05 for 5%)</label>
+                                        <label th:text="#{form.rateExample}">Rate (e.g. 0.05 for 5%)</label>
                                         <input type="number" step="0.00001" name="rate" id="item-rate-input" required/>
                                     </div>
                                     <div class="form-field">
-                                        <label>Agency</label>
+                                        <label th:text="#{form.agency}">Agency</label>
                                         <select name="agencyId" id="item-agency-input" required>
-                                            <option value="">Select an agency…</option>
+                                            <option value="" th:text="#{select.chooseAgency}">Select an agency…</option>
                                             <option th:each="a : ${agencies}" th:if="${a.active}" th:value="${a.id}" th:text="${a.code + ' — ' + a.name}"></option>
                                         </select>
                                     </div>
                                     <div class="form-field full">
-                                        <label>Payable Account (Sales Tax Collected)</label>
+                                        <label th:text="#{form.payableAccount}">Payable Account (Sales Tax Collected)</label>
                                         <select name="payableAccountId" id="item-payable-input">
-                                            <option value="">— none —</option>
+                                            <option value="" th:text="#{select.none}">— none —</option>
                                             <option th:each="acc : ${accounts}" th:value="${acc.id}"
                                                     th:text="${acc.accountNumber + ' – ' + acc.accountName}"></option>
                                         </select>
                                     </div>
                                     <div class="form-field full">
-                                        <label>ITC Account (Purchase Tax Credits)</label>
+                                        <label th:text="#{form.itcAccount}">ITC Account (Purchase Tax Credits)</label>
                                         <select name="itcAccountId" id="item-itc-input">
-                                            <option value="">— none —</option>
+                                            <option value="" th:text="#{select.none}">— none —</option>
                                             <option th:each="acc : ${accounts}" th:value="${acc.id}"
                                                     th:text="${acc.accountNumber + ' – ' + acc.accountName}"></option>
                                         </select>
                                     </div>
                                     <div class="form-field">
-                                        <label><input type="checkbox" name="forSales" id="item-sales-input" value="true" checked/> For Sales</label>
+                                        <label><input type="checkbox" name="forSales" id="item-sales-input" value="true" checked/> <span th:text="#{form.forSales}">For Sales</span></label>
                                     </div>
                                     <div class="form-field">
-                                        <label><input type="checkbox" name="forPurchases" id="item-purchases-input" value="true" checked/> For Purchases</label>
+                                        <label><input type="checkbox" name="forPurchases" id="item-purchases-input" value="true" checked/> <span th:text="#{form.forPurchases}">For Purchases</span></label>
                                     </div>
                                     <div class="form-field">
                                         <label class="d-flex align-items-center gap-2">
                                             <input type="checkbox" name="active" id="taxItemActive" value="true" checked>
-                                            Active
+                                            <span th:text="#{select.active}">Active</span>
                                         </label>
                                     </div>
                                 </div>
                             </div>
                             <div class="modal-footer">
-                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                                <button type="submit" class="btn-portal"><i class="bi bi-check2"></i> Save Item</button>
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" th:text="#{btn.cancel}">Cancel</button>
+                                <button type="submit" class="btn-portal"><i class="bi bi-check2"></i> <span th:text="#{tax.codes.saveItem}">Save Item</span></button>
                             </div>
                         </form>
                     </div>
@@ -308,37 +308,37 @@
                 <div class="modal-dialog">
                     <div class="modal-content">
                         <div class="modal-header">
-                            <h5 class="modal-title text-dark" id="taxGroupModalLabel">Add / Update Tax Group</h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            <h5 class="modal-title text-dark" id="taxGroupModalLabel" th:text="#{tax.codes.addUpdateGroup}">Add / Update Tax Group</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" th:attr="aria-label=#{btn.close}"></button>
                         </div>
                         <form th:action="@{/tax/groups}" method="post" id="group-form">
                             <div class="modal-body">
                                 <input type="hidden" name="id" id="group-id"/>
                                 <div class="form-grid">
                                     <div class="form-field full">
-                                        <label>Group Code</label>
-                                        <input type="text" name="code" id="group-code-input" required placeholder="QC-TPS-TVQ"/>
+                                        <label th:text="#{form.groupCode}">Group Code</label>
+                                        <input type="text" name="code" id="group-code-input" required th:placeholder="#{form.groupCodeExample}"/>
                                     </div>
                                     <div class="form-field full">
-                                        <label>Group Name</label>
+                                        <label th:text="#{form.groupName}">Group Name</label>
                                         <input type="text" name="name" id="group-name-input" required/>
                                     </div>
                                     <div class="form-field">
                                         <label class="d-flex align-items-center gap-2">
                                             <input type="checkbox" name="active" id="taxGroupActive" value="true" checked>
-                                            Active
+                                            <span th:text="#{select.active}">Active</span>
                                         </label>
                                     </div>
                                     <div class="form-field full">
-                                        <label>Tax Components</label>
+                                        <label th:text="#{form.taxComponents}">Tax Components</label>
                                         <div class="border rounded p-0" style="max-height: 250px; overflow-y: auto;">
                                             <table class="table table-sm table-hover mb-0">
                                                 <thead class="table-light">
                                                     <tr>
-                                                        <th style="width: 40px;" class="text-center">Select</th>
-                                                        <th>Code</th>
-                                                        <th>Description</th>
-                                                        <th class="text-end">Rate</th>
+                                                        <th style="width: 40px;" class="text-center" th:text="#{table.select}">Select</th>
+                                                        <th th:text="#{table.code}">Code</th>
+                                                        <th th:text="#{table.description}">Description</th>
+                                                        <th class="text-end" th:text="#{table.rate}">Rate</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody>
@@ -357,8 +357,8 @@
                                 </div>
                             </div>
                             <div class="modal-footer">
-                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                                <button type="submit" class="btn-portal"><i class="bi bi-check2"></i> Save Group</button>
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" th:text="#{btn.cancel}">Cancel</button>
+                                <button type="submit" class="btn-portal"><i class="bi bi-check2"></i> <span th:text="#{tax.codes.saveGroup}">Save Group</span></button>
                             </div>
                         </form>
                     </div>

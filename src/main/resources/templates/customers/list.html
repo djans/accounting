@@ -20,12 +20,12 @@
                 <table th:if="${not #lists.isEmpty(customers)}" class="table-portal">
                     <thead>
                     <tr>
-                        <th>Entreprise</th>
-                        <th>Contact</th>
-                        <th>Téléphone</th>
-                        <th>Email</th>
-                        <th>TPS/TVH</th>
-                        <th>Statut</th>
+                        <th th:text="#{table.company}">Entreprise</th>
+                        <th th:text="#{table.contact}">Contact</th>
+                        <th th:text="#{table.phone}">Téléphone</th>
+                        <th th:text="#{table.email}">Email</th>
+                        <th th:text="#{table.salesTaxNumber}">TPS/TVH</th>
+                        <th th:text="#{table.status}">Statut</th>
                         <th></th>
                     </tr>
                     </thead>

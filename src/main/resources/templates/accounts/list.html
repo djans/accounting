@@ -25,14 +25,14 @@
                     <table class="table-portal">
                         <thead>
                         <tr>
-                            <th>N° Compte</th>
-                            <th>Nom du Compte</th>
-                            <th>Type</th>
-                            <th>Détail / Catégorie</th>
-                            <th>Devise</th>
-                            <th>Solde</th>
-                            <th>Statut</th>
-                            <th class="text-end">Actions</th>
+                            <th th:text="#{table.accountNum}">N° Compte</th>
+                            <th th:text="#{table.accountName}">Nom du Compte</th>
+                            <th th:text="#{table.type}">Type</th>
+                            <th th:text="#{table.detailCategory}">Détail / Catégorie</th>
+                            <th th:text="#{table.currency}">Devise</th>
+                            <th th:text="#{table.balance}">Solde</th>
+                            <th th:text="#{table.status}">Statut</th>
+                            <th class="text-end" th:text="#{table.actions}">Actions</th>
                         </tr>
                         </thead>
                         <tbody>

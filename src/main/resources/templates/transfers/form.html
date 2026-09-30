@@ -1,50 +1,50 @@
 <!DOCTYPE html>
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments/layout :: head('Transfer Funds')}"></head>
+<head th:replace="~{fragments/layout :: head(#{form.transferFunds})}"></head>
 <body>
 <div class="portal-shell">
     <div th:replace="~{fragments/layout :: sidebar('transfers')}"></div>
     <main class="portal-main">
-        <div th:replace="~{fragments/layout :: topbar('Transfer Funds')}"></div>
+        <div th:replace="~{fragments/layout :: topbar(#{form.transferFunds})}"></div>
         <section class="portal-content">
             <div th:replace="~{fragments/layout :: flash}"></div>
             <div class="portal-card">
-                <h2>Transfer Funds</h2>
-                <p class="text-muted">Transfer funds between bank, cash and credit card accounts.</p>
+                <h2 th:text="#{form.transferFunds}">Transfer Funds</h2>
+                <p class="text-muted" th:text="#{form.transferDescription}">Transfer funds between bank, cash and credit card accounts.</p>
                 <form th:action="@{/transfers}" method="post">
                     <div class="form-grid">
                         <div class="form-field">
-                            <label>From account</label>
+                            <label th:text="#{form.fromAccount}">From account</label>
                             <select name="fromAccountId" required>
-                                <option value="">Choose source...</option>
+                                <option value="" th:text="#{select.chooseSource}">Choose source...</option>
                                 <option th:each="account : ${bankAccounts}" th:value="${account.id}"
                                         th:text="${account.accountNumber + ' — ' + account.accountName}"></option>
                             </select>
                         </div>
                         <div class="form-field">
-                            <label>To account</label>
+                            <label th:text="#{form.toAccount}">To account</label>
                             <select name="toAccountId" required>
-                                <option value="">Choose destination...</option>
+                                <option value="" th:text="#{select.chooseDestination}">Choose destination...</option>
                                 <option th:each="account : ${bankAccounts}" th:value="${account.id}"
                                         th:text="${account.accountNumber + ' — ' + account.accountName}"></option>
                             </select>
                         </div>
                         <div class="form-field">
-                            <label>Amount</label>
+                            <label th:text="#{form.amount}">Amount</label>
                             <input type="number" name="amount" min="0.01" step="0.01" required/>
                         </div>
                         <div class="form-field">
-                            <label>Date</label>
+                            <label th:text="#{form.date}">Date</label>
                             <input type="date" name="transferDate" th:value="${T(java.time.LocalDate).now()}" required/>
                         </div>
                         <div class="form-field full">
-                            <label>Memo</label>
+                            <label th:text="#{form.memo}">Memo</label>
                             <textarea name="notes" rows="2"></textarea>
                         </div>
                     </div>
                     <div class="form-actions">
-                        <a th:href="@{/transfers}" class="btn-portal btn-ghost">Cancel</a>
-                        <button type="submit" class="btn-portal">Transfer Funds</button>
+                        <a th:href="@{/transfers}" class="btn-portal btn-ghost" th:text="#{btn.cancel}">Cancel</a>
+                        <button type="submit" class="btn-portal" th:text="#{form.transferFunds}">Transfer Funds</button>
                     </div>
                 </form>
             </div>

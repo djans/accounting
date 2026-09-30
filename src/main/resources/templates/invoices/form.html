@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments/layout :: head('New Invoice')}"></head>
+<head th:replace="~{fragments/layout :: head(#{invoice.form.title})}"></head>
 <body>
 <div class="portal-shell">
     <div th:replace="~{fragments/layout :: sidebar('invoices')}"></div>
     <main class="portal-main">
-        <div th:replace="~{fragments/layout :: topbar('New Invoice')}"></div>
+        <div th:replace="~{fragments/layout :: topbar(#{invoice.form.title})}"></div>
         <section class="portal-content">
             <div th:replace="~{fragments/layout :: flash}"></div>
 
@@ -13,14 +13,14 @@
                 <form th:action="${isEdit} ? @{/invoices/{id}(id=${invoice.id})} : @{/invoices}" method="post" id="invoiceForm">
                     <div class="form-grid">
                         <div class="form-field">
-                            <label>Invoice number</label>
+                            <label th:text="#{form.invoiceNumber}">Invoice number</label>
                             <input type="text" name="invoiceNumber"
                                    th:value="${isEdit ? invoice.invoiceNumber : suggestedNumber}" required/>
                         </div>
                         <div class="form-field">
-                            <label>Customer</label>
+                            <label th:text="#{form.customer}">Customer</label>
                             <select name="customerId" id="customerSelect" required>
-                                <option value="">Select a customer…</option>
+                                <option value="" th:text="#{select.chooseCustomer}">Select a customer…</option>
                                 <option th:each="c : ${customers}"
                                         th:value="${c.id}"
                                         th:attr="data-province=${c.province}"
@@ -29,19 +29,19 @@
                             </select>
                         </div>
                         <div class="form-field">
-                            <label>Issued</label>
+                            <label th:text="#{form.issueDate}">Issued</label>
                             <input type="date" name="invoiceDate"
                                    th:value="${invoice.invoiceDate != null ? invoice.invoiceDate : T(java.time.LocalDate).now()}"/>
                         </div>
                         <div class="form-field">
-                            <label>Due</label>
+                            <label th:text="#{form.dueDate}">Due</label>
                             <input type="date" name="dueDate"
                                    th:value="${invoice.dueDate}"/>
                         </div>
                         <div class="form-field">
-                            <label>Régime fiscal</label>
+                            <label th:text="#{form.taxRegime}">Régime fiscal</label>
                             <select name="taxRegime" id="regimeSelect" required>
-                                <option value="">Choisir un régime…</option>
+                                <option value="" th:text="#{select.chooseTaxRegime}">Choisir un régime…</option>
                                 <option th:each="r : ${regimes}"
                                         th:value="${r.code}"
                                         th:attr="data-gst=${r.gstRate},data-hst=${r.hstRate},data-qst=${r.qstRate}"
@@ -50,26 +50,26 @@
                             </select>
                         </div>
                         <div class="form-field full">
-                            <label>Notes</label>
-                            <textarea name="notes" rows="2" placeholder="Optional notes shown on the invoice"
+                            <label th:text="#{form.notes}">Notes</label>
+                            <textarea name="notes" rows="2" th:placeholder="#{form.optionalNotes}"
                                       th:text="${invoice.notes}"></textarea>
                         </div>
                     </div>
 
-                    <h4 style="margin:1.5rem 0 .5rem;font-size:.95rem;">Line Items</h4>
+                    <h4 style="margin:1.5rem 0 .5rem;font-size:.95rem;" th:text="#{form.invoiceLines}">Line Items</h4>
                     <div class="entries-toolbar">
-                        <small class="text-muted">Add one row per billable item. Les taxes sont calculées selon le régime fiscal choisi.</small>
+                        <small class="text-muted" th:text="#{form.invoiceLineHelp}">Add one row per billable item. Les taxes sont calculées selon le régime fiscal choisi.</small>
                         <button type="button" class="btn-portal btn-ghost btn-sm" onclick="addLine()">
-                            <i class="bi bi-plus-lg"></i> Add line
+                            <i class="bi bi-plus-lg"></i> <span th:text="#{btn.addLine}">Add line</span>
                         </button>
                     </div>
                     <table class="table-portal entries-table">
                         <thead>
                         <tr th:if="${!isEdit}">
-                            <th style="width:50%">Description</th>
-                            <th style="width:13%">Quantity</th>
-                            <th style="width:17%">Unit Price</th>
-                            <th style="width:15%" class="num">Total</th>
+                            <th style="width:50%" th:text="#{table.description}">Description</th>
+                            <th style="width:13%" th:text="#{table.quantity}">Quantity</th>
+                            <th style="width:17%" th:text="#{table.unitPrice}">Unit Price</th>
+                            <th style="width:15%" class="num" th:text="#{table.total}">Total</th>
                             <th></th>
                         </tr>
                         </thead>
@@ -96,30 +96,30 @@
                     </table>
 
                     <div class="portal-card" style="margin-top:1.25rem;background:#f7f9fc;">
-                        <h3 class="portal-card-title">Aperçu des taxes</h3>
-                        <div id="taxPreviewEmpty" class="empty-state" style="padding:1rem">
+                        <h3 class="portal-card-title" th:text="#{form.taxPreview}">Aperçu des taxes</h3>
+                        <div id="taxPreviewEmpty" class="empty-state" style="padding:1rem" th:text="#{form.chooseRegimeAndLinePreview}">
                             Choisissez un régime fiscal et saisissez au moins une ligne pour voir l'aperçu.
                         </div>
                         <div id="taxPreview" style="display:none">
                             <div class="report-totals">
                                 <div class="stat-card">
-                                    <div class="stat-label">Sous-total</div>
+                                    <div class="stat-label" th:text="#{table.subtotal}">Sous-total</div>
                                     <div class="stat-value" id="previewSubtotal">$0.00</div>
                                 </div>
                                 <div class="stat-card" id="cardTps" style="display:none">
-                                    <div class="stat-label">TPS / GST <span id="rateTps" class="text-muted"></span></div>
+                                    <div class="stat-label"><span th:text="#{invoice.tax.gst}">TPS / GST</span> <span id="rateTps" class="text-muted"></span></div>
                                     <div class="stat-value" id="previewTps">$0.00</div>
                                 </div>
                                 <div class="stat-card" id="cardTvq" style="display:none">
-                                    <div class="stat-label">TVQ / QST <span id="rateTvq" class="text-muted"></span></div>
+                                    <div class="stat-label"><span th:text="#{invoice.tax.qst}">TVQ / QST</span> <span id="rateTvq" class="text-muted"></span></div>
                                     <div class="stat-value" id="previewTvq">$0.00</div>
                                 </div>
                                 <div class="stat-card is-accent" id="cardHst" style="display:none">
-                                    <div class="stat-label">HST <span id="rateHst" class="text-muted"></span></div>
+                                    <div class="stat-label"><span th:text="#{invoice.tax.hst}">HST</span> <span id="rateHst" class="text-muted"></span></div>
                                     <div class="stat-value" id="previewHst">$0.00</div>
                                 </div>
                                 <div class="stat-card is-success">
-                                    <div class="stat-label">Total</div>
+                                    <div class="stat-label" th:text="#{table.total}">Total</div>
                                     <div class="stat-value" id="previewTotal">$0.00</div>
                                 </div>
                             </div>
@@ -127,9 +127,9 @@
                     </div>
 
                     <div class="form-actions">
-                        <a th:href="@{/invoices}" class="btn-portal btn-ghost">Cancel</a>
+                        <a th:href="@{/invoices}" class="btn-portal btn-ghost" th:text="#{btn.cancel}">Cancel</a>
                         <button type="submit" class="btn-portal">
-                            <i class="bi bi-check2"></i> <span th:text="${isEdit ? 'Save changes' : 'Create Invoice'}">Create Invoice</span>
+                            <i class="bi bi-check2"></i> <span th:text="${isEdit} ? #{form.saveChanges} : #{btn.createInvoice}">Create Invoice</span>
                         </button>
                     </div>
                 </form>

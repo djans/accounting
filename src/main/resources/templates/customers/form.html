@@ -1,111 +1,111 @@
 <!DOCTYPE html>
 <html lang="fr" xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments/layout :: head('Client')}"></head>
+<head th:replace="~{fragments/layout :: head(#{nav.customers})}"></head>
 <body>
 <div class="portal-shell">
 <div th:replace="~{fragments/layout :: sidebar('customers')}"></div>
 <main class="portal-main">
-<div th:replace="~{fragments/layout :: topbar(${isNew} ? 'Nouveau client' : 'Modifier le client')}"></div>
+<div th:replace="~{fragments/layout :: topbar(${isNew} ? #{party.newCustomer} : #{party.editCustomer})}"></div>
 <section class="portal-content"><div th:replace="~{fragments/layout :: flash}"></div>
 <div class="portal-card">
 <form th:action="${isNew} ? @{/customers} : @{/customers/{id}(id=${customer.id})}" th:object="${customer}" method="post">
 <div class="vendor-form-header">
-    <label>Nom du client <input th:field="*{businessName}" required placeholder="Nom de l'entreprise"></label>
-    <label>Contact principal <input th:field="*{name}" required placeholder="Nom et prénom"></label>
-    <label class="vendor-inactive"><input type="checkbox" th:field="*{inactive}"> Client inactif</label>
+    <label><span th:text="#{party.customerName}">Nom du client</span><input th:field="*{businessName}" required th:placeholder="#{party.companyName}"></label>
+    <label><span th:text="#{party.primaryContact}">Contact principal</span><input th:field="*{name}" required th:placeholder="#{party.fullName}"></label>
+    <label class="vendor-inactive"><input type="checkbox" th:field="*{inactive}"> <span th:text="#{party.inactiveCustomer}">Client inactif</span></label>
 </div>
 <nav class="vendor-tabs" role="tablist">
-    <button type="button" class="vendor-tab active" data-tab="address">Adresse & Contact</button>
-    <button type="button" class="vendor-tab" data-tab="payment">Paiement & Facturation</button>
-    <button type="button" class="vendor-tab" data-tab="tax">Taxes de vente</button>
-    <button type="button" class="vendor-tab" data-tab="additional">Notes & Info</button>
+    <button type="button" class="vendor-tab active" data-tab="address" th:text="#{party.addressContact}">Adresse & Contact</button>
+    <button type="button" class="vendor-tab" data-tab="payment" th:text="#{party.paymentBilling}">Paiement & Facturation</button>
+    <button type="button" class="vendor-tab" data-tab="tax" th:text="#{party.salesTaxes}">Taxes de vente</button>
+    <button type="button" class="vendor-tab" data-tab="additional" th:text="#{party.notesInfo}">Notes & Info</button>
 </nav>
 
 <!-- Onglet Adresse & Contact -->
 <div class="vendor-panel active" id="tab-address">
-    <h3>Informations de contact</h3>
+    <h3 th:text="#{party.contactInformation}">Informations de contact</h3>
     <div class="form-grid">
-        <label class="form-field"><span>Nom de la compagnie</span><input th:field="*{companyName}"></label>
-        <label class="form-field"><span>Titre</span><input th:field="*{title}" placeholder="M., Mme, etc."></label>
-        <label class="form-field"><span>Prénom</span><input th:field="*{firstName}"></label>
-        <label class="form-field"><span>Initiale</span><input th:field="*{middleInitial}"></label>
-        <label class="form-field"><span>Nom</span><input th:field="*{lastName}"></label>
-        <label class="form-field"><span>Poste</span><input th:field="*{jobTitle}"></label>
-        <label class="form-field"><span>Téléphone principal</span><input th:field="*{mainPhone}"></label>
-        <label class="form-field"><span>Téléphone travail</span><input th:field="*{workPhone}"></label>
-        <label class="form-field"><span>Mobile</span><input th:field="*{mobilePhone}"></label>
-        <label class="form-field"><span>Fax</span><input th:field="*{fax}"></label>
-        <label class="form-field"><span>Email principal</span><input type="email" th:field="*{email}" required></label>
-        <label class="form-field"><span>Email CC</span><input type="email" th:field="*{ccEmail}"></label>
-        <label class="form-field"><span>Site Web</span><input th:field="*{website}"></label>
-        <label class="form-field"><span>Email secondaire</span><input type="email" th:field="*{secondaryEmail}"></label>
-        <label class="form-field full"><span>Adresse de facturation</span><textarea th:field="*{address}" required rows="3"></textarea></label>
-        <label class="form-field full"><span>Adresse de livraison</span><textarea th:field="*{shipToAddress}" rows="3"></textarea></label>
-        <label class="form-field"><span>Ville</span><input th:field="*{city}" required></label>
-        <label class="form-field"><span>Province/État</span><input th:field="*{province}" required></label>
-        <label class="form-field"><span>Code Postal</span><input th:field="*{postalCode}" required></label>
-        <label class="form-field"><span>Pays</span><input th:field="*{country}" required></label>
+        <label class="form-field"><span th:text="#{party.companyName}">Nom de la compagnie</span><input th:field="*{companyName}"></label>
+        <label class="form-field"><span th:text="#{party.title}">Titre</span><input th:field="*{title}" th:placeholder="#{party.titlePlaceholder}"></label>
+        <label class="form-field"><span th:text="#{party.firstName}">Prénom</span><input th:field="*{firstName}"></label>
+        <label class="form-field"><span th:text="#{party.middleInitial}">Initiale</span><input th:field="*{middleInitial}"></label>
+        <label class="form-field"><span th:text="#{party.lastName}">Nom</span><input th:field="*{lastName}"></label>
+        <label class="form-field"><span th:text="#{party.jobTitle}">Poste</span><input th:field="*{jobTitle}"></label>
+        <label class="form-field"><span th:text="#{party.mainPhone}">Téléphone principal</span><input th:field="*{mainPhone}"></label>
+        <label class="form-field"><span th:text="#{party.workPhone}">Téléphone travail</span><input th:field="*{workPhone}"></label>
+        <label class="form-field"><span th:text="#{party.mobile}">Mobile</span><input th:field="*{mobilePhone}"></label>
+        <label class="form-field"><span th:text="#{party.fax}">Fax</span><input th:field="*{fax}"></label>
+        <label class="form-field"><span th:text="#{party.email}">Email principal</span><input type="email" th:field="*{email}" required></label>
+        <label class="form-field"><span th:text="#{party.ccEmail}">Email CC</span><input type="email" th:field="*{ccEmail}"></label>
+        <label class="form-field"><span th:text="#{party.website}">Site Web</span><input th:field="*{website}"></label>
+        <label class="form-field"><span th:text="#{party.secondaryEmail}">Email secondaire</span><input type="email" th:field="*{secondaryEmail}"></label>
+        <label class="form-field full"><span th:text="#{party.billingAddress}">Adresse de facturation</span><textarea th:field="*{address}" required rows="3"></textarea></label>
+        <label class="form-field full"><span th:text="#{party.shippingAddress}">Adresse de livraison</span><textarea th:field="*{shipToAddress}" rows="3"></textarea></label>
+        <label class="form-field"><span th:text="#{party.city}">Ville</span><input th:field="*{city}" required></label>
+        <label class="form-field"><span th:text="#{party.province}">Province/État</span><input th:field="*{province}" required></label>
+        <label class="form-field"><span th:text="#{party.postalCode}">Code Postal</span><input th:field="*{postalCode}" required></label>
+        <label class="form-field"><span th:text="#{party.country}">Pays</span><input th:field="*{country}" required></label>
     </div>
 </div>
 
 <!-- Onglet Paiement -->
 <div class="vendor-panel" id="tab-payment">
-    <h3>Paramètres de paiement</h3>
+    <h3 th:text="#{party.paymentSettings}">Paramètres de paiement</h3>
     <div class="form-grid">
-        <label class="form-field"><span>N° de compte client</span><input th:field="*{accountNumber}"></label>
-        <label class="form-field"><span>Limite de crédit</span><input type="number" step="0.01" th:field="*{creditLimit}"></label>
-        <label class="form-field"><span>Conditions de paiement</span>
+        <label class="form-field"><span th:text="#{party.accountNumber}">N° de compte client</span><input th:field="*{accountNumber}"></label>
+        <label class="form-field"><span th:text="#{party.creditLimit}">Limite de crédit</span><input type="number" step="0.01" th:field="*{creditLimit}"></label>
+        <label class="form-field"><span th:text="#{party.paymentTerms}">Conditions de paiement</span>
             <select th:field="*{paymentTerms}">
-                <option value="">Sélectionner...</option>
-                <option value="Due on receipt">Dû à la réception</option>
-                <option value="Net 15">Net 15 jours</option>
-                <option value="Net 30">Net 30 jours</option>
-                <option value="Net 60">Net 60 jours</option>
+                <option value="" th:text="#{select.choose}">Sélectionner...</option>
+                <option value="Due on receipt" th:text="#{option.terms.dueOnReceipt}">Dû à la réception</option>
+                <option value="Net 15" th:text="#{option.terms.net15}">Net 15 jours</option>
+                <option value="Net 30" th:text="#{option.terms.net30}">Net 30 jours</option>
+                <option value="Net 60" th:text="#{option.terms.net60}">Net 60 jours</option>
             </select>
         </label>
-        <label class="form-field"><span>Niveau de tarification</span><input th:field="*{billingRateLevel}"></label>
-        <label class="form-field"><span>Nom sur les factures</span><input th:field="*{printOnChequeAs}"></label>
+        <label class="form-field"><span th:text="#{party.billingRateLevel}">Niveau de tarification</span><input th:field="*{billingRateLevel}"></label>
+        <label class="form-field"><span th:text="#{party.invoicePrintName}">Nom sur les factures</span><input th:field="*{printOnChequeAs}"></label>
     </div>
 </div>
 
 <!-- Onglet Taxes -->
 <div class="vendor-panel" id="tab-tax">
-    <h3>Taxes de vente</h3>
+    <h3 th:text="#{party.salesTaxes}">Taxes de vente</h3>
     <div class="form-grid">
-        <label class="form-field"><span>Numéro d'entreprise</span><input th:field="*{businessNumber}"></label>
-        <label class="form-field"><span>N° de taxes (TPS/HST)</span><input th:field="*{salesTaxRegistrationNumber}"></label>
-        <label class="form-field"><span>N° de taxe provincial (TVQ/PST)</span><input th:field="*{qstNumber}"></label>
+        <label class="form-field"><span th:text="#{party.businessNumber}">Numéro d'entreprise</span><input th:field="*{businessNumber}"></label>
+        <label class="form-field"><span th:text="#{party.salesTaxNumber}">N° de taxes (TPS/HST)</span><input th:field="*{salesTaxRegistrationNumber}"></label>
+        <label class="form-field"><span th:text="#{party.provincialTaxNumber}">N° de taxe provincial (TVQ/PST)</span><input th:field="*{qstNumber}"></label>
         
-        <div class="tax-section-title" style="grid-column: 1/-1; margin-top: 1rem;">Configuration des taxes</div>
+        <div class="tax-section-title" style="grid-column: 1/-1; margin-top: 1rem;" th:text="#{party.taxConfiguration}">Configuration des taxes</div>
         
         <div class="form-field full tax-account-options">
-            <span><input type="checkbox" th:field="*{trackSalesTaxSeparately}"> Suivre la taxe de vente séparément vers</span>
+            <span><input type="checkbox" th:field="*{trackSalesTaxSeparately}"> <span th:text="#{party.trackSalesTax}">Suivre la taxe de vente séparément vers</span></span>
             <select th:field="*{salesTaxAccount}">
-                <option value="">Sélectionner un compte...</option>
+                <option value="" th:text="#{select.chooseAccount}">Sélectionner un compte...</option>
                 <option th:each="a:${accounts}" th:value="${a.id}" th:text="${a.accountNumber+' - '+a.accountName}"></option>
             </select>
         </div>
         
         <label class="form-field full">
-            <span><input type="checkbox" th:field="*{taxOnOtherTaxes}"> Les taxes pour ce client sont calculées sur les autres taxes</span><br/>
-            <span><input type="checkbox" th:field="*{taxIncludedOnSales}"> La taxe est incluse dans les montants de vente</span>
+            <span><input type="checkbox" th:field="*{taxOnOtherTaxes}"> <span th:text="#{party.taxOnOtherTaxes}">Les taxes pour ce client sont calculées sur les autres taxes</span></span><br/>
+            <span><input type="checkbox" th:field="*{taxIncludedOnSales}"> <span th:text="#{party.taxIncludedOnSales}">La taxe est incluse dans les montants de vente</span></span>
         </label>
     </div>
 </div>
 
 <!-- Onglet Additionnel -->
 <div class="vendor-panel" id="tab-additional">
-    <h3>Informations additionnelles & Notes</h3>
+    <h3 th:text="#{party.additionalNotes}">Informations additionnelles & Notes</h3>
     <div class="form-grid">
-        <label class="form-field full"><span>Notes internes</span><textarea th:field="*{notes}" rows="10" placeholder="Notes visibles uniquement par le personnel"></textarea></label>
+        <label class="form-field full"><span th:text="#{party.internalNotes}">Notes internes</span><textarea th:field="*{notes}" rows="10" th:placeholder="#{party.staffOnlyNotes}"></textarea></label>
     </div>
 </div>
 
 <div class="form-actions">
-    <a th:href="@{/customers}" class="btn-portal btn-ghost">Annuler</a>
+    <a th:href="@{/customers}" class="btn-portal btn-ghost" th:text="#{btn.cancel}">Annuler</a>
     <button type="submit" class="btn-portal">
         <i class="bi bi-check2"></i> 
-        <span th:text="${isNew} ? 'Créer le client' : 'Enregistrer les modifications'">Enregistrer</span>
+        <span th:text="${isNew} ? #{party.createCustomer} : #{form.saveChanges}">Enregistrer</span>
     </button>
 </div>
 </form>

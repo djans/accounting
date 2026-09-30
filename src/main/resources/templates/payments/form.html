@@ -13,9 +13,9 @@
                 <form th:action="@{/payments}" method="post">
                     <div class="form-grid">
                         <div class="form-field full">
-                            <label>Invoice</label>
+                            <label th:text="#{form.invoice}">Invoice</label>
                             <select name="invoiceId" id="invoiceSelect" required>
-                                <option value="">Select an invoice…</option>
+                                <option value="" th:text="#{select.chooseInvoice}">Select an invoice…</option>
                                 <option th:each="inv : ${invoices}"
                                         th:with="outstanding=${inv.totalAmount.subtract(inv.paidAmount == null ? T(java.math.BigDecimal).ZERO : inv.paidAmount)}"
                                         th:value="${inv.id}"
@@ -27,11 +27,11 @@
                             </select>
                         </div>
                         <div class="form-field">
-                            <label>Amount</label>
+                            <label th:text="#{form.amount}">Amount</label>
                             <input type="number" step="0.01" min="0.01" name="amount" id="amountInput" required/>
                         </div>
                         <div class="form-field">
-                            <label>Method</label>
+                            <label th:text="#{form.method}">Method</label>
                             <select name="paymentMethod" required>
                                 <option th:each="m : ${methods}"
                                         th:value="${m}"
@@ -40,9 +40,9 @@
                             </select>
                         </div>
                         <div class="form-field">
-                            <label>Compte bancaire</label>
+                            <label th:text="#{form.bankAccount}">Compte bancaire</label>
                             <select name="bankAccountId" required>
-                                <option value="">Sélectionner…</option>
+                                <option value="" th:text="#{select.chooseBankAccount}">Sélectionner…</option>
                                 <option th:each="b : ${bankAccounts}"
                                         th:value="${b.id}"
                                         th:text="${b.accountNumber + ' – ' + b.accountName}"
@@ -50,7 +50,7 @@
                             </select>
                         </div>
                         <div class="form-field">
-                            <label>Compte A/R</label>
+                            <label th:text="#{form.arAccount}">Compte A/R</label>
                             <select name="arAccountId" required>
                                 <option th:each="a : ${arAccounts}"
                                         th:value="${a.id}"
@@ -59,11 +59,11 @@
                             </select>
                         </div>
                         <div class="form-field">
-                            <label>Transaction ID</label>
+                            <label th:text="#{form.transactionId}">Transaction ID</label>
                             <input type="text" name="transactionId" placeholder="Auto-generated if blank"/>
                         </div>
                         <div class="form-field full">
-                            <label>Notes</label>
+                            <label th:text="#{form.notes}">Notes</label>
                             <textarea name="notes" rows="2"></textarea>
                         </div>
                     </div>

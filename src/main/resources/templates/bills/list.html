@@ -20,15 +20,15 @@
                 <table th:if="${not #lists.isEmpty(bills)}" class="table-portal">
                     <thead>
                     <tr>
-                        <th>No facture</th>
-                        <th>Fournisseur</th>
-                        <th>Date</th>
-                        <th>Échéance</th>
-                        <th>Statut</th>
-                        <th class="num">Sous-total</th>
-                        <th class="num">CTI/RTI</th>
-                        <th class="num">Total</th>
-                        <th class="num">Payé</th>
+                        <th th:text="#{table.invoiceNum}">No facture</th>
+                        <th th:text="#{table.vendor}">Fournisseur</th>
+                        <th th:text="#{table.date}">Date</th>
+                        <th th:text="#{table.dueDate}">Échéance</th>
+                        <th th:text="#{table.status}">Statut</th>
+                        <th class="num" th:text="#{table.subtotal}">Sous-total</th>
+                        <th class="num" th:text="#{table.itc}">CTI/RTI</th>
+                        <th class="num" th:text="#{table.total}">Total</th>
+                        <th class="num" th:text="#{table.paid}">Payé</th>
                     </tr>
                     </thead>
                     <tbody>

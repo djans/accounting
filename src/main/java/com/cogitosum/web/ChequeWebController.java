@@ -67,14 +67,41 @@ public class ChequeWebController {
                 return "redirect:/cheques";
             }
         }
-        populateForm(model, cheque, reissueOfId);
+        populateForm(model, cheque, reissueOfId, false);
         return "cheques/form";
+    }
+
+    @GetMapping("/{id}/copy")
+    public String copyCheque(@PathVariable Long id, Model model, RedirectAttributes ra) {
+        try {
+            WrittenCheque original = chequeService.findById(id)
+                    .orElseThrow(() -> new IllegalArgumentException("Cheque not found"));
+            WrittenCheque copy = new WrittenCheque();
+            copy.setVendor(original.getVendor());
+            copy.setBankAccount(original.getBankAccount());
+            copy.setMemo(original.getMemo());
+            List<ChequeExpense> expenses = original.getExpenses().stream().map(source -> {
+                ChequeExpense expense = new ChequeExpense();
+                expense.setAccount(source.getAccount());
+                expense.setTax(source.getTax());
+                expense.setAmount(source.getAmount());
+                expense.setMemo(source.getMemo());
+                expense.setCustomerJob(source.getCustomerJob());
+                return expense;
+            }).toList();
+            copy.setExpenses(new ArrayList<>(expenses));
+            populateForm(model, copy, null, true);
+            return "cheques/form";
+        } catch (IllegalArgumentException e) {
+            ra.addFlashAttribute("flashError", message("cheques.copyError", e.getMessage()));
+            return "redirect:/cheques";
+        }
     }
 
     @GetMapping("/{id}/edit")
     public String editDraft(@PathVariable Long id, Model model, RedirectAttributes ra) {
         try {
-            populateForm(model, chequeService.getDraftForEdit(id), null);
+            populateForm(model, chequeService.getDraftForEdit(id), null, false);
             return "cheques/form";
         } catch (IllegalArgumentException | IllegalStateException e) {
             ra.addFlashAttribute("flashError", message("cheques.notEditable", e.getMessage()));
@@ -82,7 +109,7 @@ public class ChequeWebController {
         }
     }
 
-    private void populateForm(Model model, WrittenCheque cheque, Long reissueOfId) {
+    private void populateForm(Model model, WrittenCheque cheque, Long reissueOfId, boolean copyCheque) {
         List<TaxCode> taxCodes = taxCodeService.getActiveCodes();
         model.addAttribute("vendors", vendorService.getAllVendors());
         model.addAttribute("customers", customerService.getAllCustomers());
@@ -95,6 +122,7 @@ public class ChequeWebController {
         model.addAttribute("active", "cheques-new");
         model.addAttribute("cheque", cheque);
         model.addAttribute("reissueOfId", reissueOfId);
+        model.addAttribute("copyCheque", copyCheque);
     }
 
     @PostMapping

@@ -14,15 +14,15 @@
                 <form th:action="@{/fiscal}" method="post">
                     <div class="form-grid">
                         <div class="form-field">
-                            <label>Libellé</label>
-                            <input type="text" name="label" placeholder="Exercice 2026" required/>
+                            <label th:text="#{form.label}">Libellé</label>
+                            <input type="text" name="label" th:placeholder="#{form.fiscalYearPlaceholder}" required/>
                         </div>
                         <div class="form-field">
-                            <label>Date de début</label>
+                            <label th:text="#{form.startDate}">Date de début</label>
                             <input type="date" name="startDate" required/>
                         </div>
                         <div class="form-field">
-                            <label>Date de fin</label>
+                            <label th:text="#{form.endDate}">Date de fin</label>
                             <input type="date" name="endDate" required/>
                         </div>
                     </div>
@@ -40,11 +40,11 @@
                 <table th:if="${not #lists.isEmpty(fiscalYears)}" class="table-portal">
                     <thead>
                     <tr>
-                        <th>Libellé</th>
-                        <th>Début</th>
-                        <th>Fin</th>
-                        <th>Statut</th>
-                        <th class="num">Résultat net</th>
+                        <th th:text="#{table.narrative}">Libellé</th>
+                        <th th:text="#{table.startDate}">Début</th>
+                        <th th:text="#{table.endDate}">Fin</th>
+                        <th th:text="#{table.status}">Statut</th>
+                        <th class="num" th:text="#{table.netIncome}">Résultat net</th>
                         <th></th>
                     </tr>
                     </thead>

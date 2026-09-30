@@ -44,12 +44,12 @@
                 <div id="reverseDialog" style="display:none;margin-bottom:1rem">
                     <form th:action="@{/journals/{id}/reverse(id=${journal.id})}" method="post" class="portal-card" style="border-style:dashed">
                         <div class="form-field">
-                            <label>Reversal reason</label>
-                            <input type="text" name="reason" required placeholder="Why are you reversing this journal?"/>
+                            <label th:text="#{form.reversalReason}">Reversal reason</label>
+                            <input type="text" name="reason" required th:placeholder="#{form.reversalReasonPlaceholder}"/>
                         </div>
                         <div class="form-actions">
-                            <button type="button" class="btn-portal btn-ghost" onclick="document.getElementById('reverseDialog').style.display='none'">Cancel</button>
-                            <button type="submit" class="btn-portal">Reverse</button>
+                            <button type="button" class="btn-portal btn-ghost" onclick="document.getElementById('reverseDialog').style.display='none'" th:text="#{btn.cancel}">Cancel</button>
+                            <button type="submit" class="btn-portal" th:text="#{btn.reverse}">Reverse</button>
                         </div>
                     </form>
                 </div>
@@ -83,11 +83,11 @@
                 <table class="table-portal">
                     <thead>
                     <tr>
-                        <th>#</th>
-                        <th>Account</th>
-                        <th>Description</th>
-                        <th class="num">Debit</th>
-                        <th class="num">Credit</th>
+                        <th th:text="#{table.number}">#</th>
+                        <th th:text="#{table.account}">Account</th>
+                        <th th:text="#{table.description}">Description</th>
+                        <th class="num" th:text="#{table.debit}">Debit</th>
+                        <th class="num" th:text="#{table.credit}">Credit</th>
                     </tr>
                     </thead>
                     <tbody>
@@ -105,7 +105,7 @@
                     </tbody>
                     <tfoot>
                     <tr style="font-weight:600">
-                        <td colspan="3" style="text-align:right">Totals</td>
+                        <td colspan="3" style="text-align:right" th:text="#{table.totals}">Totals</td>
                         <td class="num" th:text="${#numbers.formatCurrency(totalDr)}">$0</td>
                         <td class="num" th:text="${#numbers.formatCurrency(totalCr)}">$0</td>
                     </tr>

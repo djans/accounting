@@ -1,11 +1,11 @@
 <!DOCTYPE html>
-<html lang="fr" xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments/layout :: head('Compte Comptable')}"></head>
+<html lang="fr" th:lang="${#locale.language}" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(#{nav.chartOfAccounts})}"></head>
 <body>
 <div class="portal-shell">
     <div th:replace="~{fragments/layout :: sidebar('accounts')}"></div>
     <main class="portal-main">
-        <div th:replace="~{fragments/layout :: topbar(${isNew} ? 'Nouveau Compte' : 'Modifier le Compte')}"></div>
+        <div th:replace="~{fragments/layout :: topbar(${isNew} ? #{form.newAccount} : #{form.editAccount})}"></div>
         <section class="portal-content">
             <div th:replace="~{fragments/layout :: flash}"></div>
 
@@ -14,26 +14,26 @@
                       th:object="${account}" method="post">
                     
                     <div class="form-section mb-4">
-                        <h4 class="section-title border-bottom pb-2 mb-3">Informations Générales</h4>
+                        <h4 class="section-title border-bottom pb-2 mb-3" th:text="#{form.generalInformation}">Informations Générales</h4>
                         <div class="form-grid">
                             <div class="form-field">
-                                <label>Numéro de Compte</label>
-                                <input type="text" th:field="*{accountNumber}" placeholder="ex: 1010" required/>
+                                <label th:text="#{form.accountNumber}">Numéro de Compte</label>
+                                <input type="text" th:field="*{accountNumber}" th:placeholder="#{form.accountNumberExample}" required/>
                             </div>
                             <div class="form-field">
-                                <label>Nom du Compte</label>
-                                <input type="text" th:field="*{accountName}" placeholder="ex: Petite Caisse" required/>
+                                <label th:text="#{form.accountName}">Nom du Compte</label>
+                                <input type="text" th:field="*{accountName}" th:placeholder="#{form.accountNameExample}" required/>
                             </div>
                             <div class="form-field">
-                                <label>Type de Compte</label>
+                                <label th:text="#{form.accountType}">Type de Compte</label>
                                 <select th:field="*{accountType}" required>
                                     <option th:each="t : ${types}" th:value="${t}" th:text="${t}">ASSET</option>
                                 </select>
                             </div>
                             <div class="form-field">
-                                <label>Catégorie (Détail)</label>
+                                <label th:text="#{form.category}">Catégorie (Détail)</label>
                                 <select th:field="*{category}">
-                                    <option value="">Choisir une catégorie...</option>
+                                    <option value="" th:text="#{form.chooseCategory}">Choisir une catégorie...</option>
                                     <option th:each="category : ${categories}"
                                             th:value="${category}"
                                             th:text="${category.label}">Bank</option>
@@ -43,12 +43,12 @@
                     </div>
 
                     <div class="form-section mb-4">
-                        <h4 class="section-title border-bottom pb-2 mb-3">Hiérarchie et Devise</h4>
+                        <h4 class="section-title border-bottom pb-2 mb-3" th:text="#{form.hierarchyCurrency}">Hiérarchie et Devise</h4>
                         <div class="form-grid">
                             <div class="form-field">
-                                <label>Compte Parent (Sous-compte de)</label>
+                                <label th:text="#{form.parentAccount}">Compte Parent (Sous-compte de)</label>
                                 <select th:field="*{parentAccount}">
-                                    <option value="">(Aucun - Compte Principal)</option>
+                                    <option value="" th:text="#{select.noParent}">(Aucun - Compte Principal)</option>
                                     <option th:each="a : ${accounts}" 
                                             th:if="${a.id != account.id}"
                                             th:value="${a.id}" 
@@ -56,47 +56,47 @@
                                 </select>
                             </div>
                             <div class="form-field">
-                                <label>Devise</label>
+                                <label th:text="#{form.currency}">Devise</label>
                                 <select th:field="*{currency}">
-                                    <option value="CAD">Dollar Canadien (CAD)</option>
-                                    <option value="USD">Dollar Américain (USD)</option>
-                                    <option value="EUR">Euro (EUR)</option>
+                                    <option value="CAD" th:text="#{option.currency.cad}">Dollar Canadien (CAD)</option>
+                                    <option value="USD" th:text="#{option.currency.usd}">Dollar Américain (USD)</option>
+                                    <option value="EUR" th:text="#{option.currency.eur}">Euro (EUR)</option>
                                 </select>
                             </div>
                             <div class="form-field">
-                                <label>Statut</label>
+                                <label th:text="#{form.status}">Statut</label>
                                 <select th:field="*{active}">
-                                    <option th:value="true">Actif</option>
-                                    <option th:value="false">Inactif</option>
+                                    <option th:value="true" th:text="#{select.active}">Actif</option>
+                                    <option th:value="false" th:text="#{select.inactive}">Inactif</option>
                                 </select>
                             </div>
                         </div>
                     </div>
 
                     <div class="form-section mb-4" th:if="${isNew}">
-                        <h4 class="section-title border-bottom pb-2 mb-3">Solde d'Ouverture</h4>
+                        <h4 class="section-title border-bottom pb-2 mb-3" th:text="#{form.openingBalanceSection}">Solde d'Ouverture</h4>
                         <div class="form-grid">
                             <div class="form-field">
-                                <label>Solde Initial</label>
-                                <input type="number" step="0.01" th:field="*{openingBalance}" placeholder="0.00"/>
+                                <label th:text="#{form.openingBalance}">Solde Initial</label>
+                                <input type="number" step="0.01" th:field="*{openingBalance}" th:placeholder="#{form.openingBalanceZero}"/>
                             </div>
                             <div class="form-field">
-                                <label>En date du</label>
+                                <label th:text="#{form.asOfDate}">En date du</label>
                                 <input type="date" th:field="*{openingBalanceDate}"/>
                             </div>
                         </div>
                     </div>
 
                     <div class="form-field full">
-                        <label>Description / Notes</label>
-                        <textarea th:field="*{description}" rows="3" placeholder="Description optionnelle du compte..."></textarea>
+                        <label th:text="#{form.descriptionNotes}">Description / Notes</label>
+                        <textarea th:field="*{description}" rows="3" th:placeholder="#{form.accountDescriptionPlaceholder}"></textarea>
                     </div>
 
                     <div class="form-actions mt-4">
-                        <a th:href="@{/accounts}" class="btn-portal btn-ghost">Annuler</a>
+                        <a th:href="@{/accounts}" class="btn-portal btn-ghost" th:text="#{btn.cancel}">Annuler</a>
                         <button type="submit" class="btn-portal">
                             <i class="bi bi-check2"></i>
-                            <span th:text="${isNew} ? 'Créer le Compte' : 'Enregistrer les Modifications'"></span>
+                            <span th:text="${isNew} ? #{form.createAccount} : #{form.saveChanges}"></span>
                         </button>
                     </div>
                 </form>

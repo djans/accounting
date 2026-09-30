@@ -30,12 +30,12 @@
                 <table class="table-portal">
                     <thead>
                     <tr>
-                        <th>#</th>
-                        <th>Account</th>
-                        <th>Type</th>
-                        <th class="num">Debit</th>
-                        <th class="num">Credit</th>
-                        <th class="num">Balance</th>
+                        <th th:text="#{table.number}">#</th>
+                        <th th:text="#{table.account}">Account</th>
+                        <th th:text="#{table.type}">Type</th>
+                        <th class="num" th:text="#{table.debit}">Debit</th>
+                        <th class="num" th:text="#{table.credit}">Credit</th>
+                        <th class="num" th:text="#{table.balance}">Balance</th>
                     </tr>
                     </thead>
                     <tbody id="tb-tbody">
@@ -58,19 +58,19 @@
                     </tbody>
                     <tfoot>
                     <tr style="font-weight:600; background-color: #f8fafc;">
-                        <td colspan="5" style="text-align:right">Total Assets</td>
+                        <td colspan="5" style="text-align:right" th:text="#{table.totalAssets}">Total Assets</td>
                         <td class="num" th:text="${#numbers.formatCurrency(trialBalance['categoryTotals']['ASSET'])}">$0</td>
                     </tr>
                     <tr style="font-weight:600; background-color: #f8fafc;">
-                        <td colspan="5" style="text-align:right">Total Liabilities</td>
+                        <td colspan="5" style="text-align:right" th:text="#{table.totalLiabilities}">Total Liabilities</td>
                         <td class="num" th:text="${#numbers.formatCurrency(trialBalance['categoryTotals']['LIABILITY'])}">$0</td>
                     </tr>
                     <tr style="font-weight:600; background-color: #f8fafc;">
-                        <td colspan="5" style="text-align:right">Total Equity</td>
+                        <td colspan="5" style="text-align:right" th:text="#{table.totalEquity}">Total Equity</td>
                         <td class="num" th:text="${#numbers.formatCurrency(trialBalance['categoryTotals']['EQUITY'])}">$0</td>
                     </tr>
                     <tr style="font-weight:600; border-top: 2px solid #e2e8f0;">
-                        <td colspan="3" style="text-align:right">Totals</td>
+                        <td colspan="3" style="text-align:right" th:text="#{table.totals}">Totals</td>
                         <td class="num" th:text="${#numbers.formatCurrency(trialBalance['totalDebits'])}">$0</td>
                         <td class="num" th:text="${#numbers.formatCurrency(trialBalance['totalCredits'])}">$0</td>
                         <td></td>
@@ -108,7 +108,7 @@
                         <td class="num" th:text="${#numbers.formatCurrency(row['balance'])}">$0</td>
                     </tr>
                     <tr style="font-weight:600">
-                        <td colspan="2" style="text-align:right">Total Assets</td>
+                        <td colspan="2" style="text-align:right" th:text="#{table.totalAssets}">Total Assets</td>
                         <td class="num" th:text="${#numbers.formatCurrency(balanceSheet['totalAssets'])}">$0</td>
                     </tr>
                     </tbody>
@@ -131,7 +131,7 @@
                         <td class="num" th:text="${#numbers.formatCurrency(row['balance'])}">$0</td>
                     </tr>
                     <tr style="font-weight:600">
-                        <td colspan="2" style="text-align:right">Total Liabilities</td>
+                        <td colspan="2" style="text-align:right" th:text="#{table.totalLiabilities}">Total Liabilities</td>
                         <td class="num" th:text="${#numbers.formatCurrency(balanceSheet['totalLiabilities'])}">$0</td>
                     </tr>
                     </tbody>
@@ -154,19 +154,19 @@
                         <td class="num" th:text="${#numbers.formatCurrency(row['balance'])}">$0</td>
                     </tr>
                     <tr style="font-weight:600">
-                        <td colspan="2" style="text-align:right">Total Equity</td>
+                        <td colspan="2" style="text-align:right" th:text="#{table.totalEquity}">Total Equity</td>
                         <td class="num" th:text="${#numbers.formatCurrency(balanceSheet['totalEquity'])}">$0</td>
                     </tr>
                     <tr>
-                        <td colspan="2" style="text-align:right;font-style:italic">Net Income (Current Year)</td>
+                        <td colspan="2" style="text-align:right;font-style:italic" th:text="#{table.netIncomeCurrentYear}">Net Income (Current Year)</td>
                         <td class="num" th:text="${#numbers.formatCurrency(balanceSheet['netIncome'])}">$0</td>
                     </tr>
                     <tr style="font-weight:600">
-                        <td colspan="2" style="text-align:right">Total Equity & Net Income</td>
+                        <td colspan="2" style="text-align:right" th:text="#{table.totalEquityAndIncome}">Total Equity & Net Income</td>
                         <td class="num" th:text="${#numbers.formatCurrency(balanceSheet['totalEquityPlusNetIncome'])}">$0</td>
                     </tr>
                     <tr style="font-weight:700;background:#f8fafc">
-                        <td colspan="2" style="text-align:right">Total Liabilities + Equity</td>
+                        <td colspan="2" style="text-align:right" th:text="#{table.totalLiabilitiesAndEquity}">Total Liabilities + Equity</td>
                         <td class="num" th:text="${#numbers.formatCurrency(balanceSheet['totalLiabilitiesAndEquity'])}">$0</td>
                     </tr>
                     </tbody>
@@ -198,7 +198,7 @@
                         <td class="num" th:text="${#numbers.formatCurrency(row['balance'])}">$0</td>
                     </tr>
                     <tr style="font-weight:600">
-                        <td colspan="2" style="text-align:right">Total Revenue</td>
+                        <td colspan="2" style="text-align:right" th:text="#{table.totalRevenue}">Total Revenue</td>
                         <td class="num" th:text="${#numbers.formatCurrency(incomeStatement['totalRevenue'])}">$0</td>
                     </tr>
                     </tbody>
@@ -221,11 +221,11 @@
                         <td class="num" th:text="${#numbers.formatCurrency(row['balance'])}">$0</td>
                     </tr>
                     <tr style="font-weight:600">
-                        <td colspan="2" style="text-align:right">Total Expenses</td>
+                        <td colspan="2" style="text-align:right" th:text="#{table.totalExpenses}">Total Expenses</td>
                         <td class="num" th:text="${#numbers.formatCurrency(incomeStatement['totalExpenses'])}">$0</td>
                     </tr>
                     <tr style="font-weight:700;background:#f0fdf4">
-                        <td colspan="2" style="text-align:right">Net Income</td>
+                        <td colspan="2" style="text-align:right" th:text="#{table.netIncome}">Net Income</td>
                         <td class="num" th:text="${#numbers.formatCurrency(incomeStatement['netIncome'])}">$0</td>
                     </tr>
                     </tbody>
@@ -249,11 +249,11 @@
                     <table class="table-portal">
                         <thead>
                             <tr>
-                                <th>Date</th>
-                                <th>Journal #</th>
-                                <th>Description</th>
-                                <th class="num">Debit</th>
-                                <th class="num">Credit</th>
+                                <th th:text="#{table.date}">Date</th>
+                                <th th:text="#{table.journalNumber}">Journal #</th>
+                                <th th:text="#{table.description}">Description</th>
+                                <th class="num" th:text="#{table.debit}">Debit</th>
+                                <th class="num" th:text="#{table.credit}">Credit</th>
                             </tr>
                         </thead>
                         <tbody id="transaction-tbody">

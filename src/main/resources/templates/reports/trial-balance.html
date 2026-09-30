@@ -24,11 +24,11 @@
             <table class="table-portal table">
                 <thead>
                 <tr>
-                    <th>Account #</th>
-                    <th>Account</th>
-                    <th class="num">Debits</th>
-                    <th class="num">Credits</th>
-                    <th class="num">Balance</th>
+                    <th th:text="#{table.accountNum}">Account #</th>
+                    <th th:text="#{table.account}">Account</th>
+                    <th class="num" th:text="#{table.debits}">Debits</th>
+                    <th class="num" th:text="#{table.credits}">Credits</th>
+                    <th class="num" th:text="#{table.balance}">Balance</th>
                 </tr>
                 </thead>
                 <tbody>
@@ -48,10 +48,10 @@
                 </tbody>
                 <tfoot>
                 <tr>
-                    <td colspan="2">Totals</td>
+                    <td colspan="2" th:text="#{table.totals}">Totals</td>
                     <td class="num" th:text="${#numbers.formatCurrency(totalDebits)}">$0.00</td>
                     <td class="num" th:text="${#numbers.formatCurrency(totalCredits)}">$0.00</td>
-                    <td class="num" th:text="${balanced ? 'Balanced' : ''}"></td>
+                    <td class="num" th:text="${balanced ? #messages.msg('table.balanced') : ''}"></td>
                 </tr>
                 </tfoot>
             </table>

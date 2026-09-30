@@ -13,9 +13,9 @@
                 <form th:action="@{/payments/customer}" method="post" id="paymentForm">
                     <div class="form-grid">
                         <div class="form-field full">
-                            <label>Client</label>
+                            <label th:text="#{form.customer}">Client</label>
                             <select name="customerId" id="customerSelect" required>
-                                <option value="">Sélectionner un client…</option>
+                                <option value="" th:text="#{select.chooseCustomer}">Sélectionner un client…</option>
                                 <option th:each="c : ${customers}"
                                         th:value="${c.id}"
                                         th:selected="${selectedCustomerId != null and selectedCustomerId == c.id}"
@@ -24,17 +24,17 @@
                         </div>
                         
                         <div class="form-field">
-                            <label>Balance totale</label>
+                            <label th:text="#{form.totalBalance}">Balance totale</label>
                             <input type="text" id="totalBalance" readonly class="bg-light" value="0.00"/>
                         </div>
 
                         <div class="form-field">
-                            <label>Date de paiement</label>
+                            <label th:text="#{form.paymentDate}">Date de paiement</label>
                             <input type="date" name="paymentDate" id="paymentDate" required th:value="${T(java.time.LocalDate).now()}"/>
                         </div>
 
                         <div class="form-field">
-                            <label>Méthode</label>
+                            <label th:text="#{form.method}">Méthode</label>
                             <select name="paymentMethod" required>
                                 <option th:each="m : ${methods}"
                                         th:value="${m}"
@@ -44,9 +44,9 @@
                         </div>
 
                         <div class="form-field">
-                            <label>Compte bancaire</label>
+                            <label th:text="#{form.bankAccount}">Compte bancaire</label>
                             <select name="bankAccountId" required>
-                                <option value="">Sélectionner…</option>
+                                <option value="" th:text="#{select.chooseBankAccount}">Sélectionner…</option>
                                 <option th:each="b : ${bankAccounts}"
                                         th:value="${b.id}"
                                         th:text="${b.accountNumber + ' – ' + b.accountName}"
@@ -55,7 +55,7 @@
                         </div>
 
                         <div class="form-field">
-                            <label>Compte A/R</label>
+                            <label th:text="#{form.arAccount}">Compte A/R</label>
                             <select name="arAccountId" required>
                                 <option th:each="a : ${arAccounts}"
                                         th:value="${a.id}"
@@ -65,12 +65,12 @@
                         </div>
 
                         <div class="form-field">
-                            <label>Montant total reçu</label>
+                            <label th:text="#{form.totalAmountReceived}">Montant total reçu</label>
                             <input type="number" step="0.01" id="totalAmountReceived" placeholder="0.00"/>
                         </div>
 
                         <div class="form-field full">
-                            <label>Transaction ID / Notes</label>
+                            <label th:text="#{form.transactionIdNotes}">Transaction ID / Notes</label>
                             <div class="d-flex gap-2">
                                 <input type="text" name="transactionId" placeholder="Transaction ID (optionnel)" class="flex-grow-1"/>
                                 <input type="text" name="notes" placeholder="Notes" class="flex-grow-1"/>
@@ -84,11 +84,11 @@
                             <thead>
                                 <tr>
                                     <th style="width: 40px;"><input type="checkbox" id="selectAll"></th>
-                                    <th>N° Facture</th>
-                                    <th>Date</th>
-                                    <th class="text-end">Total</th>
-                                    <th class="text-end">Dû</th>
-                                    <th class="text-end" style="width: 150px;">Paiement</th>
+                                    <th th:text="#{table.invoiceNum}">N° Facture</th>
+                                    <th th:text="#{table.date}">Date</th>
+                                    <th class="text-end" th:text="#{table.total}">Total</th>
+                                    <th class="text-end" th:text="#{table.amountDue}">Dû</th>
+                                    <th class="text-end" style="width: 150px;" th:text="#{table.payment}">Paiement</th>
                                 </tr>
                             </thead>
                             <tbody id="invoicesBody">

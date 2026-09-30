@@ -10,39 +10,39 @@
             <div th:replace="~{fragments/layout :: flash}"></div>
 
             <div th:if="${#lists.isEmpty(accounts)}" class="flash flash-info">
-                You need at least two active accounts in your Chart of Accounts before posting a journal.
-                <a th:href="@{/accounts/new}">Add one</a>.
+                <span th:text="#{journal.requiresTwoAccounts}">You need at least two active accounts in your Chart of Accounts before posting a journal.</span>
+                <a th:href="@{/accounts/new}" th:text="#{journal.addAccount}">Add one</a>.
             </div>
 
             <div class="portal-card">
                 <form th:action="@{/journals}" method="post">
                     <div class="form-grid">
                         <div class="form-field full">
-                            <label>Narrative</label>
+                            <label th:text="#{form.narrative}">Narrative</label>
                             <input type="text" name="narrative" required
-                                   placeholder="What this transaction records"/>
+                                   th:placeholder="#{form.narrativePlaceholder}"/>
                         </div>
                         <div class="form-field full">
-                            <label>Reference</label>
+                            <label th:text="#{form.reference}">Reference</label>
                             <input type="text" name="reference"
-                                   placeholder="Optional — e.g. invoice number, contract ID"/>
+                                   th:placeholder="#{form.optionalReferencePlaceholder}"/>
                         </div>
                     </div>
 
-                    <h4 style="margin:1.5rem 0 .5rem;font-size:.95rem;">Journal Lines</h4>
+                    <h4 style="margin:1.5rem 0 .5rem;font-size:.95rem;" th:text="#{form.journalLines}">Journal Lines</h4>
                     <div class="entries-toolbar">
-                        <small class="text-muted">Total debits must equal total credits.</small>
+                        <small class="text-muted" th:text="#{form.debitsEqualCredits}">Total debits must equal total credits.</small>
                         <button type="button" class="btn-portal btn-ghost btn-sm" onclick="addEntry()">
-                            <i class="bi bi-plus-lg"></i> Add line
+                            <i class="bi bi-plus-lg"></i> <span th:text="#{btn.addLine}">Add line</span>
                         </button>
                     </div>
                     <table class="table-portal entries-table">
                         <thead>
                         <tr>
-                            <th style="width:30%">Account</th>
-                            <th style="width:25%">Description</th>
-                            <th style="width:17%" class="num">Debit</th>
-                            <th style="width:17%" class="num">Credit</th>
+                            <th style="width:30%" th:text="#{table.account}">Account</th>
+                            <th style="width:25%" th:text="#{table.description}">Description</th>
+                            <th style="width:17%" class="num" th:text="#{table.debit}">Debit</th>
+                            <th style="width:17%" class="num" th:text="#{table.credit}">Credit</th>
                             <th></th>
                         </tr>
                         </thead>
@@ -50,7 +50,7 @@
                         <tr>
                             <td>
                                 <select name="accountIds" required>
-                                    <option value="">Select…</option>
+                                    <option value="" th:text="#{select.chooseAccount}">Select…</option>
                                     <option th:each="a : ${accounts}" th:value="${a.id}"
                                             th:text="${a.accountNumber + ' — ' + a.accountName}">1010</option>
                                 </select>
@@ -63,7 +63,7 @@
                         <tr>
                             <td>
                                 <select name="accountIds" required>
-                                    <option value="">Select…</option>
+                                    <option value="" th:text="#{select.chooseAccount}">Select…</option>
                                     <option th:each="a : ${accounts}" th:value="${a.id}"
                                             th:text="${a.accountNumber + ' — ' + a.accountName}">1010</option>
                                 </select>
@@ -77,9 +77,9 @@
                     </table>
 
                     <div class="form-actions">
-                        <a th:href="@{/journals}" class="btn-portal btn-ghost">Cancel</a>
+                        <a th:href="@{/journals}" class="btn-portal btn-ghost" th:text="#{btn.cancel}">Cancel</a>
                         <button type="submit" class="btn-portal">
-                            <i class="bi bi-check2"></i> Save Draft
+                            <i class="bi bi-check2"></i> <span th:text="#{btn.saveDraft}">Save Draft</span>
                         </button>
                     </div>
                 </form>
@@ -90,8 +90,9 @@
 
 <script th:inline="javascript">
 const accounts = /*[[${accounts}]]*/ [];
+const chooseAccount = /*[[#{select.chooseAccount}]]*/ 'Select account...';
 function buildOptions() {
-    let opts = '<option value="">Select…</option>';
+    let opts = '<option value="">' + chooseAccount + '</option>';
     accounts.forEach(a => {
         opts += `<option value="${a.id}">${a.accountNumber} — ${a.accountName}</option>`;
     });

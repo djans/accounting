@@ -13,9 +13,9 @@
                 <form th:action="@{/bills}" method="post" id="billForm">
                     <div class="form-grid">
                         <div class="form-field">
-                            <label>Fournisseur</label>
+                            <label th:text="#{form.supplier}">Fournisseur</label>
                             <select name="vendorId" id="vendorSelect" required>
-                                <option value="">Choisir un fournisseur…</option>
+                                <option value="" th:text="#{select.chooseSupplier}">Choisir un fournisseur…</option>
                                 <option th:each="v : ${vendors}"
                                         th:value="${v.id}"
                                         th:attr="data-province=${v.province}"
@@ -23,9 +23,9 @@
                             </select>
                         </div>
                         <div class="form-field">
-                            <label>Régime fiscal</label>
+                            <label th:text="#{form.taxRegime}">Régime fiscal</label>
                             <select name="taxRegime" id="regimeSelect" required>
-                                <option value="">Choisir un régime…</option>
+                                <option value="" th:text="#{select.chooseTaxRegime}">Choisir un régime…</option>
                                 <option th:each="r : ${regimes}"
                                         th:value="${r.code}"
                                         th:attr="data-gst=${r.gstRate},data-hst=${r.hstRate},data-qst=${r.qstRate}"
@@ -33,26 +33,26 @@
                             </select>
                         </div>
                         <div class="form-field full">
-                            <label>Notes</label>
-                            <textarea name="notes" rows="2" placeholder="Notes facultatives"></textarea>
+                            <label th:text="#{form.notes}">Notes</label>
+                            <textarea name="notes" rows="2" th:placeholder="#{form.optionalNotes}"></textarea>
                         </div>
                     </div>
 
-                    <h4 style="margin:1.5rem 0 .5rem;font-size:.95rem;">Lignes d'achat</h4>
+                    <h4 style="margin:1.5rem 0 .5rem;font-size:.95rem;" th:text="#{form.billLines}">Lignes d'achat</h4>
                     <div class="entries-toolbar">
-                        <small class="text-muted">Une ligne par dépense. Chaque ligne impute un compte de charge ou d'actif ; les taxes payées sont récupérées en CTI/RTI.</small>
+                        <small class="text-muted" th:text="#{form.billLineHelp}">Une ligne par dépense. Chaque ligne impute un compte de charge ou d'actif ; les taxes payées sont récupérées en CTI/RTI.</small>
                         <button type="button" class="btn-portal btn-ghost btn-sm" onclick="addLine()">
-                            <i class="bi bi-plus-lg"></i> Ajouter une ligne
+                            <i class="bi bi-plus-lg"></i> <span th:text="#{btn.addLine}">Ajouter une ligne</span>
                         </button>
                     </div>
                     <table class="table-portal entries-table">
                         <thead>
                         <tr>
-                            <th style="width:34%">Description</th>
-                            <th style="width:26%">Compte</th>
-                            <th style="width:11%">Quantité</th>
-                            <th style="width:14%">Prix unitaire</th>
-                            <th style="width:11%" class="num">Total</th>
+                            <th style="width:34%" th:text="#{table.description}">Description</th>
+                            <th style="width:26%" th:text="#{table.account}">Compte</th>
+                            <th style="width:11%" th:text="#{table.quantity}">Quantité</th>
+                            <th style="width:14%" th:text="#{table.unitPrice}">Prix unitaire</th>
+                            <th style="width:11%" class="num" th:text="#{table.total}">Total</th>
                             <th></th>
                         </tr>
                         </thead>
@@ -61,7 +61,7 @@
                             <td><input type="text" name="descriptions" required/></td>
                             <td>
                                 <select class="acct" name="accountIds" required>
-                                    <option value="">Choisir…</option>
+                                    <option value="" th:text="#{select.choose}">Choisir…</option>
                                     <option th:each="a : ${expenseAccounts}"
                                             th:value="${a.id}"
                                             th:text="${a.accountNumber + ' – ' + a.accountName}"></option>
@@ -80,14 +80,14 @@
                     </table>
 
                     <div class="portal-card" style="margin-top:1.25rem;background:#f7f9fc;">
-                        <h3 class="portal-card-title">Aperçu des taxes (CTI/RTI récupérables)</h3>
+                        <h3 class="portal-card-title" th:text="#{form.purchaseTaxPreview}">Aperçu des taxes (CTI/RTI récupérables)</h3>
                         <div id="taxPreviewEmpty" class="empty-state" style="padding:1rem">
-                            Choisissez un régime fiscal et saisissez au moins une ligne pour voir l'aperçu.
+                            <span th:text="#{form.chooseRegimeAndLinePreview}">Choisissez un régime fiscal et saisissez au moins une ligne pour voir l'aperçu.</span>
                         </div>
                         <div id="taxPreview" style="display:none">
                             <div class="report-totals">
                                 <div class="stat-card">
-                                    <div class="stat-label">Sous-total</div>
+                                    <div class="stat-label" th:text="#{table.subtotal}">Sous-total</div>
                                     <div class="stat-value" id="previewSubtotal">$0.00</div>
                                 </div>
                                 <div class="stat-card" id="cardTps" style="display:none">
@@ -103,7 +103,7 @@
                                     <div class="stat-value" id="previewHst">$0.00</div>
                                 </div>
                                 <div class="stat-card is-success">
-                                    <div class="stat-label">Total</div>
+                                    <div class="stat-label" th:text="#{table.total}">Total</div>
                                     <div class="stat-value" id="previewTotal">$0.00</div>
                                 </div>
                             </div>
@@ -111,9 +111,9 @@
                     </div>
 
                     <div class="form-actions">
-                        <a th:href="@{/bills}" class="btn-portal btn-ghost">Annuler</a>
+                        <a th:href="@{/bills}" class="btn-portal btn-ghost" th:text="#{btn.cancel}">Annuler</a>
                         <button type="submit" class="btn-portal">
-                            <i class="bi bi-check2"></i> Créer la facture d'achat
+                            <i class="bi bi-check2"></i> <span th:text="#{btn.createBill}">Créer la facture d'achat</span>
                         </button>
                     </div>
                 </form>
@@ -190,7 +190,7 @@ function recalculate() {
 
 function accountOptionsHtml() {
     const existing = document.querySelector('#lineItemsBody select.acct');
-    return existing ? existing.innerHTML : '<option value="">Choisir…</option>';
+    return existing ? existing.innerHTML : '<option value=""></option>';
 }
 
 function addLine() {

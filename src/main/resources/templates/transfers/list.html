@@ -12,7 +12,7 @@
                 <h2>Transfers</h2>
                 <a th:href="@{/transfers/new}" class="btn-portal">Transfer Funds</a>
                 <table class="table-portal" th:if="${not #lists.isEmpty(transfers)}">
-                    <thead><tr><th>Date</th><th>From</th><th>To</th><th class="num">Amount</th><th>Memo</th></tr></thead>
+                    <thead><tr><th th:text="#{table.date}">Date</th><th th:text="#{table.from}">From</th><th th:text="#{table.to}">To</th><th class="num" th:text="#{table.amount}">Amount</th><th th:text="#{table.memo}">Memo</th></tr></thead>
                     <tbody><tr th:each="transfer : ${transfers}">
                         <td th:text="${transfer.transferDate}"></td>
                         <td th:text="${transfer.fromAccount.accountNumber + ' — ' + transfer.fromAccount.accountName}"></td>

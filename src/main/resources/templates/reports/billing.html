@@ -16,11 +16,11 @@
                 <form th:action="@{/reports/billing}" method="get">
                     <div class="form-grid">
                         <div class="form-field">
-                            <label>Start Date</label>
+                            <label th:text="#{form.startDate}">Start Date</label>
                             <input type="date" name="startDate" th:value="${startDate}"/>
                         </div>
                         <div class="form-field">
-                            <label>End Date</label>
+                            <label th:text="#{form.endDate}">End Date</label>
                             <input type="date" name="endDate" th:value="${endDate}"/>
                         </div>
                     </div>
@@ -76,8 +76,8 @@
                 <table class="table-portal">
                     <thead>
                     <tr>
-                        <th>Status</th>
-                        <th class="num">Count</th>
+                        <th th:text="#{table.status}">Status</th>
+                        <th class="num" th:text="#{table.count}">Count</th>
                     </tr>
                     </thead>
                     <tbody>

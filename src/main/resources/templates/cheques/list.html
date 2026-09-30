@@ -18,11 +18,11 @@
                 <table class="table-portal" th:if="${not #lists.isEmpty(cheques)}">
                     <thead>
                     <tr>
-                        <th>Cheque #</th>
-                        <th>Vendor</th>
-                        <th>Date</th>
-                        <th class="num">Amount</th>
-                        <th>Status</th>
+                        <th th:text="#{table.chequeNumber}">Cheque #</th>
+                        <th th:text="#{table.vendor}">Vendor</th>
+                        <th th:text="#{table.date}">Date</th>
+                        <th class="num" th:text="#{table.amount}">Amount</th>
+                        <th th:text="#{table.status}">Status</th>
                         <th th:text="#{table.actions}">Actions</th>
                     </tr>
                     </thead>
@@ -48,6 +48,13 @@
                             </div>
                         </td>
                         <td class="cheque-actions">
+                            <a th:href="@{/cheques/{id}/copy(id=${p.id})}"
+                               class="btn-portal btn-ghost btn-sm icon-action"
+                               data-bs-toggle="tooltip" data-bs-placement="top"
+                               th:title="#{cheques.copy}"
+                               th:attr="aria-label=#{cheques.copy}">
+                                <i class="bi bi-copy" aria-hidden="true"></i>
+                            </a>
                             <a th:if="${p.status.name() == 'DRAFT'}"
                                th:href="@{/cheques/{id}/edit(id=${p.id})}"
                                class="btn-portal btn-ghost btn-sm icon-action"

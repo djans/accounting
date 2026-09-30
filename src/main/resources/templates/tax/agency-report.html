@@ -64,13 +64,13 @@
                 <table th:if="${not #lists.isEmpty(periods)}" class="table-portal">
                     <thead>
                     <tr>
-                        <th>Period</th>
-                        <th>Status</th>
-                        <th class="num">Collected</th>
-                        <th class="num">ITC</th>
-                        <th class="num">Net Owing</th>
-                        <th>Filed</th>
-                        <th>Paid</th>
+                        <th th:text="#{table.period}">Period</th>
+                        <th th:text="#{table.status}">Status</th>
+                        <th class="num" th:text="#{table.collected}">Collected</th>
+                        <th class="num" th:text="#{table.itc}">ITC</th>
+                        <th class="num" th:text="#{table.netOwing}">Net Owing</th>
+                        <th th:text="#{table.filed}">Filed</th>
+                        <th th:text="#{table.paid}">Paid</th>
                     </tr>
                     </thead>
                     <tbody>

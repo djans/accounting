@@ -51,11 +51,11 @@
                 <table class="table-portal">
                     <thead>
                     <tr>
-                        <th>Description</th>
-                        <th>Compte</th>
-                        <th class="num">Qté</th>
-                        <th class="num">Prix unitaire</th>
-                        <th class="num">Total</th>
+                        <th th:text="#{table.description}">Description</th>
+                        <th th:text="#{table.account}">Compte</th>
+                        <th class="num" th:text="#{table.quantity}">Qté</th>
+                        <th class="num" th:text="#{table.unitPrice}">Prix unitaire</th>
+                        <th class="num" th:text="#{table.total}">Total</th>
                     </tr>
                     </thead>
                     <tbody>
@@ -153,30 +153,30 @@
                 <form th:action="@{/bills/{id}/pay(id=${bill.id})}" method="post">
                     <div class="form-grid">
                         <div class="form-field">
-                            <label>Montant</label>
+                            <label th:text="#{form.amount}">Montant</label>
                             <input type="number" step="0.01" name="amount" required/>
                         </div>
                         <div class="form-field">
-                            <label>Mode de paiement</label>
+                            <label th:text="#{form.method}">Mode de paiement</label>
                             <select name="paymentMethod" required>
                                 <option th:each="m : ${methods}" th:value="${m}" th:text="${m}"></option>
                             </select>
                         </div>
                         <div class="form-field">
-                            <label>Compte bancaire</label>
+                            <label th:text="#{form.bankAccount}">Compte bancaire</label>
                             <select name="bankAccountId">
-                                <option value="">— (pas d'écriture) —</option>
+                                <option value="" th:text="#{select.noJournalEntry}">— (pas d'écriture) —</option>
                                 <option th:each="acc : ${bankAccounts}"
                                         th:value="${acc.id}"
                                         th:text="${acc.accountNumber + ' – ' + acc.accountName}"></option>
                             </select>
                         </div>
                         <div class="form-field">
-                            <label>No de transaction</label>
-                            <input type="text" name="transactionId" placeholder="Auto si vide"/>
+                            <label th:text="#{form.transactionId}">No de transaction</label>
+                            <input type="text" name="transactionId" th:placeholder="#{form.autoIfBlank}"/>
                         </div>
                         <div class="form-field full">
-                            <label>Notes</label>
+                            <label th:text="#{form.notes}">Notes</label>
                             <input type="text" name="notes"/>
                         </div>
                     </div>
@@ -194,11 +194,11 @@
                 <table th:if="${not #lists.isEmpty(payments)}" class="table-portal">
                     <thead>
                     <tr>
-                        <th>Transaction</th>
-                        <th>Date</th>
-                        <th>Mode</th>
-                        <th>Statut</th>
-                        <th class="num">Montant</th>
+                        <th th:text="#{table.transaction}">Transaction</th>
+                        <th th:text="#{table.date}">Date</th>
+                        <th th:text="#{table.method}">Mode</th>
+                        <th th:text="#{table.status}">Statut</th>
+                        <th class="num" th:text="#{table.amount}">Montant</th>
                     </tr>
                     </thead>
                     <tbody>

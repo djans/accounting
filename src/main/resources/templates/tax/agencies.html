@@ -83,10 +83,10 @@
                             <input type="text" name="address"/>
                         </div>
                         <div class="form-field">
-                            <label>Status</label>
+                            <label th:text="#{form.status}">Status</label>
                             <select name="active">
-                                <option value="true" selected th:text="#{btn.showActive}">Active</option>
-                                <option value="false" th:text="#{status.cancelled}">Inactive</option>
+                                <option value="true" selected th:text="#{select.active}">Active</option>
+                                <option value="false" th:text="#{select.inactive}">Inactive</option>
                             </select>
                         </div>
                     </div>

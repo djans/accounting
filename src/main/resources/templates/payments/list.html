@@ -29,12 +29,12 @@
                 <table th:if="${not #lists.isEmpty(payments)}" class="table-portal">
                     <thead>
                     <tr>
-                        <th>Transaction</th>
-                        <th>Invoice</th>
-                        <th>Date</th>
-                        <th>Method</th>
-                        <th>Status</th>
-                        <th class="num">Amount</th>
+                        <th th:text="#{table.transaction}">Transaction</th>
+                        <th th:text="#{table.invoice}">Invoice</th>
+                        <th th:text="#{table.date}">Date</th>
+                        <th th:text="#{table.method}">Method</th>
+                        <th th:text="#{table.status}">Status</th>
+                        <th class="num" th:text="#{table.amount}">Amount</th>
                         <th></th>
                     </tr>
                     </thead>

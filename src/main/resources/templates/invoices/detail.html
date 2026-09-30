@@ -66,10 +66,10 @@
                 <table class="table-portal">
                     <thead>
                     <tr>
-                        <th>Description</th>
-                        <th class="num">Qty</th>
-                        <th class="num">Unit Price</th>
-                        <th class="num">Total</th>
+                        <th th:text="#{table.description}">Description</th>
+                        <th class="num" th:text="#{table.quantity}">Qty</th>
+                        <th class="num" th:text="#{table.unitPrice}">Unit Price</th>
+                        <th class="num" th:text="#{table.total}">Total</th>
                     </tr>
                     </thead>
                     <tbody>
@@ -187,11 +187,11 @@
                 <table th:if="${not #lists.isEmpty(payments)}" class="table-portal">
                     <thead>
                     <tr>
-                        <th>Transaction</th>
-                        <th>Date</th>
-                        <th>Method</th>
-                        <th>Status</th>
-                        <th class="num">Amount</th>
+                        <th th:text="#{table.transaction}">Transaction</th>
+                        <th th:text="#{table.date}">Date</th>
+                        <th th:text="#{table.method}">Method</th>
+                        <th th:text="#{table.status}">Status</th>
+                        <th class="num" th:text="#{table.amount}">Amount</th>
                     </tr>
                     </thead>
                     <tbody>

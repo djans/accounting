@@ -18,11 +18,11 @@
                     </span>
                 </h3>
                 <form th:action="@{/vendors}" method="get" class="vendor-search no-print">
-                    <label for="vendor-search">Rechercher un fournisseur</label>
+                    <label for="vendor-search" th:text="#{party.searchVendors}">Rechercher un fournisseur</label>
                     <input id="vendor-search" type="search" name="q" th:value="${searchQuery}"
-                           placeholder="Entreprise, contact, courriel, téléphone, province..."/>
-                    <button type="submit" class="btn-portal"><i class="bi bi-search"></i> Rechercher</button>
-                    <a th:if="${searchQuery != null and !searchQuery.isBlank()}" th:href="@{/vendors}" class="btn-portal btn-ghost">Effacer</a>
+                           th:placeholder="#{party.vendorSearchPlaceholder}"/>
+                    <button type="submit" class="btn-portal"><i class="bi bi-search"></i> <span th:text="#{btn.search}">Rechercher</span></button>
+                    <a th:if="${searchQuery != null and !searchQuery.isBlank()}" th:href="@{/vendors}" class="btn-portal btn-ghost" th:text="#{btn.clear}">Effacer</a>
                 </form>
                 <p class="text-muted vendor-result-count" th:text="${#lists.size(vendors) + ' fournisseur(s) affiché(s)'}">0 fournisseur(s) affiché(s)</p>
                 <div th:if="${#lists.isEmpty(vendors)}" class="empty-state">
@@ -31,12 +31,12 @@
                 <table th:if="${not #lists.isEmpty(vendors)}" class="table-portal">
                     <thead>
                     <tr>
-                        <th>Entreprise</th>
-                        <th>Contact</th>
-                        <th>Courriel</th>
-                        <th>Province</th>
-                        <th>No TPS</th>
-                        <th>No TVQ</th>
+                        <th th:text="#{table.company}">Entreprise</th>
+                        <th th:text="#{table.contact}">Contact</th>
+                        <th th:text="#{table.email}">Courriel</th>
+                        <th th:text="#{table.province}">Province</th>
+                        <th th:text="#{table.salesTaxNumber}">No TPS</th>
+                        <th th:text="#{table.qstNumber}">No TVQ</th>
                         <th></th>
                     </tr>
                     </thead>

@@ -20,12 +20,12 @@
                 <table th:if="${not #lists.isEmpty(journals)}" class="table-portal">
                     <thead>
                     <tr>
-                        <th>Journal #</th>
-                        <th>Date</th>
-                        <th>Narrative</th>
-                        <th>Reference</th>
-                        <th>Status</th>
-                        <th>Posted</th>
+                        <th th:text="#{table.journalNumber}">Journal #</th>
+                        <th th:text="#{table.date}">Date</th>
+                        <th th:text="#{table.narrative}">Narrative</th>
+                        <th th:text="#{table.reference}">Reference</th>
+                        <th th:text="#{table.status}">Status</th>
+                        <th th:text="#{table.posted}">Posted</th>
                     </tr>
                     </thead>
                     <tbody>
