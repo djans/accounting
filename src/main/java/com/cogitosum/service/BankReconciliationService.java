@@ -38,6 +38,7 @@ public class BankReconciliationService {
     private final ChartOfAccountRepository accountRepository;
     private final GeneralLedgerRepository ledgerRepository;
     private final JournalEntryRepository journalEntryRepository;
+    private final ChequeService chequeService;
     private final CurrentCompanyContext companyContext;
 
     public BankReconciliationService(BankTransactionRepository bankTransactionRepository,
@@ -45,12 +46,14 @@ public class BankReconciliationService {
                                      ChartOfAccountRepository accountRepository,
                                      GeneralLedgerRepository ledgerRepository,
                                      JournalEntryRepository journalEntryRepository,
+                                     ChequeService chequeService,
                                      CurrentCompanyContext companyContext) {
         this.bankTransactionRepository = bankTransactionRepository;
         this.sessionRepository = sessionRepository;
         this.accountRepository = accountRepository;
         this.ledgerRepository = ledgerRepository;
         this.journalEntryRepository = journalEntryRepository;
+        this.chequeService = chequeService;
         this.companyContext = companyContext;
     }
 
@@ -215,6 +218,7 @@ public class BankReconciliationService {
         }
         for (JournalEntry entry : entries) {
             entry.setCleared(true);
+            chequeService.markClearedByJournal(entry.getJournal());
         }
         bankTransactionRepository.saveAll(pendingTransactions);
         journalEntryRepository.saveAll(entries);

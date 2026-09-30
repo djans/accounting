@@ -29,7 +29,7 @@ public class GeneralJournal implements CompanyOwned {
     private String narrative;
     
     @Column(length = 500)
-    private String reference;   // Links to Invoice/Payment
+    private String reference;   // Links the journal to its source transaction
     
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)

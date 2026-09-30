@@ -69,6 +69,58 @@
                 </table>
             </div>
 
+            <div class="portal-card">
+                <div class="d-flex align-items-center justify-content-between">
+                    <h3 class="portal-card-title">Tax Groups</h3>
+                    <button class="btn-portal btn-sm" data-bs-toggle="modal" data-bs-target="#taxGroupModal" onclick="resetGroupForm()"><i class="bi bi-plus-lg"></i> Add Group</button>
+                </div>
+                <table class="table-portal table-sm">
+                    <thead>
+                    <tr>
+                        <th>Code</th>
+                        <th>Name</th>
+                        <th>Components</th>
+                        <th>Total Rate</th>
+                        <th>Actions</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="g : ${groups}" th:classappend="${!g.active} ? 'text-muted italic'">
+                        <td>
+                            <span th:text="${g.code}">QC-TPS-TVQ</span>
+                            <span th:if="${!g.active}" class="badge bg-secondary ms-1">Inactive</span>
+                        </td>
+                        <td th:text="${g.name}">Québec (TPS+TVQ)</td>
+                        <td>
+                            <span th:each="ti : ${g.taxItems}" class="badge-pill bg-light text-dark me-1" th:text="${ti.code}">TPS</span>
+                        </td>
+                        <td class="num">
+                            <span th:with="totalRate=${#aggregates.sum(g.taxItems.![rate])}"
+                                  th:text="${#numbers.formatPercent(totalRate != null ? totalRate : 0, 1, 3)}">14.975%</span>
+                        </td>
+                        <td>
+                            <div class="d-flex gap-1">
+                                <button class="btn btn-sm btn-outline-primary edit-group"
+                                        th:data-id="${g.id}"
+                                        th:data-code="${g.code}"
+                                        th:data-name="${g.name}"
+                                        th:data-items="${g.taxItems.?[id != null].![id]}"
+                                        th:data-active="${g.active}">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline-danger"
+                                        th:if="${g.active}"
+                                        data-deactivation-type="group"
+                                        th:data-deactivation-id="${g.id}">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
             <!-- Tax Items (Components like GST, QST) -->
             <div class="portal-card">
                 <div class="d-flex align-items-center justify-content-between">
@@ -121,58 +173,6 @@
                                         th:if="${i.active}"
                                         data-deactivation-type="item"
                                         th:data-deactivation-id="${i.id}">
-                                    <i class="bi bi-trash"></i>
-                                </button>
-                            </div>
-                        </td>
-                    </tr>
-                    </tbody>
-                </table>
-            </div>
-
-            <div class="portal-card">
-                <div class="d-flex align-items-center justify-content-between">
-                    <h3 class="portal-card-title">Tax Groups</h3>
-                    <button class="btn-portal btn-sm" data-bs-toggle="modal" data-bs-target="#taxGroupModal" onclick="resetGroupForm()"><i class="bi bi-plus-lg"></i> Add Group</button>
-                </div>
-                <table class="table-portal table-sm">
-                    <thead>
-                    <tr>
-                        <th>Code</th>
-                        <th>Name</th>
-                        <th>Components</th>
-                        <th>Total Rate</th>
-                        <th>Actions</th>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    <tr th:each="g : ${groups}" th:classappend="${!g.active} ? 'text-muted italic'">
-                        <td>
-                            <span th:text="${g.code}">QC-TPS-TVQ</span>
-                            <span th:if="${!g.active}" class="badge bg-secondary ms-1">Inactive</span>
-                        </td>
-                        <td th:text="${g.name}">Québec (TPS+TVQ)</td>
-                        <td>
-                            <span th:each="ti : ${g.taxItems}" class="badge-pill bg-light text-dark me-1" th:text="${ti.code}">TPS</span>
-                        </td>
-                        <td class="num">
-                            <span th:with="totalRate=${#aggregates.sum(g.taxItems.![rate])}"
-                                  th:text="${#numbers.formatPercent(totalRate != null ? totalRate : 0, 1, 3)}">14.975%</span>
-                        </td>
-                        <td>
-                            <div class="d-flex gap-1">
-                                <button class="btn btn-sm btn-outline-primary edit-group"
-                                        th:data-id="${g.id}"
-                                        th:data-code="${g.code}"
-                                        th:data-name="${g.name}"
-                                        th:data-items="${g.taxItems.?[id != null].![id]}"
-                                        th:data-active="${g.active}">
-                                    <i class="bi bi-pencil"></i>
-                                </button>
-                                <button type="button" class="btn btn-sm btn-outline-danger"
-                                        th:if="${g.active}"
-                                        data-deactivation-type="group"
-                                        th:data-deactivation-id="${g.id}">
                                     <i class="bi bi-trash"></i>
                                 </button>
                             </div>

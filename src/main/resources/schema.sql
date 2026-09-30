@@ -528,13 +528,51 @@ CREATE TABLE IF NOT EXISTS written_cheques (
     bank_account_id BIGINT NOT NULL,
     amount DECIMAL(19, 2) NOT NULL,
     memo VARCHAR(500) NULL,
+    status VARCHAR(16) NOT NULL DEFAULT 'DRAFT',
+    voided_at DATETIME NULL,
+    void_reason VARCHAR(500) NULL,
+    reissue_of_id BIGINT NULL,
     PRIMARY KEY (id),
     UNIQUE KEY uk_written_cheques_company_number (company_id, cheque_number),
     KEY idx_written_cheques_company (company_id),
     CONSTRAINT fk_written_cheques_company FOREIGN KEY (company_id) REFERENCES companies (id),
     CONSTRAINT fk_written_cheques_vendor FOREIGN KEY (vendor_id) REFERENCES vendors (id),
-    CONSTRAINT fk_written_cheques_bank FOREIGN KEY (bank_account_id) REFERENCES chart_of_accounts (id)
+    CONSTRAINT fk_written_cheques_bank FOREIGN KEY (bank_account_id) REFERENCES chart_of_accounts (id),
+    CONSTRAINT fk_written_cheques_reissue FOREIGN KEY (reissue_of_id) REFERENCES written_cheques (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+SET @cheque_status_sql = (SELECT IF(
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE()
+        AND TABLE_NAME = 'written_cheques' AND COLUMN_NAME = 'status') > 0,
+    'SELECT 1',
+    'ALTER TABLE written_cheques ADD COLUMN status VARCHAR(16) NOT NULL DEFAULT ''ISSUED'''));
+PREPARE stmt FROM @cheque_status_sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+ALTER TABLE written_cheques MODIFY COLUMN status VARCHAR(16) NOT NULL DEFAULT 'DRAFT';
+
+SET @cheque_voided_at_sql = (SELECT IF(
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE()
+        AND TABLE_NAME = 'written_cheques' AND COLUMN_NAME = 'voided_at') > 0,
+    'SELECT 1', 'ALTER TABLE written_cheques ADD COLUMN voided_at DATETIME NULL'));
+PREPARE stmt FROM @cheque_voided_at_sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @cheque_void_reason_sql = (SELECT IF(
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE()
+        AND TABLE_NAME = 'written_cheques' AND COLUMN_NAME = 'void_reason') > 0,
+    'SELECT 1', 'ALTER TABLE written_cheques ADD COLUMN void_reason VARCHAR(500) NULL'));
+PREPARE stmt FROM @cheque_void_reason_sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @cheque_reissue_sql = (SELECT IF(
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE()
+        AND TABLE_NAME = 'written_cheques' AND COLUMN_NAME = 'reissue_of_id') > 0,
+    'SELECT 1', 'ALTER TABLE written_cheques ADD COLUMN reissue_of_id BIGINT NULL'));
+PREPARE stmt FROM @cheque_reissue_sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @cheque_reissue_fk_sql = (SELECT IF(
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE WHERE TABLE_SCHEMA = DATABASE()
+        AND TABLE_NAME = 'written_cheques' AND CONSTRAINT_NAME = 'fk_written_cheques_reissue') > 0,
+    'SELECT 1',
+    'ALTER TABLE written_cheques ADD CONSTRAINT fk_written_cheques_reissue FOREIGN KEY (reissue_of_id) REFERENCES written_cheques (id)'));
+PREPARE stmt FROM @cheque_reissue_fk_sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 CREATE TABLE IF NOT EXISTS cheque_expenses (
     id BIGINT NOT NULL AUTO_INCREMENT,
@@ -543,12 +581,19 @@ CREATE TABLE IF NOT EXISTS cheque_expenses (
     customer_job_id BIGINT NULL,
     amount DECIMAL(19, 2) NOT NULL,
     memo VARCHAR(500) NULL,
+    tax VARCHAR(40) NULL,
     PRIMARY KEY (id),
     KEY idx_cheque_expenses_cheque (cheque_id),
     CONSTRAINT fk_cheque_expenses_cheque FOREIGN KEY (cheque_id) REFERENCES written_cheques (id) ON DELETE CASCADE,
     CONSTRAINT fk_cheque_expenses_account FOREIGN KEY (account_id) REFERENCES chart_of_accounts (id),
     CONSTRAINT fk_cheque_expenses_customer FOREIGN KEY (customer_job_id) REFERENCES customers (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+SET @cheque_expense_tax_sql = (SELECT IF(
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE()
+        AND TABLE_NAME = 'cheque_expenses' AND COLUMN_NAME = 'tax') > 0,
+    'SELECT 1', 'ALTER TABLE cheque_expenses ADD COLUMN tax VARCHAR(40) NULL'));
+PREPARE stmt FROM @cheque_expense_tax_sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 CREATE TABLE IF NOT EXISTS credit_card_charges (
     id BIGINT NOT NULL AUTO_INCREMENT,
@@ -563,14 +608,52 @@ CREATE TABLE IF NOT EXISTS credit_card_charges (
     tax_amount DECIMAL(19, 2) NOT NULL,
     tax_regime VARCHAR(30) NOT NULL,
     journal_id BIGINT NULL,
+    status VARCHAR(16) NOT NULL DEFAULT 'DRAFT',
+    voided_at DATETIME NULL,
+    void_reason VARCHAR(500) NULL,
+    reissue_of_id BIGINT NULL,
     PRIMARY KEY (id),
     KEY idx_credit_card_charges_company (company_id),
     CONSTRAINT fk_credit_card_charges_company FOREIGN KEY (company_id) REFERENCES companies (id),
     CONSTRAINT fk_credit_card_charges_vendor FOREIGN KEY (vendor_id) REFERENCES vendors (id),
     CONSTRAINT fk_credit_card_charges_expense FOREIGN KEY (expense_account_id) REFERENCES chart_of_accounts (id),
     CONSTRAINT fk_credit_card_charges_card FOREIGN KEY (card_account_id) REFERENCES chart_of_accounts (id),
-    CONSTRAINT fk_credit_card_charges_journal FOREIGN KEY (journal_id) REFERENCES general_journals (id)
+    CONSTRAINT fk_credit_card_charges_journal FOREIGN KEY (journal_id) REFERENCES general_journals (id),
+    CONSTRAINT fk_credit_card_charges_reissue FOREIGN KEY (reissue_of_id) REFERENCES credit_card_charges (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+SET @card_charge_status_sql = (SELECT IF(
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE()
+        AND TABLE_NAME = 'credit_card_charges' AND COLUMN_NAME = 'status') > 0,
+    'SELECT 1',
+    'ALTER TABLE credit_card_charges ADD COLUMN status VARCHAR(16) NOT NULL DEFAULT ''POSTED'''));
+PREPARE stmt FROM @card_charge_status_sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+ALTER TABLE credit_card_charges MODIFY COLUMN status VARCHAR(16) NOT NULL DEFAULT 'DRAFT';
+
+SET @card_charge_voided_at_sql = (SELECT IF(
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE()
+        AND TABLE_NAME = 'credit_card_charges' AND COLUMN_NAME = 'voided_at') > 0,
+    'SELECT 1', 'ALTER TABLE credit_card_charges ADD COLUMN voided_at DATETIME NULL'));
+PREPARE stmt FROM @card_charge_voided_at_sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @card_charge_void_reason_sql = (SELECT IF(
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE()
+        AND TABLE_NAME = 'credit_card_charges' AND COLUMN_NAME = 'void_reason') > 0,
+    'SELECT 1', 'ALTER TABLE credit_card_charges ADD COLUMN void_reason VARCHAR(500) NULL'));
+PREPARE stmt FROM @card_charge_void_reason_sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @card_charge_reissue_sql = (SELECT IF(
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE()
+        AND TABLE_NAME = 'credit_card_charges' AND COLUMN_NAME = 'reissue_of_id') > 0,
+    'SELECT 1', 'ALTER TABLE credit_card_charges ADD COLUMN reissue_of_id BIGINT NULL'));
+PREPARE stmt FROM @card_charge_reissue_sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @card_charge_reissue_fk_sql = (SELECT IF(
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE WHERE TABLE_SCHEMA = DATABASE()
+        AND TABLE_NAME = 'credit_card_charges' AND CONSTRAINT_NAME = 'fk_credit_card_charges_reissue') > 0,
+    'SELECT 1',
+    'ALTER TABLE credit_card_charges ADD CONSTRAINT fk_credit_card_charges_reissue FOREIGN KEY (reissue_of_id) REFERENCES credit_card_charges (id)'));
+PREPARE stmt FROM @card_charge_reissue_fk_sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 CREATE TABLE IF NOT EXISTS transfers (
     id BIGINT NOT NULL AUTO_INCREMENT,

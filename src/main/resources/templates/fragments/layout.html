@@ -134,11 +134,8 @@
     <div class="nav-group">
         <a th:href="@{/customers}" class="nav-link" th:classappend="${active=='customers'} ? ' active'"><i class="bi bi-people-fill nav-icon"></i> <span th:text="#{nav.customers}">Customers</span></a>
         <a th:href="@{/invoices}" class="nav-link" th:classappend="${active=='invoices'} ? ' active'"><i class="bi bi-receipt nav-icon"></i> <span th:text="#{nav.invoices}">Invoices</span></a>
-        <a th:href="@{/invoices/new}" class="nav-link" th:title="#{nav.createInvoice} + ' (Ctrl+I)'"><i class="bi bi-plus-square nav-icon"></i> <span th:text="#{nav.createInvoice}">Create Invoice</span> <span class="nav-hotkey">Ctrl+I</span></a>
         <a th:href="@{/payments}" class="nav-link" th:classappend="${active=='payments'} ? ' active'"><i class="bi bi-cash-coin nav-icon"></i> <span th:text="#{nav.payments}">Payments</span></a>
-        <a th:href="@{/payments/new}" class="nav-link" th:classappend="${active=='payments-new'} ? ' active'"><i class="bi bi-wallet2 nav-icon"></i> <span th:text="#{nav.receivePayments}">Receive Payments</span></a>
         <a th:href="@{/cheques}" class="nav-link" th:classappend="${active=='cheques'} ? ' active'"><i class="bi bi-wallet2 nav-icon"></i> <span th:text="#{nav.cheques}">Cheques</span> <span class="nav-hotkey">Ctrl+W</span></a>
-        <a th:href="@{/cheques/new}" class="nav-link" th:classappend="${active=='cheques-new'} ? ' active'"><i class="bi bi-pencil-square nav-icon"></i> <span th:text="#{nav.newCheque}">New Cheque</span></a>
         <a th:href="@{/credit-card-charges}" class="nav-link" th:classappend="${active=='credit-card-charges'} ? ' active'"><i class="bi bi-credit-card nav-icon"></i> Credit Card Charges</a>
         <a th:href="@{/transfers}" class="nav-link" th:classappend="${active=='transfers'} ? ' active'"><i class="bi bi-arrow-left-right nav-icon"></i> <span th:text="#{nav.transfers}">Transfers</span></a>
         <a th:href="@{/reports/billing}" class="nav-link" th:classappend="${active=='billing-reports'} ? ' active'"><i class="bi bi-bar-chart-line nav-icon"></i> <span th:text="#{nav.billingReports}">Billing Reports</span></a>

@@ -17,17 +17,18 @@
                             <select name="invoiceId" id="invoiceSelect" required>
                                 <option value="">Select an invoice…</option>
                                 <option th:each="inv : ${invoices}"
+                                        th:with="outstanding=${inv.totalAmount.subtract(inv.paidAmount == null ? T(java.math.BigDecimal).ZERO : inv.paidAmount)}"
                                         th:value="${inv.id}"
                                         th:selected="${preselectedInvoiceId != null and preselectedInvoiceId == inv.id}"
-                                        th:attr="data-outstanding=${inv.paidAmount == null ? inv.totalAmount : inv.totalAmount.subtract(inv.paidAmount)}"
-                                        th:text="${inv.invoiceNumber + ' — ' + (inv.customer != null ? inv.customer.businessName : '') + ' — ' + #numbers.formatCurrency(inv.totalAmount)}">
+                                        th:attr="data-outstanding=${outstanding}"
+                                        th:text="${inv.invoiceNumber + ' — ' + (inv.customer != null ? inv.customer.businessName : '') + ' — ' + #numbers.formatCurrency(outstanding)}">
                                     INV-1
                                 </option>
                             </select>
                         </div>
                         <div class="form-field">
                             <label>Amount</label>
-                            <input type="number" step="0.01" name="amount" id="amountInput" required/>
+                            <input type="number" step="0.01" min="0.01" name="amount" id="amountInput" required/>
                         </div>
                         <div class="form-field">
                             <label>Method</label>
@@ -84,10 +85,15 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function applyDefault() {
         const opt = select.options[select.selectedIndex];
-        if (!opt || !opt.value) return;
+        if (!opt || !opt.value) {
+            amount.value = '';
+            amount.removeAttribute('max');
+            return;
+        }
         const outstanding = parseFloat(opt.dataset.outstanding);
         if (!isNaN(outstanding)) {
-            amount.value = outstanding.toFixed(2);
+            amount.max = outstanding.toFixed(2);
+            amount.value = amount.max;
         }
     }
 

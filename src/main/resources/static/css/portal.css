@@ -10,7 +10,7 @@
     --portal-success: #10b981;
     --portal-warning: #f59e0b;
     --portal-danger: #ef4444;
-    --sidebar-width: 240px;
+    --sidebar-width: 340px;
 }
 
 html, body {
@@ -82,7 +82,7 @@ body {
     border-radius: 8px;
     color: #c7d2fe;
     text-decoration: none;
-    font-size: 0.93rem;
+    font-size: 0.73rem;
     transition: background 0.15s, color 0.15s;
 }
 

@@ -13,8 +13,14 @@
                 <h3 class="portal-card-title">
                     All Payments
                     <div class="d-flex gap-2">
-                        <a th:href="@{/payments/customer}" class="btn-portal btn-ghost"><i class="bi bi-person"></i> Paiement Client</a>
-                        <a th:href="@{/payments/new}" class="btn-portal"><i class="bi bi-plus-lg"></i> Record Payment</a>
+                        <a th:href="@{/payments/customer}" class="btn-portal btn-ghost">
+                            <i class="bi bi-person"></i>
+                            <span th:text="#{payments.payMultipleInvoices}">Paiement de plusieurs factures</span>
+                        </a>
+                        <a th:href="@{/payments/new}" class="btn-portal">
+                            <i class="bi bi-plus-lg"></i>
+                            <span th:text="#{payments.payOneInvoice}">Paiement d'une facture</span>
+                        </a>
                     </div>
                 </h3>
                 <div th:if="${#lists.isEmpty(payments)}" class="empty-state">

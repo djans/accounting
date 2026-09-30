@@ -171,8 +171,8 @@ public class TaxDataSeeder implements CommandLineRunner {
         g.setCompany(company);
         g.setCode(code);
         g.setName(name);
-        for (String ic : itemCodes) {
-            items.findByCompanyIdAndCode(company.getId(), ic).ifPresent(g.getTaxItems()::add);
+        for (String itemCode : itemCodes) {
+            items.findByCompanyIdAndCode(company.getId(), itemCode).ifPresent(g.getTaxItems()::add);
         }
         taxGroups.save(g);
     }

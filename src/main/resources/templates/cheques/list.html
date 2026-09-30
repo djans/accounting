@@ -1,16 +1,20 @@
 <!DOCTYPE html>
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments/layout :: head('Write Cheques')}"></head>
+<head th:replace="~{fragments/layout :: head(#{cheques.title})}"></head>
 <body>
 <div class="portal-shell">
     <div th:replace="~{fragments/layout :: sidebar('cheques')}"></div>
     <main class="portal-main">
-        <div th:replace="~{fragments/layout :: topbar('Write Cheques')}"></div>
+        <div th:replace="~{fragments/layout :: topbar(#{cheques.title})}"></div>
         <section class="portal-content">
             <div th:replace="~{fragments/layout :: flash}"></div>
             <div class="portal-card">
-                <h3 class="portal-card-title">Write Cheques</h3>
-                <a th:href="@{/cheques/new}" class="btn-portal">Write cheque</a>
+                <h3 class="portal-card-title" th:text="#{cheques.title}">Cheques</h3>
+                <a th:href="@{/cheques/new}" class="btn-portal icon-action cheque-new-action"
+                   data-bs-toggle="tooltip" data-bs-placement="top"
+                   th:title="#{cheques.newDraft}" th:attr="aria-label=#{cheques.newDraft}">
+                    <i class="bi bi-plus-lg" aria-hidden="true"></i>
+                </a>
                 <table class="table-portal" th:if="${not #lists.isEmpty(cheques)}">
                     <thead>
                     <tr>
@@ -18,7 +22,8 @@
                         <th>Vendor</th>
                         <th>Date</th>
                         <th class="num">Amount</th>
-                        <th class="num">Status</th>
+                        <th>Status</th>
+                        <th th:text="#{table.actions}">Actions</th>
                     </tr>
                     </thead>
                     <tbody>
@@ -27,7 +32,70 @@
                         <td th:text="${p.vendor.businessName}">Vendor</td>
                         <td th:text="${p.chequeDate}">2026-01-01</td>
                         <td class="num" th:text="${#numbers.formatCurrency(p.amount)}">$0</td>
-                        <td>POSTED</td>
+                        <td>
+                            <span class="badge-pill"
+                                  th:classappend="${' ' + #strings.toLowerCase(p.status.name())}"
+                                  th:text="${#messages.msg('cheques.status.' + #strings.toLowerCase(p.status.name()))}">ISSUED</span>
+                            <div th:if="${p.voidReason != null}" class="text-muted small"
+                                 th:text="${#messages.msg('cheques.voidReason') + ': ' + p.voidReason}">Reason</div>
+                            <div th:if="${p.voidedAt != null}" class="text-muted small">
+                                <span th:text="#{cheques.voidedAt}">Voided on</span>
+                                <span th:text="${p.voidedAt}">2026-01-01T00:00</span>
+                            </div>
+                            <div th:if="${p.reissueOf != null}" class="text-muted small">
+                                <span th:text="#{cheques.reissueOf}">Reissue of</span>
+                                <span th:text="${p.reissueOf.chequeNumber}">1</span>
+                            </div>
+                        </td>
+                        <td class="cheque-actions">
+                            <a th:if="${p.status.name() == 'DRAFT'}"
+                               th:href="@{/cheques/{id}/edit(id=${p.id})}"
+                               class="btn-portal btn-ghost btn-sm icon-action"
+                               data-bs-toggle="tooltip" data-bs-placement="top"
+                               th:title="#{cheques.edit}" th:attr="aria-label=#{cheques.edit}">
+                                <i class="bi bi-pencil-square" aria-hidden="true"></i>
+                            </a>
+                            <form th:if="${p.status.name() == 'DRAFT'}"
+                                  th:action="@{/cheques/{id}/delete(id=${p.id})}" method="post">
+                                <button class="btn-portal btn-ghost btn-sm icon-action" type="submit"
+                                        data-bs-toggle="tooltip" data-bs-placement="top"
+                                        th:title="#{cheques.deleteDraft}"
+                                        th:attr="aria-label=#{cheques.deleteDraft}, data-confirm-message=${#messages.msg('cheques.confirmDeleteDraft')}"
+                                        onclick="return confirm(this.dataset.confirmMessage)"
+                                        >
+                                    <i class="bi bi-trash" aria-hidden="true"></i>
+                                </button>
+                            </form>
+                            <form th:if="${p.status.name() == 'DRAFT'}"
+                                  th:action="@{/cheques/{id}/issue(id=${p.id})}" method="post">
+                                <button class="btn-portal btn-sm icon-action" type="submit"
+                                        data-bs-toggle="tooltip" data-bs-placement="top"
+                                        th:title="#{cheques.issue}" th:attr="aria-label=#{cheques.issue}">
+                                    <i class="bi bi-check-circle" aria-hidden="true"></i>
+                                </button>
+                            </form>
+                            <form th:if="${p.status.name() == 'ISSUED'}"
+                                  th:action="@{/cheques/{id}/void(id=${p.id})}" method="post">
+                                <input type="text" name="reason" maxlength="180" required
+                                       th:placeholder="#{cheques.voidReasonPlaceholder}"
+                                       th:attr="aria-label=${#messages.msg('cheques.voidReason')}"/>
+                                <button class="btn-portal btn-ghost btn-sm icon-action" type="submit"
+                                        data-bs-toggle="tooltip" data-bs-placement="top"
+                                        th:title="#{cheques.void}"
+                                        th:attr="aria-label=#{cheques.void}, data-confirm-message=${#messages.msg('cheques.confirmVoid')}"
+                                        onclick="return confirm(this.dataset.confirmMessage)"
+                                        >
+                                    <i class="bi bi-x-circle" aria-hidden="true"></i>
+                                </button>
+                            </form>
+                            <a th:if="${p.status.name() == 'VOIDED'}"
+                               th:href="@{/cheques/new(reissueOfId=${p.id})}"
+                               class="btn-portal btn-ghost btn-sm icon-action"
+                               data-bs-toggle="tooltip" data-bs-placement="top"
+                               th:title="#{cheques.reissue}" th:attr="aria-label=#{cheques.reissue}">
+                                <i class="bi bi-arrow-repeat" aria-hidden="true"></i>
+                            </a>
+                        </td>
                     </tr>
                     </tbody>
                 </table>
@@ -36,5 +104,19 @@
         </section>
     </main>
 </div>
+<style>
+    .cheque-new-action { margin-bottom: 1rem; }
+    .cheque-actions { white-space: nowrap; }
+    .cheque-actions form { display: inline-flex; align-items: center; margin: 0; }
+    .icon-action { width: 2.25rem; height: 2.25rem; justify-content: center; padding: 0.25rem; }
+    .btn-portal.icon-action i { margin: 0; }
+</style>
+<script>
+    document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(function (element) {
+        if (window.bootstrap && window.bootstrap.Tooltip) {
+            new window.bootstrap.Tooltip(element);
+        }
+    });
+</script>
 </body>
 </html>

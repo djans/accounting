@@ -4,6 +4,8 @@ import com.cogitosum.dto.CustomerPaymentDetailsDTO;
 import com.cogitosum.entity.ChartOfAccount;
 import com.cogitosum.entity.Customer;
 import com.cogitosum.entity.Invoice;
+import com.cogitosum.entity.InvoiceStatus;
+import com.cogitosum.entity.Payment;
 import com.cogitosum.service.*;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -18,7 +20,8 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -47,6 +50,47 @@ public class PaymentWebControllerTest {
                 .andExpect(view().name("payments/customer_payment"))
                 .andExpect(model().attributeExists("customers", "methods", "bankAccounts", "arAccounts"))
                 .andExpect(model().attributeExists("defaultBankAccountId", "defaultArAccountId"));
+    }
+
+    @Test
+    public void newPaymentForm_UsesOnlyInvoicesWithOutstandingBalances() throws Exception {
+        Invoice invoice = new Invoice();
+        invoice.setInvoiceNumber("INV-OPEN");
+        invoice.setStatus(InvoiceStatus.PARTIALLY_PAID);
+        invoice.setTotalAmount(new BigDecimal("100.00"));
+        invoice.setPaidAmount(new BigDecimal("40.00"));
+        Customer customer = new Customer();
+        customer.setBusinessName("Test Corp");
+        invoice.setCustomer(customer);
+        when(invoiceService.getUnpaidInvoices()).thenReturn(List.of(invoice));
+        when(accountService.getAllAccounts()).thenReturn(List.of());
+
+        mockMvc.perform(get("/payments/new"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("payments/form"))
+                .andExpect(model().attribute("invoices", List.of(invoice)));
+
+        verify(invoiceService).getUnpaidInvoices();
+        verify(invoiceService, never()).getAllInvoices();
+    }
+
+    @Test
+    public void createPayment_RejectsAmountAboveOutstandingBalance() throws Exception {
+        Invoice invoice = new Invoice();
+        invoice.setTotalAmount(new BigDecimal("100.00"));
+        invoice.setPaidAmount(new BigDecimal("80.00"));
+        when(invoiceService.getInvoiceById(1L)).thenReturn(Optional.of(invoice));
+        when(invoiceService.getOutstandingAmount(invoice)).thenReturn(new BigDecimal("20.00"));
+
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/payments")
+                        .param("invoiceId", "1")
+                        .param("amount", "30.00")
+                        .param("paymentMethod", "CASH"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/payments/new"))
+                .andExpect(flash().attributeExists("flashError"));
+
+        verify(paymentService, never()).recordPayment(any(Payment.class));
     }
 
     @Test

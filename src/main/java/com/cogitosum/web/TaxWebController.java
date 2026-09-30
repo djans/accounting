@@ -8,10 +8,14 @@ import com.cogitosum.service.TaxCodeService;
 import com.cogitosum.service.TaxFilingService;
 import com.cogitosum.service.CurrentCompanyContext;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.MessageSource;
+import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -23,6 +27,7 @@ import java.util.Map;
 @Controller
 @RequestMapping("/tax")
 public class TaxWebController {
+    private static final Logger log = LoggerFactory.getLogger(TaxWebController.class);
 
     @Autowired private TaxAgencyService agencyService;
     @Autowired private TaxCodeService codeService;
@@ -30,6 +35,7 @@ public class TaxWebController {
     @Autowired private ChartOfAccountRepository accountRepository;
     @Autowired private GeneralLedgerRepository ledgerRepository;
     @Autowired private CurrentCompanyContext companyContext;
+    @Autowired private MessageSource messageSource;
 
     @GetMapping
     public String dashboard(@RequestParam(defaultValue = "false") boolean showAll, Model model) {
@@ -173,19 +179,18 @@ public class TaxWebController {
                             @RequestParam(defaultValue = "true") Boolean active,
                             RedirectAttributes ra) {
         try {
-            TaxGroup g = id != null
-                ? codeService.getGroupById(id).orElseGet(TaxGroup::new)
-                : new TaxGroup();
+            TaxGroup g = new TaxGroup();
+            g.setId(id);
             g.setCode(code);
             g.setName(name);
             g.setActive(active);
-            g.getTaxItems().clear();
             if (itemIds != null) {
                 for (Long itemId : itemIds) {
-                    codeService.getItemById(itemId).ifPresent(g.getTaxItems()::add);
+                    TaxItem item = new TaxItem();
+                    item.setId(itemId);
+                    g.getTaxItems().add(item);
                 }
             }
-            g.setActive(true);
             if (g.getId() == null) {
                 codeService.createGroup(g);
             } else {
@@ -193,7 +198,15 @@ public class TaxWebController {
             }
             ra.addFlashAttribute("flashSuccess", "Tax group saved");
         } catch (Exception e) {
-            ra.addFlashAttribute("flashError", "Could not save tax group: " + e.getMessage());
+            log.error("Could not save tax group (id={}, code={}, name={}, itemIds={})",
+                    id, code, name, itemIds, e);
+            String detail = e.getMessage();
+            if (detail == null || detail.isBlank()) {
+                detail = messageSource.getMessage("tax.group.saveErrorNoDetails",
+                        new Object[]{e.getClass().getSimpleName()}, LocaleContextHolder.getLocale());
+            }
+            ra.addFlashAttribute("flashError", messageSource.getMessage(
+                    "tax.group.saveError", new Object[]{detail}, LocaleContextHolder.getLocale()));
         }
         return "redirect:/tax/codes";
     }

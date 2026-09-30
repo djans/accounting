@@ -3,10 +3,12 @@ package com.cogitosum.web;
 import com.cogitosum.entity.TaxAgency;
 import com.cogitosum.entity.TaxCode;
 import com.cogitosum.entity.TaxGroup;
+import com.cogitosum.entity.TaxItem;
 import com.cogitosum.repository.ChartOfAccountRepository;
 import com.cogitosum.service.TaxAgencyService;
 import com.cogitosum.service.TaxCodeService;
 import com.cogitosum.service.TaxFilingService;
+import com.cogitosum.service.CurrentCompanyContext;
 import com.cogitosum.repository.GeneralLedgerRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -40,6 +42,9 @@ public class TaxWebControllerTest {
 
     @MockitoBean
     private TaxFilingService taxFilingService;
+
+    @MockitoBean
+    private CurrentCompanyContext companyContext;
 
     @MockitoBean
     private ChartOfAccountRepository accountRepository;
@@ -112,6 +117,41 @@ public class TaxWebControllerTest {
                 .andExpect(flash().attributeExists("flashSuccess"));
 
         verify(taxCodeService).createGroup(any(TaxGroup.class));
+    }
+
+    @Test
+    public void saveGroup_UpdateUsesSubmittedItemIds() throws Exception {
+        TaxGroup group = new TaxGroup();
+        group.setId(1L);
+        when(taxCodeService.updateGroup(eq(1L), any(TaxGroup.class))).thenReturn(group);
+
+        mockMvc.perform(post("/tax/groups")
+                .param("id", "1")
+                .param("code", "QC-GROUP")
+                .param("name", "QC Group")
+                .param("itemIds", "7", "8"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(flash().attributeExists("flashSuccess"));
+
+        org.mockito.ArgumentCaptor<TaxGroup> groupCaptor =
+                org.mockito.ArgumentCaptor.forClass(TaxGroup.class);
+        verify(taxCodeService).updateGroup(eq(1L), groupCaptor.capture());
+        org.junit.jupiter.api.Assertions.assertEquals(
+                java.util.List.of(7L, 8L),
+                groupCaptor.getValue().getTaxItems().stream().map(TaxItem::getId).toList());
+    }
+
+    @Test
+    public void saveGroup_FailureWithoutMessageShowsExceptionTypeInsteadOfNull() throws Exception {
+        doThrow(new NullPointerException()).when(taxCodeService).createGroup(any(TaxGroup.class));
+
+        mockMvc.perform(post("/tax/groups")
+                .param("code", "FED")
+                .param("name", "Federal")
+                .param("itemIds", "1"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(flash().attribute("flashError",
+                        containsString("NullPointerException without details")));
     }
 
     @Test

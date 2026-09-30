@@ -12,8 +12,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 public class TaxCodeService {
@@ -89,19 +91,23 @@ public class TaxCodeService {
     }
 
     // Tax Groups
+    @Transactional
     public TaxGroup createGroup(TaxGroup group) {
         Long companyId = companyContext.requireCompanyId();
         group.setCompany(companyContext.requireCompany());
-        group.setTaxItems(resolveItems(group.getTaxItems(), companyId));
+        group.setTaxItems(new ArrayList<>(resolveItems(group.getTaxItems(), companyId)));
         return taxGroupRepository.save(group);
     }
 
+    @Transactional
     public TaxGroup updateGroup(Long id, TaxGroup group) {
         Long companyId = companyContext.requireCompanyId();
+        List<TaxItem> resolvedItems = resolveItems(group.getTaxItems(), companyId);
         TaxGroup existing = taxGroupRepository.findByIdAndCompanyId(id, companyId).orElseThrow();
         existing.setCode(group.getCode());
         existing.setName(group.getName());
-        existing.setTaxItems(resolveItems(group.getTaxItems(), companyId));
+        existing.getTaxItems().clear();
+        existing.getTaxItems().addAll(resolvedItems);
         existing.setActive(group.getActive());
         return taxGroupRepository.save(existing);
     }
@@ -189,7 +195,7 @@ public class TaxCodeService {
 
     private List<TaxItem> resolveItems(List<TaxItem> items, Long companyId) {
         if (items == null) {
-            return List.of();
+            return new ArrayList<>();
         }
         return items.stream().map(item -> {
             if (item == null || item.getId() == null) {
@@ -197,7 +203,7 @@ public class TaxCodeService {
             }
             return taxItemRepository.findByIdAndCompanyId(item.getId(), companyId)
                     .orElseThrow(() -> new IllegalArgumentException("Tax item not found"));
-        }).toList();
+        }).collect(Collectors.toCollection(ArrayList::new));
     }
 
     private void resolveCodeReferences(TaxCode code, Long companyId) {

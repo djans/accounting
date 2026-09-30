@@ -37,7 +37,7 @@ public class PaymentWebController {
                           @RequestParam(required = false) PaymentMethod paymentMethod,
                           jakarta.servlet.http.HttpSession session,
                           Model model) {
-        model.addAttribute("invoices", invoiceService.getAllInvoices());
+        model.addAttribute("invoices", invoiceService.getUnpaidInvoices());
         model.addAttribute("methods", PaymentMethod.values());
         model.addAttribute("bankAccounts", bankAccountChoices());
         model.addAttribute("arAccounts", arAccountChoices());
@@ -66,6 +66,10 @@ public class PaymentWebController {
         try {
             Invoice invoice = invoiceService.getInvoiceById(invoiceId)
                     .orElseThrow(() -> new IllegalArgumentException("Invoice not found"));
+            BigDecimal outstandingAmount = invoiceService.getOutstandingAmount(invoice);
+            if (amount.compareTo(BigDecimal.ZERO) <= 0 || amount.compareTo(outstandingAmount) > 0) {
+                throw new IllegalArgumentException("Payment amount must be positive and cannot exceed the outstanding balance");
+            }
 
             Payment payment = new Payment();
             payment.setInvoice(invoice);

@@ -31,6 +31,7 @@ class BankReconciliationServiceTest {
     @Mock private ChartOfAccountRepository accounts;
     @Mock private GeneralLedgerRepository ledgers;
     @Mock private JournalEntryRepository journalEntries;
+    @Mock private ChequeService chequeService;
     @Mock private CurrentCompanyContext companyContext;
 
     private BankReconciliationService service;
@@ -40,7 +41,8 @@ class BankReconciliationServiceTest {
     @BeforeEach
     void setUp() {
         service = new BankReconciliationService(
-                bankTransactions, sessions, accounts, ledgers, journalEntries, companyContext);
+                bankTransactions, sessions, accounts, ledgers, journalEntries,
+                chequeService, companyContext);
         company = new Company();
         company.setId(1L);
         account = new ChartOfAccount();
@@ -141,6 +143,7 @@ class BankReconciliationServiceTest {
         assertTrue(entry.isCleared());
         verify(bankTransactions).saveAll(List.of(transaction));
         verify(journalEntries).saveAll(List.of(entry));
+        verify(chequeService).markClearedByJournal(journal);
     }
 
     @Test

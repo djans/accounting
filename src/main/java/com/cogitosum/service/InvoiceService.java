@@ -183,6 +183,12 @@ public class InvoiceService {
     public List<Invoice> getAllInvoices() {
         return invoiceRepository.findAllByCompanyIdOrderByInvoiceNumberDesc(companyContext.requireCompanyId());
     }
+
+    public List<Invoice> getUnpaidInvoices() {
+        return getAllInvoices().stream()
+                .filter(this::isOpenForPayment)
+                .toList();
+    }
     
     @Transactional
     public Invoice markInvoiceAsSent(Long id) {
@@ -335,16 +341,28 @@ public class InvoiceService {
     public List<Invoice> getUnpaidInvoicesByCustomerId(Long customerId) {
         return invoiceRepository.findByCompanyIdAndCustomerIdOrderByInvoiceNumberDesc(
                 companyContext.requireCompanyId(), customerId).stream()
-                .filter(inv -> inv.getStatus() != InvoiceStatus.PAID 
-                            && inv.getStatus() != InvoiceStatus.CANCELLED
-                            && inv.getStatus() != InvoiceStatus.DRAFT
-                            && inv.getStatus() != InvoiceStatus.REFUNDED)
-                .collect(java.util.stream.Collectors.toList());
+                .filter(this::isOpenForPayment)
+                .toList();
+    }
+
+    public BigDecimal getOutstandingAmount(Invoice invoice) {
+        BigDecimal paidAmount = invoice.getPaidAmount() == null ? BigDecimal.ZERO : invoice.getPaidAmount();
+        return invoice.getTotalAmount().subtract(paidAmount);
+    }
+
+    private boolean isOpenForPayment(Invoice invoice) {
+        InvoiceStatus status = invoice.getStatus();
+        return status != null
+                && status != InvoiceStatus.PAID
+                && status != InvoiceStatus.CANCELLED
+                && status != InvoiceStatus.DRAFT
+                && status != InvoiceStatus.REFUNDED
+                && getOutstandingAmount(invoice).compareTo(BigDecimal.ZERO) > 0;
     }
 
     public java.math.BigDecimal getCustomerBalance(Long customerId) {
         return getUnpaidInvoicesByCustomerId(customerId).stream()
-                .map(inv -> inv.getTotalAmount().subtract(inv.getPaidAmount()))
+                .map(this::getOutstandingAmount)
                 .reduce(java.math.BigDecimal.ZERO, java.math.BigDecimal::add);
     }
 

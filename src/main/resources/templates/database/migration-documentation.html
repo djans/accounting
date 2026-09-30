@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(#{database.migration.documentation.title})}"></head>
+<body>
+<div class="portal-shell">
+    <div th:replace="~{fragments/layout :: sidebar('migration')}"></div>
+    <main class="portal-main">
+        <div th:replace="~{fragments/layout :: topbar(#{database.migration.documentation.title})}"></div>
+        <section class="portal-content">
+            <div class="portal-card">
+                <div class="d-flex align-items-center justify-content-between">
+                    <h2 class="portal-card-title" th:text="#{database.migration.documentation.heading}">Initial data migration package</h2>
+                    <a th:href="@{/database/migration}" class="btn-portal btn-ghost btn-sm">
+                        <i class="bi bi-arrow-left"></i>
+                        <span th:text="#{database.migration.documentation.back}">Back to migration</span>
+                    </a>
+                </div>
+                <p th:text="#{database.migration.documentation.introduction}">
+                    Use this one-time import format only to populate a new accounting dataset. It is not a backup or restore format.
+                </p>
+
+                <h3 th:text="#{database.migration.documentation.safetyTitle}">Safety and import process</h3>
+                <ul>
+                    <li th:text="#{database.migration.documentation.safetyEmpty}">The target accounting domain must be empty. Existing data is never replaced, updated, merged, or deleted.</li>
+                    <li th:text="#{database.migration.documentation.safetyValidation}">Validation writes no data and produces a preview. Type IMPORT to confirm a validated package within 15 minutes.</li>
+                    <li th:text="#{database.migration.documentation.safetyTransaction}">The confirmed import is one transaction: a failed import rolls back all created records.</li>
+                    <li th:text="#{database.migration.documentation.safetySeeding}">Disable reference-data seeding before importing: APP_SEED_REFERENCE_DATA_ENABLED=false.</li>
+                </ul>
+
+                <h3 th:text="#{database.migration.documentation.zipTitle}">ZIP package</h3>
+                <p th:text="#{database.migration.documentation.zipDescription}">
+                    Upload a UTF-8 ZIP file of 20 MiB or less. It must contain exactly the following files, with no directories, duplicate files, or extra entries.
+                </p>
+                <pre class="mb-3">manifest.json
+accounts.csv
+customers.csv
+vendors.csv
+invoices.csv
+invoice_lines.csv
+bills.csv
+bill_lines.csv
+journal_entries.csv
+journal_lines.csv</pre>
+                <p th:text="#{database.migration.documentation.manifestDescription}">The manifest must contain exactly:</p>
+                <pre>{
+  "format": "cogitosum-accounting-migration",
+  "version": 1
+}</pre>
+
+                <h3 th:text="#{database.migration.documentation.csvTitle}">CSV requirements</h3>
+                <p th:text="#{database.migration.documentation.csvDescription}">
+                    CSV files use UTF-8, commas, canonical headers in the exact order below, and RFC-style quoted fields. Dates use YYYY-MM-DD; posted_date may be a local ISO date-time. Amounts are non-negative with at most two decimal places, and booleans are lowercase true or false.
+                </p>
+                <pre># accounts.csv
+source_id,account_number,account_name,account_type,description,is_active
+
+# customers.csv
+source_id,name,email,business_name,address,city,province,postal_code,country,business_number,gst_number
+
+# vendors.csv
+source_id,name,email,business_name,address,city,province,postal_code,country,business_number,gst_number,qst_number
+
+# invoices.csv
+source_id,invoice_number,customer_source_id,invoice_date,due_date,status,subtotal,gst_amount,hst_amount,qst_amount,total_amount,paid_amount,tax_regime,notes
+
+# invoice_lines.csv
+source_id,invoice_source_id,line_number,description,quantity,unit_price,total
+
+# bills.csv
+source_id,bill_number,vendor_source_id,bill_date,due_date,status,subtotal,gst_amount,hst_amount,qst_amount,total_amount,paid_amount,notes
+
+# bill_lines.csv
+source_id,bill_source_id,line_number,expense_account_source_id,description,quantity,unit_price,total
+
+# journal_entries.csv
+source_id,journal_number,journal_date,narrative,reference,status,posted_date,posted_by
+
+# journal_lines.csv
+source_id,journal_source_id,line_number,account_source_id,debit,credit,cleared,description</pre>
+
+                <h3 th:text="#{database.migration.documentation.referencesTitle}">Identifiers and references</h3>
+                <p th:text="#{database.migration.documentation.referencesDescription}">
+                    source_id is a package-local identifier, never an application primary key. It must be unique within its file and may contain only letters, digits, periods, underscores, colons, and hyphens.
+                </p>
+                <table class="table table-sm">
+                    <thead>
+                    <tr>
+                        <th th:text="#{database.migration.documentation.referenceColumn}">Reference column</th>
+                        <th th:text="#{database.migration.documentation.targetColumn}">Target file</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr><td>customer_source_id</td><td>customers.csv</td></tr>
+                    <tr><td>vendor_source_id</td><td>vendors.csv</td></tr>
+                    <tr><td>invoice_source_id</td><td>invoices.csv</td></tr>
+                    <tr><td>bill_source_id</td><td>bills.csv</td></tr>
+                    <tr><td>expense_account_source_id</td><td>accounts.csv</td></tr>
+                    <tr><td>journal_source_id</td><td>journal_entries.csv</td></tr>
+                    <tr><td>account_source_id</td><td>accounts.csv</td></tr>
+                    </tbody>
+                </table>
+
+                <h3 th:text="#{database.migration.documentation.quickBooksTitle}">Exporting from QuickBooks Desktop</h3>
+                <p th:text="#{database.migration.documentation.quickBooksDescription}">
+                    QuickBooks Desktop exports do not directly match this migration package. Export the source data, then transform it into the required UTF-8 CSV files and manifest.
+                </p>
+                <table class="table table-sm">
+                    <thead>
+                    <tr>
+                        <th th:text="#{database.migration.documentation.quickBooksFileColumn}">Migration file</th>
+                        <th th:text="#{database.migration.documentation.quickBooksSourceColumn}">QuickBooks Desktop source</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr><td>accounts.csv</td><td th:text="#{database.migration.documentation.quickBooksAccounts}">Lists &gt; Chart of Accounts</td></tr>
+                    <tr><td>customers.csv</td><td th:text="#{database.migration.documentation.quickBooksCustomers}">Customers &gt; Customer Center</td></tr>
+                    <tr><td>vendors.csv</td><td th:text="#{database.migration.documentation.quickBooksVendors}">Vendors &gt; Vendor Center</td></tr>
+                    <tr><td>invoices.csv / invoice_lines.csv</td><td th:text="#{database.migration.documentation.quickBooksInvoices}">Customers &gt; Customer Center &gt; Transactions, or Reports &gt; Customers &amp; Receivables</td></tr>
+                    <tr><td>bills.csv / bill_lines.csv</td><td th:text="#{database.migration.documentation.quickBooksBills}">Vendors &gt; Vendor Center &gt; Transactions, or Reports &gt; Vendors &amp; Payables</td></tr>
+                    <tr><td>journal_entries.csv / journal_lines.csv</td><td th:text="#{database.migration.documentation.quickBooksJournals}">Reports &gt; Accountant &amp; Taxes &gt; Journal or General Ledger</td></tr>
+                    </tbody>
+                </table>
+                <ul>
+                    <li th:text="#{database.migration.documentation.quickBooksIif}">Depending on the edition, File &gt; Utilities &gt; Export can export lists or transactions as IIF. IIF files still require conversion before import.</li>
+                    <li th:text="#{database.migration.documentation.quickBooksReports}">Reports can be exported to Excel and used as a source for the conversion.</li>
+                    <li th:text="#{database.migration.documentation.quickBooksJournal}">Use the Journal report as the primary source for accounting history. Preserve every balanced debit and credit line.</li>
+                    <li th:text="#{database.migration.documentation.quickBooksLines}">Invoice and bill exports must include all document lines; summary-only reports are insufficient.</li>
+                    <li th:text="#{database.migration.documentation.quickBooksVersion}">Menu names and available IIF exports can vary by QuickBooks Desktop edition and version.</li>
+                </ul>
+
+                <h3 th:text="#{database.migration.documentation.rulesTitle}">Validation rules</h3>
+                <ul class="mb-0">
+                    <li th:text="#{database.migration.documentation.rulesRecords}">Account numbers, emails, document numbers, journal numbers, and source IDs must not be duplicated.</li>
+                    <li th:text="#{database.migration.documentation.rulesDocuments}">Invoices and bills require one or more lines. Line totals, subtotals, totals, and paid amounts are validated.</li>
+                    <li th:text="#{database.migration.documentation.rulesJournals}">Every journal requires at least two balanced lines. Only POSTED and REVERSED journals contribute to general-ledger balances.</li>
+                    <li th:text="#{database.migration.documentation.rulesFormula}">Text values cannot begin with =, +, -, or @.</li>
+                </ul>
+            </div>
+        </section>
+    </main>
+</div>
+</body>
+</html>
