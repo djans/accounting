@@ -7,7 +7,7 @@ spec:
   project: default
 
   source:
-    repoURL: https://github.com/jansdaniel/accounting.git
+    repoURL: https://github.com/djans/accounting.git
     targetRevision: main
     path: accounting
 
