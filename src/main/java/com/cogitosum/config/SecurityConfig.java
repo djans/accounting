@@ -55,6 +55,7 @@ public class SecurityConfig {
                 .requestMatchers("/login", "/favicon.ico", "/css/**", "/js/**", "/vendor/**").permitAll()
                 .requestMatchers("/database/backup/**").hasRole("ADMIN")
                 .requestMatchers("/admin/reset", "/admin/reset/**").hasRole("ADMIN")
+                .requestMatchers("/admin/database/**").hasRole("ADMIN")
                 .requestMatchers("/database/query", "/database/query/**").hasRole("ADMIN")
                 .requestMatchers("/database/migration/**").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.GET, "/companies").authenticated()

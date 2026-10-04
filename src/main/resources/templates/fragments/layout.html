@@ -190,6 +190,7 @@
         <a th:href="@{/companies}" class="nav-link" th:classappend="${active=='companies'} ? ' active'"><i class="bi bi-buildings nav-icon"></i> <span th:text="#{company.list.nav}">Companies</span></a>
         <a th:href="@{/database/backup}" class="nav-link" th:classappend="${active=='database'} ? ' active'"><i class="bi bi-database-down nav-icon"></i> <span th:text="#{nav.databaseBackup}">Database backup</span></a>
         <a th:href="@{/admin/reset}" class="nav-link" th:classappend="${active=='admin-reset'} ? ' active'"><i class="bi bi-arrow-counterclockwise nav-icon"></i> <span th:text="#{nav.resetData}">Reset activities</span></a>
+        <a th:href="@{/admin/database/recreate}" class="nav-link" th:classappend="${active=='schema-reset'} ? ' active'"><i class="bi bi-database-x nav-icon"></i> <span th:text="#{nav.recreateDatabase}">Recreate database</span></a>
         <a th:href="@{/database/migration}" class="nav-link" th:classappend="${active=='migration'} ? ' active'"><i class="bi bi-database-up nav-icon"></i> <span th:text="#{nav.databaseMigration}">Initial data migration</span></a>
         <a th:href="@{/database/query}" class="nav-link" th:classappend="${active=='database-query'} ? ' active'"><i class="bi bi-database-gear nav-icon"></i> <span th:text="#{nav.databaseQuery}">Database SQL</span></a>
     </div>
