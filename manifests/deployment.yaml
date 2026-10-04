@@ -18,6 +18,10 @@ spec:
           ports:
             - containerPort: 80
           env:
+            - name: APP_BOOTSTRAP_ADMIN_EMAIL
+              value: djans@cogitosum.com
+            - name: APP_BOOTSTRAP_ADMIN_PASSWORD
+              value: password
             - name: SPRING_DATASOURCE_URL
               value: jdbc:mysql://mysql:3306/accounting
             - name: SPRING_DATASOURCE_USERNAME
