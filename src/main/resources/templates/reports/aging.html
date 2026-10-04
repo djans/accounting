@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(#{rpt.aging.title})}"></head>
+<body>
+<div class="portal-shell">
+    <div th:replace="~{fragments/layout :: sidebar('aging-summary')}"></div>
+    <main class="portal-main">
+        <div th:replace="~{fragments/layout :: topbar(#{rpt.aging.title})}"></div>
+        <section class="portal-content aging-report">
+            <div class="report-toolbar no-print">
+                <form th:action="@{/reports/aging}" method="get" class="d-flex align-items-end gap-2">
+                    <div class="form-field">
+                        <label for="asOf" th:text="#{rpt.aging.asOf}">As of</label>
+                        <input id="asOf" type="date" name="asOf" th:value="${asOf}"/>
+                    </div>
+                    <button type="submit" class="btn-portal">
+                        <i class="bi bi-funnel"></i> <span th:text="#{rpt.aging.apply}">Apply</span>
+                    </button>
+                </form>
+                <button type="button" class="btn-portal btn-ghost" onclick="window.print()">
+                    <i class="bi bi-printer"></i> <span th:text="#{rpt.aging.print}">Print</span>
+                </button>
+            </div>
+
+            <div class="portal-card">
+                <div class="report-heading">
+                    <div>
+                        <h2 class="portal-card-title" th:text="#{rpt.aging.title}">A/R Aging Summary</h2>
+                        <p class="text-muted"><span th:text="#{rpt.aging.asOf}">As of</span> <strong th:text="${asOf}">2026-01-01</strong></p>
+                    </div>
+                    <i class="bi bi-hourglass-split report-heading-icon no-print"></i>
+                </div>
+                <table class="table-portal">
+                    <thead>
+                    <tr>
+                        <th th:text="#{rpt.aging.customer}">Customer</th>
+                        <th class="num" th:text="#{table.current}">Current</th>
+                        <th class="num" th:text="#{table.days1to30}">1–30</th>
+                        <th class="num" th:text="#{table.days31to60}">31–60</th>
+                        <th class="num" th:text="#{table.days61to90}">61–90</th>
+                        <th class="num" th:text="#{table.over90}">&gt; 90</th>
+                        <th class="num" th:text="#{rpt.billing.totalOutstanding}">Total</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="row : ${agingSummary}">
+                        <td th:text="${row['customerName']}">Customer</td>
+                        <td class="num" th:text="${#numbers.formatCurrency(row['current'])}">$0</td>
+                        <td class="num" th:text="${#numbers.formatCurrency(row['days1To30'])}">$0</td>
+                        <td class="num" th:text="${#numbers.formatCurrency(row['days31To60'])}">$0</td>
+                        <td class="num" th:text="${#numbers.formatCurrency(row['days61To90'])}">$0</td>
+                        <td class="num" th:text="${#numbers.formatCurrency(row['over90'])}">$0</td>
+                        <td class="num" th:text="${#numbers.formatCurrency(row['total'])}">$0</td>
+                    </tr>
+                    <tr th:if="${#lists.isEmpty(agingSummary)}">
+                        <td colspan="7" class="text-muted" th:text="#{rpt.aging.noData}">No outstanding receivables.</td>
+                    </tr>
+                    </tbody>
+                    <tfoot>
+                    <tr style="font-weight:600">
+                        <td th:text="#{rpt.totals}">Totals</td>
+                        <td class="num" th:text="${#numbers.formatCurrency(aging['current'])}">$0</td>
+                        <td class="num" th:text="${#numbers.formatCurrency(aging['30Days'])}">$0</td>
+                        <td class="num" th:text="${#numbers.formatCurrency(aging['60Days'])}">$0</td>
+                        <td class="num" th:text="${#numbers.formatCurrency(aging['61To90Days'])}">$0</td>
+                        <td class="num" th:text="${#numbers.formatCurrency(aging['90DaysPlus'])}">$0</td>
+                        <td class="num" th:text="${#numbers.formatCurrency(aging['totalOutstanding'])}">$0</td>
+                    </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </section>
+    </main>
+</div>
+<style>
+    .report-toolbar { display:flex; justify-content:space-between; align-items:end; margin-bottom:1rem; }
+    .report-heading { display:flex; justify-content:space-between; align-items:start; }
+    .report-heading-icon { font-size:2rem; color:var(--portal-primary); }
+    @media print {
+        @page { margin: 1.2cm; }
+        body { background:#fff; }
+        .portal-sidebar, .portal-topbar, .no-print { display:none !important; }
+        .portal-main { display:block; }
+        .portal-content { padding:0; }
+        .portal-card { box-shadow:none; border:0; padding:0; }
+        .report-heading-icon { display:none; }
+        .table-portal { width:100%; }
+    }
+</style>
+</body>
+</html>

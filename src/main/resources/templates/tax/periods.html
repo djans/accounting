@@ -32,6 +32,7 @@
                         <th class="num" th:text="#{tax.periods.netOwing}">Net Owing</th>
                         <th th:text="#{tax.periods.filed}">Filed</th>
                         <th th:text="#{tax.periods.paid}">Paid</th>
+                        <th th:text="#{table.actions}">Actions</th>
                     </tr>
                     </thead>
                     <tbody>
@@ -47,6 +48,12 @@
                         <td class="num" th:text="${#numbers.formatCurrency(p.netOwing)}">$0</td>
                         <td th:text="${p.filedDate}">—</td>
                         <td th:text="${p.paidDate}">—</td>
+                        <td>
+                            <a class="btn-portal btn-sm"
+                               th:if="${p.status.name() == 'FILED' or p.status.name() == 'PAID'}"
+                               th:href="@{/tax/periods/{id}/report(id=${p.id})}"
+                               th:text="#{tax.detail.downloadReturn}">Download tax return PDF</a>
+                        </td>
                     </tr>
                     </tbody>
                 </table>

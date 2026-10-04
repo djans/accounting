@@ -7,8 +7,11 @@ import com.cogitosum.service.TaxAgencyService;
 import com.cogitosum.service.TaxCodeService;
 import com.cogitosum.service.TaxFilingService;
 import com.cogitosum.service.CurrentCompanyContext;
+import com.cogitosum.dto.TaxReturnRowDTO;
 import com.cogitosum.repository.GeneralLedgerRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.MessageSource;
+import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -26,6 +29,7 @@ public class TaxReportRestController {
     @Autowired private TaxFilingService filingService;
     @Autowired private GeneralLedgerRepository ledgerRepository;
     @Autowired private CurrentCompanyContext companyContext;
+    @Autowired private MessageSource messageSource;
 
     @GetMapping("/reconciliation")
     public ResponseEntity<List<Map<String, Object>>> reconciliation() {
@@ -71,8 +75,27 @@ public class TaxReportRestController {
                 body.put("period", p);
                 body.put("collectedDetail", filingService.getTaxCollectedDetail(p.getAgency(), p.getPeriodStart(), p.getPeriodEnd()));
                 body.put("itcDetail", filingService.getItcDetail(p.getAgency(), p.getPeriodStart(), p.getPeriodEnd()));
+                var returnLines = filingService.getReturnLineBreakdown(p);
+                body.put("returnLineBreakdown", returnLines);
+                body.put("taxReturnRows", filingService.getTaxReturnRows(p, returnLines).stream()
+                        .map(this::localizedReturnRow)
+                        .toList());
+                body.put("hasUnmappedReturnLineAmounts",
+                        filingService.hasUnmappedReturnLineAmounts(p, returnLines));
                 return ResponseEntity.ok(body);
             })
             .orElse(ResponseEntity.notFound().build());
+    }
+
+    private Map<String, Object> localizedReturnRow(TaxReturnRowDTO row) {
+        Map<String, Object> localized = new HashMap<>();
+        localized.put("description", messageSource.getMessage(
+                row.descriptionKey(), null, LocaleContextHolder.getLocale()));
+        localized.put("line", row.line());
+        localized.put("amount", row.amount());
+        localized.put("balance", row.balance());
+        localized.put("total", row.total());
+        localized.put("unmapped", row.unmapped());
+        return localized;
     }
 }

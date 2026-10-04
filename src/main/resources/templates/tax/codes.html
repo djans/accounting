@@ -138,6 +138,8 @@
                         <th th:text="#{table.name}">Name</th>
                         <th th:text="#{table.agency}">Agency</th>
                         <th class="num" th:text="#{table.rate}">Rate</th>
+                        <th th:text="#{tax.codes.salesReturnLine}">Sales return line</th>
+                        <th th:text="#{tax.codes.purchaseReturnLine}">Purchases / ITC return line</th>
                         <th th:text="#{table.sales}">Sales</th>
                         <th th:text="#{table.purchases}">Purchases</th>
                         <th th:text="#{table.actions}">Actions</th>
@@ -152,6 +154,8 @@
                         <td th:text="${i.name}">Taxe sur les produits…</td>
                         <td th:text="${i.agency.code}">CRA</td>
                         <td class="num" th:text="${#numbers.formatPercent(i.rate, 1, 3)}">5%</td>
+                        <td th:text="${i.salesReturnLine ?: '—'}">103</td>
+                        <td th:text="${i.purchaseReturnLine ?: '—'}">106</td>
                         <td><i th:if="${i.forSales}" class="bi bi-check-circle text-success"></i></td>
                         <td><i th:if="${i.forPurchases}" class="bi bi-check-circle text-success"></i></td>
                         <td>
@@ -161,6 +165,8 @@
                                         th:data-code="${i.code}"
                                         th:data-name="${i.name}"
                                         th:data-rate="${i.rate}"
+                                        th:data-sales-return-line="${i.salesReturnLine}"
+                                        th:data-purchase-return-line="${i.purchaseReturnLine}"
                                         th:data-agency="${i.agency.id}"
                                         th:data-payable="${i.payableAccount != null ? i.payableAccount.id : ''}"
                                         th:data-itc="${i.itcAccount != null ? i.itcAccount.id : ''}"
@@ -256,6 +262,16 @@
                                     <div class="form-field">
                                         <label th:text="#{form.rateExample}">Rate (e.g. 0.05 for 5%)</label>
                                         <input type="number" step="0.00001" name="rate" id="item-rate-input" required/>
+                                    </div>
+                                    <div class="form-field">
+                                        <label th:text="#{tax.codes.salesReturnLine}">Sales return line</label>
+                                        <input type="text" name="salesReturnLine" id="item-sales-return-line-input"
+                                               maxlength="20" th:placeholder="#{tax.codes.returnLinePlaceholder}"/>
+                                    </div>
+                                    <div class="form-field">
+                                        <label th:text="#{tax.codes.purchaseReturnLine}">Purchases / ITC return line</label>
+                                        <input type="text" name="purchaseReturnLine" id="item-purchase-return-line-input"
+                                               maxlength="20" th:placeholder="#{tax.codes.returnLinePlaceholder}"/>
                                     </div>
                                     <div class="form-field">
                                         <label th:text="#{form.agency}">Agency</label>
@@ -394,6 +410,8 @@
             document.getElementById('item-code-input').value = btn.dataset.code;
             document.getElementById('item-name-input').value = btn.dataset.name;
             document.getElementById('item-rate-input').value = btn.dataset.rate;
+            document.getElementById('item-sales-return-line-input').value = btn.dataset.salesReturnLine || '';
+            document.getElementById('item-purchase-return-line-input').value = btn.dataset.purchaseReturnLine || '';
             document.getElementById('item-agency-input').value = btn.dataset.agency;
             document.getElementById('item-payable-input').value = btn.dataset.payable;
             document.getElementById('item-itc-input').value = btn.dataset.itc;

@@ -48,29 +48,6 @@ public class GeneralLedgerService {
                 .orElseThrow(() -> new IllegalArgumentException("Ledger account not found: " + id));
     }
 
-    public GeneralLedger updateLedger(Long id, Long accountId, BigDecimal debitAmount, BigDecimal creditAmount) {
-        GeneralLedger ledger = getLedger(id);
-        Long companyId = companyContext.requireCompanyId();
-        ChartOfAccount account = chartOfAccountRepository.findByIdAndCompanyId(accountId, companyId)
-                .orElseThrow(() -> new IllegalArgumentException("Account not found: " + accountId));
-        generalLedgerRepository.findByCompanyIdAndAccountId(companyId, accountId)
-                .filter(other -> !other.getId().equals(id))
-                .ifPresent(other -> {
-                    throw new IllegalArgumentException("That account already has a General Ledger entry");
-                });
-        ledger.setAccount(account);
-        ledger.setDebitBalance(nonNegative(debitAmount));
-        ledger.setCreditBalance(nonNegative(creditAmount));
-        return generalLedgerRepository.save(ledger);
-    }
-
-    private BigDecimal nonNegative(BigDecimal value) {
-        if (value == null || value.signum() < 0) {
-            throw new IllegalArgumentException("Debit and credit amounts must be zero or positive");
-        }
-        return value;
-    }
-
     public GeneralLedger updateBalance(Long accountId, BigDecimal debitAmount, BigDecimal creditAmount) {
         Optional<GeneralLedger> ledger = generalLedgerRepository.findByCompanyIdAndAccountId(
                 companyContext.requireCompanyId(), accountId);

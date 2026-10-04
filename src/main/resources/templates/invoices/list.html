@@ -10,12 +10,34 @@
             <div th:replace="~{fragments/layout :: flash}"></div>
 
             <div class="portal-card">
-                <h3 class="portal-card-title">
-                    <span th:text="#{invoices.allInvoices}">All Invoices</span>
+                <div class="portal-card-title">
+                    <div class="d-flex align-items-center gap-2 flex-wrap">
+                        <span th:text="#{invoices.allInvoices}">All Invoices</span>
+                        <form th:action="@{/invoices}" method="get" class="d-flex align-items-center">
+                            <label class="visually-hidden" for="invoiceStatusFilter"
+                                   th:text="#{invoices.filter.label}">Filter by status</label>
+                            <select id="invoiceStatusFilter" name="status"
+                                    class="form-select form-select-sm"
+                                    onchange="this.form.submit()">
+                                <option value="" th:selected="${selectedStatus == null}"
+                                        th:text="#{invoices.filter.allStatuses}">All statuses</option>
+                                <option th:each="status : ${invoiceStatuses}"
+                                        th:value="${status.name()}"
+                                        th:selected="${status == selectedStatus}"
+                                        th:text="${#messages.msg('invoice.status.' + status.name())}">
+                                    Draft
+                                </option>
+                            </select>
+                        </form>
+                    </div>
                     <a th:href="@{/invoices/new}" class="btn-portal"><i class="bi bi-plus-lg"></i> <span th:text="#{invoices.newInvoice}">New Invoice</span></a>
-                </h3>
-                <div th:if="${#lists.isEmpty(invoices)}" class="empty-state">
+                </div>
+                <div th:if="${#lists.isEmpty(invoices) and selectedStatus == null}" class="empty-state">
                     <span th:text="#{invoices.noInvoices}">No invoices yet.</span> <a th:href="@{/invoices/new}" th:text="#{invoices.createOne}">Create one</a>.
+                </div>
+                <div th:if="${#lists.isEmpty(invoices) and selectedStatus != null}" class="empty-state">
+                    <span th:text="#{invoices.filter.noMatches}">No invoices match this status.</span>
+                    <a th:href="@{/invoices}" th:text="#{invoices.filter.clear}">Show all statuses</a>.
                 </div>
                 <table th:if="${not #lists.isEmpty(invoices)}" class="table-portal">
                     <thead>
@@ -40,7 +62,7 @@
                         <td>
                             <span class="badge-pill"
                                   th:classappend="${' ' + #strings.toLowerCase(inv.status.name())}"
-                                  th:text="${inv.status}">DRAFT</span>
+                                  th:text="${#messages.msg('invoice.status.' + inv.status.name())}">Draft</span>
                         </td>
                         <td class="num" th:text="${#numbers.formatCurrency(inv.subtotal)}">$0</td>
                         <td class="num"

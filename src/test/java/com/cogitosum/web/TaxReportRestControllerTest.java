@@ -106,13 +106,19 @@ class TaxReportRestControllerTest {
         period.setNetOwing(java.math.BigDecimal.ZERO);
 
         when(filingService.getById(99L)).thenReturn(java.util.Optional.of(period));
+        when(filingService.getReturnLineBreakdown(period)).thenReturn(List.of());
+        when(filingService.getTaxReturnRows(period, List.of())).thenReturn(List.of());
+        when(filingService.hasUnmappedReturnLineAmounts(period, List.of())).thenReturn(false);
 
         mockMvc.perform(get("/api/tax/periods/99").accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.period.agency.code").value("CRA"))
                 .andExpect(jsonPath("$.period.status").value("FILED"))
                 .andExpect(jsonPath("$.collectedDetail").isArray())
-                .andExpect(jsonPath("$.itcDetail").isArray());
+                .andExpect(jsonPath("$.itcDetail").isArray())
+                .andExpect(jsonPath("$.returnLineBreakdown").isArray())
+                .andExpect(jsonPath("$.taxReturnRows").isArray())
+                .andExpect(jsonPath("$.hasUnmappedReturnLineAmounts").value(false));
     }
 
     @Test

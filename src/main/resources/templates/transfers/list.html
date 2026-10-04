@@ -37,7 +37,7 @@
                         <td>
                             <span class="badge-pill"
                                   th:classappend="${' ' + #strings.toLowerCase(transfer.status.name())}"
-                                  th:text="${#messages.msg('transfers.status.' + #strings.toLowerCase(transfer.status.name()))}">DRAFT</span>
+                                  th:text="${#messages.msg('journal.status.' + transfer.status.name())}">Draft</span>
                             <div th:if="${transfer.voidReason != null}" class="text-muted small"
                                  th:text="${#messages.msg('transfers.voidReason') + ': ' + transfer.voidReason}">Reason</div>
                             <div th:if="${transfer.voidedAt != null}" class="text-muted small">
@@ -58,6 +58,13 @@
                                data-bs-toggle="tooltip" data-bs-placement="top"
                                th:title="#{transfers.edit}" th:attr="aria-label=#{transfers.edit}">
                                 <i class="bi bi-pencil-square" aria-hidden="true"></i>
+                            </a>
+                            <a th:if="${transfer.status.name() != 'DRAFT'}"
+                               th:href="@{/transfers/{id}(id=${transfer.id})}"
+                               class="btn-portal btn-ghost btn-sm icon-action"
+                               data-bs-toggle="tooltip" data-bs-placement="top"
+                               th:title="#{transfers.view}" th:attr="aria-label=#{transfers.view}">
+                                <i class="bi bi-eye" aria-hidden="true"></i>
                             </a>
                             <form th:if="${transfer.status.name() == 'DRAFT'}"
                                   th:action="@{/transfers/{id}/delete(id=${transfer.id})}" method="post">

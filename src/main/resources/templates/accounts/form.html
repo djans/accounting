@@ -11,7 +11,7 @@
 
             <div class="portal-card">
                 <form th:action="${isNew} ? @{/accounts} : @{/accounts/{id}(id=${account.id})}"
-                      th:object="${account}" method="post">
+                      th:object="${account}" method="post" id="accountForm">
                     
                     <div class="form-section mb-4">
                         <h4 class="section-title border-bottom pb-2 mb-3" th:text="#{form.generalInformation}">Informations Générales</h4>
@@ -73,16 +73,28 @@
                         </div>
                     </div>
 
-                    <div class="form-section mb-4" th:if="${isNew}">
+                    <div class="alert alert-danger border border-2 border-danger" role="alert" th:unless="${isNew}">
+                        <strong class="d-block mb-1" th:text="#{form.openingBalanceEditWarningTitle}">
+                            CAUTION — Changing the opening balance
+                        </strong>
+                        <span th:text="#{form.openingBalanceEditWarning}">
+                            Changing this amount affects the starting balance used until a reconciliation has been completed.
+                        </span>
+                    </div>
+
+                    <div class="form-section mb-4">
                         <h4 class="section-title border-bottom pb-2 mb-3" th:text="#{form.openingBalanceSection}">Solde d'Ouverture</h4>
                         <div class="form-grid">
                             <div class="form-field">
                                 <label th:text="#{form.openingBalance}">Solde Initial</label>
-                                <input type="number" step="0.01" th:field="*{openingBalance}" th:placeholder="#{form.openingBalanceZero}"/>
+                                <input id="openingBalance" type="number" step="0.01" th:field="*{openingBalance}"
+                                       th:attr="data-original-value=${account.openingBalance == null ? '' : account.openingBalance}"
+                                       th:placeholder="#{form.openingBalanceZero}"/>
                             </div>
                             <div class="form-field">
                                 <label th:text="#{form.asOfDate}">En date du</label>
-                                <input type="date" th:field="*{openingBalanceDate}"/>
+                                <input id="openingBalanceDate" type="date" th:field="*{openingBalanceDate}"
+                                       th:attr="data-original-value=${account.openingBalanceDate == null ? '' : account.openingBalanceDate}"/>
                             </div>
                         </div>
                     </div>
@@ -104,5 +116,33 @@
         </section>
     </main>
 </div>
+<script th:inline="javascript">
+    const isNewAccount = /*[[${isNew}]]*/ true;
+    const openingBalanceEditConfirm = /*[[#{form.openingBalanceEditConfirm}]]*/
+        'You changed the opening balance or its date. Continue?';
+
+    document.addEventListener('DOMContentLoaded', function () {
+        if (isNewAccount) {
+            return;
+        }
+
+        const form = document.getElementById('accountForm');
+        const openingBalance = document.getElementById('openingBalance');
+        const openingBalanceDate = document.getElementById('openingBalanceDate');
+
+        form.addEventListener('submit', function (event) {
+            const originalBalance = openingBalance.dataset.originalValue || '';
+            const currentBalance = openingBalance.value.trim();
+            const balanceChanged = originalBalance === '' || currentBalance === ''
+                ? originalBalance !== currentBalance
+                : Number(originalBalance) !== Number(currentBalance);
+            const dateChanged = (openingBalanceDate.dataset.originalValue || '') !== openingBalanceDate.value;
+
+            if ((balanceChanged || dateChanged) && !window.confirm(openingBalanceEditConfirm)) {
+                event.preventDefault();
+            }
+        });
+    });
+</script>
 </body>
 </html>

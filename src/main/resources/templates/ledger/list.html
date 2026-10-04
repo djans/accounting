@@ -13,6 +13,20 @@
                     The General Ledger is empty. Create accounts under
                     <a th:href="@{/accounts}">Chart of Accounts</a>, then post journals to populate balances.
                 </div>
+                <div th:if="${not #lists.isEmpty(ledgers)}" class="d-flex align-items-center gap-2 flex-wrap mb-3">
+                    <label class="visually-hidden" for="ledgerTypeFilter"
+                           th:text="#{ledger.filter.typeLabel}">Filter by account type</label>
+                    <select id="ledgerTypeFilter" class="form-select form-select-sm" style="width:auto">
+                        <option value="" th:text="#{ledger.filter.allTypes}">All types</option>
+                        <option th:each="type : ${accountTypes}"
+                                th:value="${type.name()}"
+                                th:text="${#messages.msg('account.type.' + type.name())}">Asset</option>
+                    </select>
+                    <label class="visually-hidden" for="ledgerSearch"
+                           th:text="#{ledger.filter.searchLabel}">Search general ledger</label>
+                    <input id="ledgerSearch" type="search" class="form-control form-control-sm"
+                           style="max-width: 20rem" th:placeholder="#{ledger.filter.searchPlaceholder}"/>
+                </div>
                 <table th:if="${not #lists.isEmpty(ledgers)}" class="table-portal">
                     <thead>
                     <tr>
@@ -27,7 +41,9 @@
                     </tr>
                     </thead>
                     <tbody>
-                    <tr th:each="gl : ${ledgers}">
+                    <tr th:each="gl : ${ledgers}"
+                        th:attr="data-account-type=${gl.account.accountType.name()},
+                                 data-account-search=${gl.account.accountNumber + ' ' + gl.account.accountName}">
                         <td th:text="${gl.account.accountNumber}">1010</td>
                         <td style="font-weight:500" th:text="${gl.account.accountName}">Cash</td>
                         <td><span class="badge-pill" th:text="${gl.account.accountType}">ASSET</span></td>
@@ -36,13 +52,41 @@
                         <td class="num" style="font-weight:600"
                             th:text="${#numbers.formatCurrency(gl.balance)}">$0</td>
                         <td th:text="${gl.lastUpdated}">—</td>
-                        <td><a class="btn-portal btn-ghost btn-sm" th:href="@{/ledger/{id}/edit(id=${gl.id})}">Edit</a></td>
+                        <td><a class="btn-portal btn-ghost btn-sm" th:href="@{/ledger/{id}/edit(id=${gl.id})}"
+                               th:text="#{ledger.viewAccount}">View Account</a></td>
                     </tr>
                     </tbody>
                 </table>
+                <div id="ledgerNoMatches" class="empty-state" hidden
+                     th:text="#{ledger.filter.noMatches}">No accounts match these filters.</div>
             </div>
         </section>
     </main>
 </div>
+<script th:if="${not #lists.isEmpty(ledgers)}">
+    const ledgerTypeFilter = document.getElementById('ledgerTypeFilter');
+    const ledgerSearch = document.getElementById('ledgerSearch');
+    const ledgerRows = document.querySelectorAll('tr[data-account-type]');
+    const ledgerNoMatches = document.getElementById('ledgerNoMatches');
+
+    function filterLedgerRows() {
+        const selectedType = ledgerTypeFilter.value;
+        const searchText = ledgerSearch.value.trim().toLowerCase();
+        let visibleRows = 0;
+
+        ledgerRows.forEach(row => {
+            const matchesType = !selectedType || row.dataset.accountType === selectedType;
+            const matchesSearch = !searchText || row.dataset.accountSearch.toLowerCase().includes(searchText);
+            const visible = matchesType && matchesSearch;
+            row.hidden = !visible;
+            if (visible) visibleRows++;
+        });
+
+        ledgerNoMatches.hidden = visibleRows > 0;
+    }
+
+    ledgerTypeFilter.addEventListener('change', filterLedgerRows);
+    ledgerSearch.addEventListener('input', filterLedgerRows);
+</script>
 </body>
 </html>

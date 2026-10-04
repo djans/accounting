@@ -61,6 +61,8 @@ public class TaxCodeService {
             c.setActive(item.getActive());
             c.setForSales(item.getForSales());
             c.setForPurchases(item.getForPurchases());
+            c.setSalesReturnLine(item.getSalesReturnLine());
+            c.setPurchaseReturnLine(item.getPurchaseReturnLine());
             return taxItemRepository.save(c);
         }
         return null;

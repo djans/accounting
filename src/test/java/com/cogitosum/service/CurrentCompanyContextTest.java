@@ -3,6 +3,8 @@ package com.cogitosum.service;
 import com.cogitosum.entity.Company;
 import com.cogitosum.entity.Customer;
 import com.cogitosum.entity.UserAccount;
+import com.cogitosum.repository.CompanyMembershipRepository;
+import com.cogitosum.repository.CompanyRepository;
 import com.cogitosum.repository.UserAccountRepository;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -25,6 +27,10 @@ class CurrentCompanyContextTest {
 
     @Mock
     private UserAccountRepository users;
+    @Mock
+    private CompanyMembershipRepository memberships;
+    @Mock
+    private CompanyRepository companies;
 
     @AfterEach
     void clearSecurityContext() {
@@ -41,7 +47,7 @@ class CurrentCompanyContextTest {
         SecurityContextHolder.getContext().setAuthentication(
                 new UsernamePasswordAuthenticationToken("bookkeeper@example.test", "ignored", List.of()));
 
-        CurrentCompanyContext context = new CurrentCompanyContext(users);
+        CurrentCompanyContext context = new CurrentCompanyContext(users, memberships, companies);
 
         assertEquals(10L, context.requireCompanyId());
     }
@@ -59,14 +65,50 @@ class CurrentCompanyContextTest {
         Customer otherCompanyCustomer = new Customer();
         otherCompanyCustomer.setCompany(company(20L));
 
-        CurrentCompanyContext context = new CurrentCompanyContext(users);
+        CurrentCompanyContext context = new CurrentCompanyContext(users, memberships, companies);
 
         assertThrows(AccessDeniedException.class, () -> context.requireCurrentCompany(otherCompanyCustomer));
+    }
+
+    @Test
+    void deniesSwitchingToACompanyOutsideTheUsersMemberships() {
+        UserAccount user = new UserAccount();
+        user.setId(7L);
+        user.setCompany(company(10L));
+        user.setEnabled(true);
+        when(users.findByEmail("bookkeeper@example.test")).thenReturn(Optional.of(user));
+        when(memberships.isMember(7L, 99L)).thenReturn(false);
+        SecurityContextHolder.getContext().setAuthentication(
+            new UsernamePasswordAuthenticationToken("bookkeeper@example.test", "ignored", List.of()));
+
+        CurrentCompanyContext context = new CurrentCompanyContext(users, memberships, companies);
+
+        assertThrows(AccessDeniedException.class, () -> context.selectCompany(99L));
+    }
+
+    @Test
+    void listsOnlyMembershipCompaniesAndTheLegacyDefaultCompany() {
+        UserAccount user = new UserAccount();
+        user.setId(7L);
+        user.setCompany(company(10L));
+        user.setEnabled(true);
+        when(users.findByEmail("bookkeeper@example.test")).thenReturn(Optional.of(user));
+        Company additional = company(20L);
+        additional.setName("Additional");
+        when(memberships.findCompaniesByUserId(7L)).thenReturn(List.of(additional));
+        SecurityContextHolder.getContext().setAuthentication(
+            new UsernamePasswordAuthenticationToken("bookkeeper@example.test", "ignored", List.of()));
+
+        CurrentCompanyContext context = new CurrentCompanyContext(users, memberships, companies);
+
+        assertEquals(List.of(10L, 20L),
+            context.getAccessibleCompanies().stream().map(Company::getId).sorted().toList());
     }
 
     private Company company(Long id) {
         Company company = new Company();
         company.setId(id);
+        company.setName("Company " + id);
         return company;
     }
 }

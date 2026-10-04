@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en" th:lang="${#locale.language}" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(${copyCheque ? #messages.msg('cheques.copyDraft') : cheque.id == null ? #messages.msg('cheques.newDraft') : #messages.msg('cheques.editDraft')})}"></head>
+<body>
+<div class="portal-shell">
+    <div th:replace="~{fragments/layout :: sidebar('cheques-new')}"></div>
+    <main class="portal-main">
+        <div th:replace="~{fragments/layout :: topbar(${copyCheque ? #messages.msg('cheques.copyDraft') : cheque.id == null ? #messages.msg('cheques.newDraft') : #messages.msg('cheques.editDraft')})}"></div>
+        <section class="portal-content">
+            <div th:replace="~{fragments/layout :: flash}"></div>
+            <div class="portal-card">
+                <form th:action="@{${cheque.id == null ? '/cheques' : '/cheques/' + cheque.id}}" method="post" id="cheque-form">
+                    <input th:if="${reissueOfId != null}" type="hidden" name="reissueOfId" th:value="${reissueOfId}"/>
+                    <div class="form-grid">
+                        <div class="form-field"><label th:text="#{form.bankAccount}">Bank account</label>
+                            <select name="bankAccountId" required><option value="" th:text="#{select.chooseBankAccount}">Select bank account...</option>
+                                <option th:each="a : ${bankAccounts}" th:value="${a.id}" th:selected="${cheque.bankAccount != null and cheque.bankAccount.id == a.id}" th:text="${a.accountNumber + ' - ' + a.accountName}"></option>
+                            </select></div>
+                        <div class="form-field"><label th:text="#{form.chequeNumber}">Cheque number</label><input name="chequeNumber" th:value="${cheque.chequeNumber != null ? cheque.chequeNumber : nextChequeNumber}" required/></div>
+                        <div class="form-field"><label th:text="#{form.date}">Date</label><input type="date" name="chequeDate" th:value="${copyCheque ? cheque.chequeDate : (cheque.chequeDate != null ? cheque.chequeDate : today)}" required/></div>
+                        <div class="form-field"><label th:text="#{form.payee}">Pay to the order of</label>
+                            <select name="vendorId" id="vendorId" required><option value="" th:text="#{select.chooseSupplier}">Select vendor...</option>
+                                <option th:each="v : ${vendors}" th:value="${v.id}" th:selected="${cheque.vendor != null and cheque.vendor.id == v.id}" th:attr="data-address=${v.address + ', ' + v.city + ', ' + v.province + ' ' + v.postalCode}" th:text="${v.businessName}"></option>
+                            </select></div>
+                        <div class="form-field full"><label th:text="#{form.vendorAddress}">Vendor address</label><input id="vendorAddress" readonly th:value="${cheque.vendor != null ? cheque.vendor.address + ', ' + cheque.vendor.city + ', ' + cheque.vendor.province + ' ' + cheque.vendor.postalCode : ''}"/></div>
+                        <div class="form-field"><label th:text="#{cheques.totalIncludingTax}">Cheque total (tax included)</label><input id="totalAmount" readonly value="$0.00"/></div>
+                        <div class="form-field"><label th:text="#{form.amountInWords}">Amount in words</label><input id="amountWords" readonly/></div>
+                        <div class="form-field full"><label th:text="#{table.memo}">Memo</label><textarea name="memo" rows="2" th:text="${cheque.memo}"></textarea></div>
+                    </div>
+                    <h3 class="portal-card-title" th:text="#{form.expenses}">Expenses</h3>
+                    <table class="table-portal"><thead><tr><th th:text="#{table.account}">Account</th><th th:text="#{table.tax}">Tax</th><th th:text="#{cheques.expenseAmountBeforeTax}">Amount before tax</th><th th:text="#{table.memo}">Memo</th><th th:text="#{table.customerJob}">Customer job</th><th></th></tr></thead>
+                    <tbody id="expenseRows">
+                    <tr th:each="expense : ${cheque.expenses}">
+                        <td><select name="expenseAccountId" required><option value="" th:text="#{select.chooseAccount}">Select...</option><option th:each="a : ${accounts}" th:value="${a.id}" th:selected="${expense.account != null and expense.account.id == a.id}" th:text="${a.accountNumber + ' - ' + a.accountName}"></option></select></td>
+                        <td><select name="expenseTax"><option value="" th:text="#{select.none}">None</option><option th:each="tc : ${taxCodes}" th:value="${tc.code}" th:selected="${expense.tax == tc.code}" th:attr="data-rates=${purchaseTaxRates[tc.code]}" th:text="${tc.code + ' - ' + tc.name}"></option></select></td>
+                        <td><input name="expenseAmount" type="number" step="0.01" min="0.01" required th:value="${expense.amount}"/></td>
+                        <td><input name="expenseMemo" th:value="${expense.memo}"/></td>
+                        <td><select name="expenseCustomerId"><option value="" th:text="#{select.none}">-</option><option th:each="c : ${customers}" th:value="${c.id}" th:selected="${expense.customerJob != null and expense.customerJob.id == c.id}" th:text="${c.businessName}"></option></select></td>
+                        <td><button type="button" class="btn-portal btn-sm remove-expense">×</button></td>
+                    </tr>
+                    </tbody></table>
+                    <button type="button" class="btn-portal btn-ghost" id="addExpense" th:text="#{form.addExpense}">Add expense</button>
+                    <div class="form-actions"><a th:href="@{/cheques}" class="btn-portal btn-ghost" th:text="#{btn.cancel}">Cancel</a><button class="btn-portal" type="submit" th:text="#{cheques.saveDraft}">Save draft</button></div>
+                </form>
+            </div>
+        </section>
+    </main>
+</div>
+<template id="expenseTemplate"><tr>
+    <td><select name="expenseAccountId" required><option value="" th:text="#{select.chooseAccount}">Select...</option><option th:each="a : ${accounts}" th:value="${a.id}" th:text="${a.accountNumber + ' - ' + a.accountName}"></option></select></td>
+    <td>
+        <select name="expenseTax">
+            <option value="" th:text="#{select.none}">None</option>
+            <option th:each="tc : ${taxCodes}" th:value="${tc.code}" th:attr="data-rates=${purchaseTaxRates[tc.code]}" th:text="${tc.code + ' - ' + tc.name}"></option>
+        </select>
+    </td><td><input name="expenseAmount" type="number" step="0.01" min="0.01" required/></td><td><input name="expenseMemo"/></td>
+    <td><select name="expenseCustomerId"><option value="" th:text="#{select.none}">-</option><option th:each="c : ${customers}" th:value="${c.id}" th:text="${c.businessName}"></option></select></td>
+    <td><button type="button" class="btn-portal btn-sm remove-expense">×</button></td>
+</tr></template>
+<script>
+const rows=document.getElementById('expenseRows'), template=document.getElementById('expenseTemplate');
+function watchAmounts(row){
+    row.querySelectorAll('input[name="expenseAmount"]').forEach(input=>{
+        input.addEventListener('input', updateTotal);
+        input.addEventListener('change', updateTotal);
+        input.addEventListener('blur', updateTotal);
+    });
+    row.querySelectorAll('select[name="expenseTax"]').forEach(select=>select.addEventListener('change', updateTotal));
+}
+function addRow(){rows.appendChild(template.content.cloneNode(true)); watchAmounts(rows.lastElementChild);}
+function rowTotal(row){
+    const base=parseFloat(row.querySelector('input[name="expenseAmount"]').value)||0;
+    const taxSelect=row.querySelector('select[name="expenseTax"]');
+    const rates=(taxSelect.selectedOptions[0].dataset.rates||'').split(',').filter(Boolean);
+    const taxes=rates.reduce((sum,rate)=>sum+Math.round((base*parseFloat(rate)+Number.EPSILON)*100)/100,0);
+    return base+taxes;
+}
+function updateTotal(){let total=0;rows.querySelectorAll('tr').forEach(row=>total+=rowTotal(row));document.getElementById('totalAmount').value=new Intl.NumberFormat(undefined,{style:'currency',currency:'CAD'}).format(total);document.getElementById('amountWords').value=amountInWords(total);}
+function amountInWords(value){let dollars=Math.floor(value||0), cents=Math.round(((value||0)-dollars)*100);return numberWords(dollars)+(document.documentElement.lang==='fr'?' dollars et ':' dollars and ')+String(cents).padStart(2,'0')+'/100';}
+function numberWords(n){if(document.documentElement.lang==='fr')return frenchWords(n);const ones=['zero','one','two','three','four','five','six','seven','eight','nine','ten','eleven','twelve','thirteen','fourteen','fifteen','sixteen','seventeen','eighteen','nineteen'], tens=['','','twenty','thirty','forty','fifty','sixty','seventy','eighty','ninety'];if(n<20)return ones[n];if(n<100)return tens[Math.floor(n/10)]+(n%10?'-'+ones[n%10]:'');if(n<1000)return ones[Math.floor(n/100)]+' hundred'+(n%100?' '+numberWords(n%100):'');if(n<1000000)return numberWords(Math.floor(n/1000))+' thousand'+(n%1000?' '+numberWords(n%1000):'');return numberWords(Math.floor(n/1000000))+' million'+(n%1000000?' '+numberWords(n%1000000):'');}
+function frenchWords(n){const u=['zéro','un','deux','trois','quatre','cinq','six','sept','huit','neuf','dix','onze','douze','treize','quatorze','quinze','seize'];if(n<17)return u[n];if(n<20)return 'dix-'+u[n-10];if(n<70){const t=['','','vingt','trente','quarante','cinquante','soixante'];return t[Math.floor(n/10)]+(n%10?(n%10===1?' et un':'-'+u[n%10]):'');}if(n<80)return 'soixante-'+frenchWords(n-60);if(n<100)return 'quatre-vingt'+(n%20?'-'+frenchWords(n-80):'s');if(n<1000)return u[Math.floor(n/100)]+' cent'+(n%100?' '+frenchWords(n%100):'');if(n<1000000)return frenchWords(Math.floor(n/1000))+' mille'+(n%1000?' '+frenchWords(n%1000):'');return frenchWords(Math.floor(n/1000000))+' million'+(n%1000000?' '+frenchWords(n%1000000):'');}
+document.getElementById('addExpense').onclick=addRow;document.getElementById('vendorId').onchange=e=>document.getElementById('vendorAddress').value=e.target.selectedOptions[0]?.dataset.address||'';document.addEventListener('click',e=>{if(e.target.classList.contains('remove-expense')){e.target.closest('tr').remove();updateTotal();}});rows.querySelectorAll('tr').forEach(watchAmounts);if(!rows.children.length)addRow();updateTotal();
+</script>
+</body></html>

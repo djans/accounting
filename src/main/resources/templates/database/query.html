@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="fr" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(#{database.query.title})}"></head>
+<body>
+<div class="portal-shell">
+    <div th:replace="~{fragments/layout :: sidebar('database-query')}"></div>
+    <main class="portal-main">
+        <div th:replace="~{fragments/layout :: topbar(#{database.query.title})}"></div>
+        <section class="portal-content">
+            <div th:replace="~{fragments/layout :: flash}"></div>
+
+            <div class="portal-card">
+                <h2 class="portal-card-title" th:text="#{database.query.title}">SQL console</h2>
+                <p class="text-muted" th:text="#{database.query.description}">
+                    Run one SQL statement against the application database.
+                </p>
+                <p class="alert alert-warning" role="note" th:text="#{database.query.scopeWarning}">
+                    This administrator tool can change accounting data. Export a backup first.
+                </p>
+
+                <form th:action="@{/database/query}" method="get" class="form-grid">
+                    <div class="form-field">
+                        <label for="tableChoice" th:text="#{database.query.table}">Application table</label>
+                        <select id="tableChoice" name="table" required="required">
+                            <option th:each="tableName : ${tables}" th:value="${tableName}"
+                                    th:text="${tableName}" th:selected="${tableName == selectedTable}"></option>
+                        </select>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn-portal btn-ghost">
+                            <i class="bi bi-table"></i>
+                            <span th:text="#{database.query.loadTable}">Load table</span>
+                        </button>
+                    </div>
+                </form>
+
+                <form id="sqlForm" th:action="@{/database/query}" method="post"
+                      th:attr="data-confirm=#{database.query.confirmDialog}">
+                    <input type="hidden" name="table" th:value="${selectedTable}"/>
+                    <div class="form-field">
+                        <label for="sql" th:text="#{database.query.statement}">SQL statement</label>
+                        <textarea id="sql" name="sql" rows="8" required="required"
+                                  maxlength="20000" spellcheck="false" th:text="${sql}"></textarea>
+                        <small class="text-muted" th:text="#{database.query.hint}">
+                            One SQL statement at a time. Results are limited to 200 rows and 50 columns.
+                        </small>
+                    </div>
+
+                    <div id="writeWarning" class="alert alert-danger border border-danger border-3"
+                         role="alert" th:classappend="${requiresConfirmation} ? '' : ' d-none'">
+                        <h3 class="h5 fw-bold" th:text="#{database.query.warningTitle}">
+                            WARNING: This statement may permanently change or delete data.
+                        </h3>
+                        <p th:text="#{database.query.warningBody}">
+                            Changes may be irreversible and affect accounting records. Confirm that a current backup exists.
+                        </p>
+                        <label class="form-check-label">
+                            <input id="confirmChanges" class="form-check-input" type="checkbox"
+                                   name="confirmChanges" value="true"/>
+                            <span th:text="#{database.query.confirmCheckbox}">
+                                I understand the risk and want to execute this statement.
+                            </span>
+                        </label>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="submit" class="btn-portal btn-danger">
+                            <i class="bi bi-play-fill"></i>
+                            <span th:text="#{database.query.execute}">Execute SQL</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="portal-card" style="margin-top:1rem;" th:if="${queryResult != null}">
+                <h2 class="portal-card-title" th:text="#{database.query.resultTitle}">Result</h2>
+                <div th:if="${queryResult.resultSet}">
+                    <p class="text-muted">
+                        <span th:text="#{database.query.rowCount(${queryResult.rows.size()})}">Rows returned</span>
+                    </p>
+                    <p class="alert alert-info" th:if="${queryResult.rowsTruncated or queryResult.columnsTruncated}"
+                       th:text="#{database.query.truncated}">The displayed result was limited.</p>
+                    <div class="table-responsive">
+                        <table class="table-portal">
+                            <thead>
+                            <tr>
+                                <th th:each="column : ${queryResult.columns}" th:text="${column}">Column</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <tr th:each="row : ${queryResult.rows}">
+                                <td th:each="cell : ${row}" th:text="${cell}">Value</td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <p th:unless="${queryResult.resultSet}" class="text-muted">
+                    <span th:if="${queryResult.affectedRows >= 0}"
+                          th:text="#{database.query.affectedRows(${queryResult.affectedRows})}">
+                        Affected rows
+                    </span>
+                    <span th:if="${queryResult.affectedRows < 0}" th:text="#{database.query.completed}">
+                        Statement completed.
+                    </span>
+                </p>
+            </div>
+        </section>
+    </main>
+</div>
+<script th:inline="javascript">
+    (function () {
+        const form = document.getElementById('sqlForm');
+        const sql = document.getElementById('sql');
+        const warning = document.getElementById('writeWarning');
+        const confirmation = document.getElementById('confirmChanges');
+        const readOnlyCommands = ['SELECT', 'SHOW', 'DESCRIBE', 'DESC', 'EXPLAIN'];
+
+        function requiresConfirmation() {
+            const match = sql.value.trimStart().match(/^([A-Za-z]+)/);
+            if (!match) return true;
+            const command = match[1].toUpperCase();
+            const upperSql = sql.value.toUpperCase();
+            return !readOnlyCommands.includes(command)
+                || (command === 'SELECT'
+                && (/\bINTO\b/.test(upperSql)
+                || /\bFOR\s+UPDATE\b/.test(upperSql)));
+        }
+
+        function refreshWarning() {
+            const required = requiresConfirmation();
+            warning.classList.toggle('d-none', !required);
+            confirmation.required = required;
+            if (!required) confirmation.checked = false;
+        }
+
+        sql.addEventListener('input', refreshWarning);
+        form.addEventListener('submit', function (event) {
+            if (requiresConfirmation() && confirmation.checked
+                && !window.confirm(form.dataset.confirm)) {
+                event.preventDefault();
+            }
+        });
+        refreshWarning();
+    })();
+</script>
+</body>
+</html>

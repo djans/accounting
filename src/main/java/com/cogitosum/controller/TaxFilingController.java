@@ -6,7 +6,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
@@ -43,11 +42,11 @@ public class TaxFilingController {
 
     @PostMapping("/{id}/file")
     public TaxFilingPeriod file(@PathVariable Long id, @RequestBody Map<String, Object> body) {
-        BigDecimal itc = body.containsKey("itcAmount")
-            ? new BigDecimal(body.get("itcAmount").toString())
-            : BigDecimal.ZERO;
+        if (body.containsKey("itcAmount")) {
+            throw new IllegalArgumentException("ITC/ITR is calculated from the tax return line totals");
+        }
         String postedBy = (String) body.getOrDefault("postedBy", "api");
-        return service.file(id, itc, postedBy);
+        return service.file(id, postedBy);
     }
 
     @PostMapping("/{id}/pay")

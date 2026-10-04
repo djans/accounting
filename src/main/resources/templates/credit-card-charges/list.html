@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en" th:lang="${#locale.language}" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(#{creditCardCharges.title})}"></head>
+<body>
+<div class="portal-shell">
+    <div th:replace="~{fragments/layout :: sidebar('credit-card-charges')}"></div>
+    <main class="portal-main">
+        <div th:replace="~{fragments/layout :: topbar(#{creditCardCharges.title})}"></div>
+        <section class="portal-content">
+            <div th:replace="~{fragments/layout :: flash}"></div>
+            <div class="portal-card">
+                <h3 class="portal-card-title" th:text="#{creditCardCharges.title}">Credit card charges</h3>
+                <a th:href="@{/credit-card-charges/new}" class="btn-portal icon-action charge-new-action"
+                   data-bs-toggle="tooltip" data-bs-placement="top"
+                   th:title="#{creditCardCharges.newDraft}" th:attr="aria-label=#{creditCardCharges.newDraft}">
+                    <i class="bi bi-plus-lg" aria-hidden="true"></i>
+                </a>
+                <form id="charge-bulk-form" th:if="${not #lists.isEmpty(charges)}"
+                      th:action="@{/credit-card-charges/bulk-post}" method="post" class="charge-bulk-actions"
+                      th:attr="data-no-selection=#{creditCardCharges.bulkSelectRequired}">
+                    <button type="submit" class="btn-portal"
+                            th:text="#{creditCardCharges.bulkPost}">Post selected</button>
+                    <button type="submit" class="btn-portal btn-ghost"
+                            th:formaction="@{/credit-card-charges/bulk-delete}"
+                            th:text="#{creditCardCharges.bulkDelete}"
+                            th:attr="data-confirm-message=#{creditCardCharges.confirmBulkDelete}">
+                        Delete selected drafts
+                    </button>
+                </form>
+                <table class="table-portal" th:if="${not #lists.isEmpty(charges)}">
+                    <thead><tr>
+                        <th>
+                            <input id="charge-select-all" type="checkbox"
+                                   th:attr="aria-label=#{creditCardCharges.selectAll}" />
+                        </th>
+                        <th th:text="#{creditCardCharges.date}">Date</th>
+                        <th th:text="#{creditCardCharges.vendor}">Supplier</th>
+                        <th th:text="#{creditCardCharges.memo}">Memo</th>
+                        <th th:text="#{creditCardCharges.expenseAccount}">Account</th>
+                        <th th:text="#{creditCardCharges.cardAccount}">Card</th>
+                        <th class="num" th:text="#{creditCardCharges.netAmount}">Net</th>
+                        <th class="num" th:text="#{creditCardCharges.taxAmount}">Tax</th>
+                        <th class="num" th:text="#{creditCardCharges.totalIncludingTax}">Total</th>
+                        <th th:text="#{creditCardCharges.status}">Status</th>
+                        <th th:text="#{table.actions}">Actions</th>
+                    </tr></thead>
+                    <tbody>
+                    <tr th:each="charge : ${charges}">
+                        <td>
+                            <input type="checkbox" name="chargeIds" form="charge-bulk-form"
+                                   th:value="${charge.id}"
+                                   th:disabled="${charge.status.name() != 'DRAFT'}"
+                                   th:attr="aria-label=#{creditCardCharges.selectCharge}, title=#{creditCardCharges.bulkOnlyDrafts}" />
+                        </td>
+                        <td th:text="${charge.chargeDate}"></td>
+                        <td th:text="${charge.vendor.businessName}"></td>
+                        <td th:text="${charge.memo}"></td>
+                        <td th:text="${charge.expenseAccount.accountNumber + ' — ' + charge.expenseAccount.accountName}"></td>
+                        <td th:text="${charge.cardAccount.accountNumber + ' — ' + charge.cardAccount.accountName}"></td>
+                        <td class="num" th:text="${#numbers.formatCurrency(charge.netAmount)}"></td>
+                        <td class="num" th:text="${#numbers.formatCurrency(charge.taxAmount)}"></td>
+                        <td class="num" th:text="${#numbers.formatCurrency(charge.totalAmount)}"></td>
+                        <td>
+                            <span class="badge-pill"
+                                  th:classappend="${' ' + #strings.toLowerCase(charge.status.name())}"
+                                  th:text="${#messages.msg('creditCardCharges.status.' + #strings.toLowerCase(charge.status.name()))}">Posted</span>
+                            <div th:if="${charge.voidReason != null}" class="text-muted small"
+                                 th:text="${#messages.msg('creditCardCharges.voidReason') + ': ' + charge.voidReason}">Reason</div>
+                            <div th:if="${charge.voidedAt != null}" class="text-muted small">
+                                <span th:text="#{creditCardCharges.voidedAt}">Voided on</span>
+                                <span th:text="${charge.voidedAt}">2026-01-01T00:00</span>
+                            </div>
+                            <div th:if="${charge.reissueOf != null}" class="text-muted small">
+                                <span th:text="#{creditCardCharges.reissueOf}">Reissue of</span>
+                                <span th:text="${charge.reissueOf.id}">1</span>
+                            </div>
+                        </td>
+                        <td class="charge-actions">
+                            <a th:href="@{/credit-card-charges/{id}/copy(id=${charge.id})}"
+                               class="btn-portal btn-ghost btn-sm icon-action"
+                               data-bs-toggle="tooltip" data-bs-placement="top"
+                               th:title="#{creditCardCharges.copy}"
+                               th:attr="aria-label=#{creditCardCharges.copy}">
+                                <i class="bi bi-copy" aria-hidden="true"></i>
+                            </a>
+                            <a th:if="${charge.status.name() == 'DRAFT'}"
+                               th:href="@{/credit-card-charges/{id}/edit(id=${charge.id})}"
+                               class="btn-portal btn-ghost btn-sm icon-action"
+                               data-bs-toggle="tooltip" data-bs-placement="top"
+                               th:title="#{creditCardCharges.edit}"
+                               th:attr="aria-label=#{creditCardCharges.edit}">
+                                <i class="bi bi-pencil-square" aria-hidden="true"></i>
+                            </a>
+                            <form th:if="${charge.status.name() == 'DRAFT'}"
+                                  th:action="@{/credit-card-charges/{id}/delete(id=${charge.id})}" method="post">
+                                <button class="btn-portal btn-ghost btn-sm icon-action" type="submit"
+                                        data-bs-toggle="tooltip" data-bs-placement="top"
+                                        th:title="#{creditCardCharges.deleteDraft}"
+                                        th:attr="aria-label=#{creditCardCharges.deleteDraft}, data-confirm-message=${#messages.msg('creditCardCharges.confirmDeleteDraft')}"
+                                        onclick="return confirm(this.dataset.confirmMessage)">
+                                    <i class="bi bi-trash" aria-hidden="true"></i>
+                                </button>
+                            </form>
+                            <form th:if="${charge.status.name() == 'DRAFT'}"
+                                  th:action="@{/credit-card-charges/{id}/post(id=${charge.id})}" method="post">
+                                <button class="btn-portal btn-sm icon-action" type="submit"
+                                        data-bs-toggle="tooltip" data-bs-placement="top"
+                                        th:title="#{creditCardCharges.post}"
+                                        th:attr="aria-label=#{creditCardCharges.post}">
+                                    <i class="bi bi-check-circle" aria-hidden="true"></i>
+                                </button>
+                            </form>
+                            <form th:if="${charge.status.name() == 'POSTED'}"
+                                  th:action="@{/credit-card-charges/{id}/void(id=${charge.id})}" method="post">
+                                <input type="text" name="reason" maxlength="180" required
+                                       th:placeholder="#{creditCardCharges.voidReasonPlaceholder}"
+                                       th:attr="aria-label=${#messages.msg('creditCardCharges.voidReason')}"/>
+                                <button class="btn-portal btn-ghost btn-sm icon-action" type="submit"
+                                        data-bs-toggle="tooltip" data-bs-placement="top"
+                                        th:title="#{creditCardCharges.void}"
+                                        th:attr="aria-label=#{creditCardCharges.void}, data-confirm-message=${#messages.msg('creditCardCharges.confirmVoid')}"
+                                        onclick="return confirm(this.dataset.confirmMessage)">
+                                    <i class="bi bi-x-circle" aria-hidden="true"></i>
+                                </button>
+                            </form>
+                            <a th:if="${charge.status.name() == 'VOIDED'}"
+                               th:href="@{/credit-card-charges/new(reissueOfId=${charge.id})}"
+                               class="btn-portal btn-ghost btn-sm icon-action"
+                               data-bs-toggle="tooltip" data-bs-placement="top"
+                               th:title="#{creditCardCharges.reissue}"
+                               th:attr="aria-label=#{creditCardCharges.reissue}">
+                                <i class="bi bi-arrow-repeat" aria-hidden="true"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+                <div th:if="${#lists.isEmpty(charges)}" class="empty-state" th:text="#{creditCardCharges.empty}">
+                    No credit card charges recorded yet.
+                </div>
+            </div>
+        </section>
+    </main>
+</div>
+<style>
+    .charge-new-action { margin-bottom: 1rem; }
+    .charge-bulk-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1rem; }
+    .charge-actions { white-space: nowrap; }
+    .charge-actions form { display: inline-flex; align-items: center; margin: 0; }
+    .icon-action { width: 2.25rem; height: 2.25rem; justify-content: center; padding: 0.25rem; }
+    .btn-portal.icon-action i { margin: 0; }
+</style>
+<script>
+    var selectAllCharges = document.getElementById('charge-select-all');
+    if (selectAllCharges) {
+        selectAllCharges.addEventListener('change', function () {
+            document.querySelectorAll('input[name="chargeIds"]:not(:disabled)').forEach(function (checkbox) {
+                checkbox.checked = selectAllCharges.checked;
+            });
+        });
+    }
+    var chargeBulkForm = document.getElementById('charge-bulk-form');
+    if (chargeBulkForm) {
+        chargeBulkForm.addEventListener('submit', function (event) {
+            if (!document.querySelector('input[name="chargeIds"]:checked')) {
+                alert(chargeBulkForm.dataset.noSelection);
+                event.preventDefault();
+                return;
+            }
+            var submitter = event.submitter;
+            if (submitter && submitter.dataset.confirmMessage
+                    && !confirm(submitter.dataset.confirmMessage)) {
+                event.preventDefault();
+            }
+        });
+    }
+    document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(function (element) {
+        if (window.bootstrap && window.bootstrap.Tooltip) {
+            new window.bootstrap.Tooltip(element);
+        }
+    });
+</script>
+</body>
+</html>

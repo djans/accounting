@@ -2,7 +2,9 @@ package com.cogitosum.repository;
 
 import com.cogitosum.entity.GeneralJournal;
 import com.cogitosum.entity.JournalStatus;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -18,6 +20,8 @@ public interface GeneralJournalRepository extends JpaRepository<GeneralJournal, 
     List<GeneralJournal> findByJournalDateBetween(LocalDate startDate, LocalDate endDate);
     List<GeneralJournal> findByStatusAndJournalDateBetween(JournalStatus status, LocalDate startDate, LocalDate endDate);
     Optional<GeneralJournal> findByIdAndCompanyId(Long id, Long companyId);
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    Optional<GeneralJournal> findLockedByIdAndCompanyId(Long id, Long companyId);
     Optional<GeneralJournal> findByCompanyIdAndJournalNumber(Long companyId, String journalNumber);
     Optional<GeneralJournal> findByCompanyIdAndReference(Long companyId, String reference);
     List<GeneralJournal> findByCompanyIdAndStatus(Long companyId, JournalStatus status);

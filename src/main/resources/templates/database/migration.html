@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(#{database.migration.title})}"></head>
+<body>
+<div class="portal-shell">
+    <div th:replace="~{fragments/layout :: sidebar('migration')}"></div>
+    <main class="portal-main">
+        <div th:replace="~{fragments/layout :: topbar(#{database.migration.title})}"></div>
+        <section class="portal-content">
+            <div th:replace="~{fragments/layout :: flash}"></div>
+
+            <div class="portal-card">
+                <h2 class="portal-card-title" th:text="#{database.migration.uploadTitle}">Initial data migration</h2>
+                <p class="text-muted" th:text="#{database.migration.description}">
+                    Validate a versioned ZIP package before importing it into a new accounting dataset.
+                </p>
+                <a th:href="@{/database/migration/documentation}" class="btn-portal btn-ghost">
+                    <i class="bi bi-book"></i>
+                    <span th:text="#{database.migration.documentation}">View package documentation</span>
+                </a>
+                <div class="alert alert-warning" role="alert">
+                    <strong th:text="#{database.migration.emptyOnlyTitle}">Empty target only.</strong>
+                    <span th:text="#{database.migration.emptyOnly}">
+                        This never replaces data. Import is rejected when accounting data already exists.
+                    </span>
+                </div>
+                <form th:action="@{/database/migration/validate}" method="post" enctype="multipart/form-data">
+                    <label for="migration-file" class="form-label" th:text="#{database.migration.fileLabel}">Migration ZIP package</label>
+                    <input id="migration-file" class="form-control" type="file" name="file"
+                           accept=".zip,application/zip" required="required"/>
+                    <p class="form-text" th:text="#{database.migration.fileHint}">
+                        UTF-8 ZIP, 20 MiB maximum. Validation writes no data.
+                    </p>
+                    <button type="submit" class="btn-portal">
+                        <i class="bi bi-clipboard2-check"></i>
+                        <span th:text="#{database.migration.validate}">Validate and preview</span>
+                    </button>
+                </form>
+            </div>
+
+            <div class="portal-card" style="margin-top:1rem;" th:if="${preview != null and preview.valid}">
+                <h2 class="portal-card-title" th:text="#{database.migration.previewTitle}">Validated import preview</h2>
+                <p class="text-success" th:text="#{database.migration.previewSuccess}">
+                    The package passed validation. No data has been imported yet.
+                </p>
+                <table class="table table-sm">
+                    <thead>
+                    <tr>
+                        <th th:text="#{database.migration.fileColumn}">File</th>
+                        <th th:text="#{database.migration.rowsColumn}">Rows</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="entry : ${preview.rowCounts}">
+                        <td th:text="${entry.key}">accounts.csv</td>
+                        <td th:text="${entry.value}">0</td>
+                    </tr>
+                    </tbody>
+                </table>
+                <div class="alert alert-danger" role="alert">
+                    <strong th:text="#{database.migration.confirmWarningTitle}">Explicit confirmation required.</strong>
+                    <span th:text="#{database.migration.confirmWarning}">
+                        Type IMPORT to write this one-time validated package. This action cannot be undone here.
+                    </span>
+                </div>
+                <form th:action="@{/database/migration/import}" method="post">
+                    <input type="hidden" name="confirmationToken" th:value="${preview.confirmationToken}"/>
+                    <label for="migration-confirmation" class="form-label" th:text="#{database.migration.confirmationLabel}">
+                        Type IMPORT to confirm
+                    </label>
+                    <input id="migration-confirmation" class="form-control" type="text" name="confirmation"
+                           autocomplete="off" required="required"/>
+                    <button type="submit" class="btn-portal btn-danger" style="margin-top:0.75rem;">
+                        <i class="bi bi-database-up"></i>
+                        <span th:text="#{database.migration.import}">Import validated data</span>
+                    </button>
+                </form>
+            </div>
+
+            <div class="portal-card" style="margin-top:1rem;" th:if="${preview != null and !preview.valid}">
+                <h2 class="portal-card-title" th:text="#{database.migration.errorsTitle}">Validation errors</h2>
+                <p class="text-danger" th:text="#{database.migration.errorsHint}">
+                    No data was written. Correct the listed file and row, then validate a new ZIP package.
+                </p>
+                <ul class="mb-0">
+                    <li th:each="error : ${preview.errors}">
+                        <strong th:text="${error.fileName}">accounts.csv</strong>
+                        <span th:if="${error.rowNumber > 0}">
+                            <span th:text="#{database.migration.row}">row</span>
+                            <span th:text="${error.rowNumber}">2</span>:
+                        </span>
+                        <span th:text="${error.message}">Validation message</span>
+                    </li>
+                </ul>
+            </div>
+        </section>
+    </main>
+</div>
+</body>
+</html>

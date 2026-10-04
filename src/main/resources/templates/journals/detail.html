@@ -15,9 +15,24 @@
                         <span th:text="${journal.journalNumber}">JL-1</span>
                         <span class="badge-pill"
                               th:classappend="${' ' + #strings.toLowerCase(journal.status.name())}"
-                              th:text="${journal.status}"></span>
+                              th:text="${#messages.msg('journal.status.' + journal.status.name())}"></span>
                     </span>
                     <span>
+                        <a th:if="${directJournal}" th:href="@{/journals/{id}/copy(id=${journal.id})}"
+                           class="btn-portal btn-ghost btn-sm">
+                            <i class="bi bi-copy"></i>
+                            <span th:text="#{journal.copyDraft}">Copy to a new draft</span>
+                        </a>
+                        <a th:if="${journal.status.name() == 'DRAFT'}"
+                           th:href="@{/journals/{id}/edit(id=${journal.id})}" class="btn-portal btn-ghost btn-sm">
+                            <i class="bi bi-pencil-square"></i>
+                            <span th:text="#{journal.editDraft}">Edit draft</span>
+                        </a>
+                        <a th:if="${journal.status.name() == 'POSTED' and postedJournalEditingEnabled}"
+                           th:href="@{/journals/{id}/edit(id=${journal.id})}" class="btn-portal btn-danger btn-sm">
+                            <i class="bi bi-pencil-square"></i>
+                            <span th:text="#{journal.editPosted}">Edit posted journal</span>
+                        </a>
                         <form th:if="${journal.status.name() == 'DRAFT'}"
                               th:action="@{/journals/{id}/post(id=${journal.id})}" method="post" style="display:inline">
                             <input type="hidden" name="postedBy" value="portal-user"/>
@@ -76,6 +91,34 @@
                         <div th:text="${journal.reference}">…</div>
                     </div>
                 </div>
+
+                <div th:if="${journal.status.name() == 'POSTED' and postedJournalEditingEnabled}"
+                     class="flash flash-error" role="alert">
+                    <strong th:text="#{journal.postedDateEdit.warningTitle}">Important</strong>
+                    <p th:text="#{journal.postedDateEdit.warning}">
+                        Changing this date affects period-based reports but not journal lines or ledger balances.
+                    </p>
+                    <form th:action="@{/journals/{id}/posted-date(id=${journal.id})}" method="post">
+                        <div class="form-field">
+                            <label for="postedJournalDate" th:text="#{form.journalDate}">Journal date</label>
+                            <input id="postedJournalDate" type="date" name="journalDate"
+                                   th:value="${journal.journalDate}" required />
+                        </div>
+                        <button type="submit" class="btn-portal btn-danger"
+                                th:text="#{journal.postedDateEdit.submit}"
+                                th:attr="data-confirm-message=#{journal.postedDateEdit.confirm}"
+                                onclick="return confirm(this.dataset.confirmMessage)">
+                            Change posted date
+                        </button>
+                    </form>
+                </div>
+                <div th:if="${journal.status.name() == 'POSTED' and postedJournalEditingEnabled}"
+                     class="flash flash-error" role="alert">
+                    <strong th:text="#{journal.postedEdit.warningTitle}">Important</strong>
+                    <p th:text="#{journal.postedEdit.warning}">
+                        Editing a posted journal changes the ledger, but does not update its source document or historical reconciliation reports.
+                    </p>
+                </div>
             </div>
 
             <div class="portal-card">
@@ -85,6 +128,8 @@
                     <tr>
                         <th th:text="#{table.number}">#</th>
                         <th th:text="#{table.account}">Account</th>
+                        <th th:text="#{table.name}">Name</th>
+                        <th th:text="#{table.taxItem}">Tax Item</th>
                         <th th:text="#{table.description}">Description</th>
                         <th class="num" th:text="#{table.debit}">Debit</th>
                         <th class="num" th:text="#{table.credit}">Credit</th>
@@ -94,6 +139,8 @@
                     <tr th:each="e : ${journal.entries}">
                         <td th:text="${e.lineNumber}">1</td>
                         <td th:text="${e.account.accountNumber + ' — ' + e.account.accountName}">1010</td>
+                        <td th:text="${e.customer != null ? e.customer.businessName : (e.vendor != null ? e.vendor.businessName : (e.taxAgency != null ? e.taxAgency.name : '—'))}">—</td>
+                        <td th:text="${e.taxItem != null ? e.taxItem.code + ' — ' + e.taxItem.name : '—'}">—</td>
                         <td th:text="${e.description}">…</td>
                         <td class="num"
                             th:text="${e.debit != null and e.debit.signum() != 0 ? #numbers.formatCurrency(e.debit) : ''}">
@@ -105,7 +152,7 @@
                     </tbody>
                     <tfoot>
                     <tr style="font-weight:600">
-                        <td colspan="3" style="text-align:right" th:text="#{table.totals}">Totals</td>
+                        <td colspan="5" style="text-align:right" th:text="#{table.totals}">Totals</td>
                         <td class="num" th:text="${#numbers.formatCurrency(totalDr)}">$0</td>
                         <td class="num" th:text="${#numbers.formatCurrency(totalCr)}">$0</td>
                     </tr>

@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Application error')}"></head>
+<body>
+<div class="portal-shell">
+    <div th:replace="~{fragments/layout :: sidebar('dashboard')}"></div>
+    <main class="portal-main">
+        <div th:replace="~{fragments/layout :: topbar('Application error')}"></div>
+        <section class="portal-content">
+            <div class="portal-card">
+                <h2>Une erreur est survenue</h2>
+                <p>La page demandée n’a pas pu être affichée.</p>
+                <p class="text-muted" th:text="${path}"></p>
+                <a th:href="@{/}" class="btn-portal">Retour à l’accueil</a>
+            </div>
+        </section>
+    </main>
+</div>
+</body>
+</html>

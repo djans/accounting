@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(#{ledger.viewTitle})}"></head>
+<body>
+<div class="portal-shell">
+    <div th:replace="~{fragments/layout :: sidebar('ledger')}"></div>
+    <main class="portal-main">
+        <div th:replace="~{fragments/layout :: topbar(#{ledger.viewTitle})}"></div>
+        <section class="portal-content">
+            <div th:replace="~{fragments/layout :: flash}"></div>
+            <div class="portal-card">
+                <form th:action="@{/ledger/select-account}" method="get">
+                    <div class="form-grid">
+                        <div class="form-field full">
+                            <label th:text="#{form.account}">Account</label>
+                            <select name="accountId" onchange="this.form.submit()" required>
+                                <option th:each="entry : ${ledgerAccounts}"
+                                        th:value="${entry.account.id}"
+                                        th:text="${entry.account.accountNumber + ' — ' + entry.account.accountName}"
+                                        th:selected="${entry.account.id == ledger.account.id}"></option>
+                            </select>
+                        </div>
+                        <div class="form-field">
+                            <label th:text="#{form.totalDebits}">Total Debits</label>
+                            <input type="number" min="0" step="0.01"
+                                   th:value="${ledger.debitBalance}" readonly/>
+                        </div>
+                        <div class="form-field">
+                            <label th:text="#{form.totalCredits}">Total Credits</label>
+                            <input type="number" min="0" step="0.01"
+                                   th:value="${ledger.creditBalance}" readonly/>
+                        </div>
+                    </div>
+                    <p class="text-muted small" th:text="#{ledger.balancesReadOnly}">
+                        These totals come from posted journal entries and cannot be edited here.
+                    </p>
+                    <div class="form-actions">
+                        <a th:href="@{/ledger}" class="btn-portal btn-ghost" th:text="#{btn.cancel}">Cancel</a>
+                        <button type="submit" class="btn-portal" th:text="#{ledger.viewAccount}">View Account</button>
+                    </div>
+                </form>
+            </div>
+        </section>
+    </main>
+</div>
+</body>
+</html>

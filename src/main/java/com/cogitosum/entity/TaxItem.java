@@ -32,6 +32,12 @@ public class TaxItem implements CompanyOwned {
     @Column(nullable = false)
     private Boolean forPurchases = true;
 
+    @Column(length = 20)
+    private String salesReturnLine;
+
+    @Column(length = 20)
+    private String purchaseReturnLine;
+
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "agency_id", nullable = false)
     private TaxAgency agency;
@@ -83,6 +89,10 @@ public class TaxItem implements CompanyOwned {
     public void setForSales(Boolean forSales) { this.forSales = forSales; }
     public Boolean getForPurchases() { return forPurchases; }
     public void setForPurchases(Boolean forPurchases) { this.forPurchases = forPurchases; }
+    public String getSalesReturnLine() { return salesReturnLine; }
+    public void setSalesReturnLine(String salesReturnLine) { this.salesReturnLine = salesReturnLine; }
+    public String getPurchaseReturnLine() { return purchaseReturnLine; }
+    public void setPurchaseReturnLine(String purchaseReturnLine) { this.purchaseReturnLine = purchaseReturnLine; }
     public TaxAgency getAgency() { return agency; }
     public void setAgency(TaxAgency agency) { this.agency = agency; }
     public ChartOfAccount getPayableAccount() { return payableAccount; }

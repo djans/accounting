@@ -53,6 +53,9 @@ public class Company {
     @Column(nullable = false)
     private Integer fiscalYearStartMonth = 1;
 
+    @Column(name = "posted_journal_editing_enabled", nullable = false)
+    private boolean postedJournalEditingEnabled;
+
     @Column(nullable = false)
     private LocalDateTime createdAt;
 
@@ -205,6 +208,14 @@ public class Company {
 
     public void setFiscalYearStartMonth(Integer fiscalYearStartMonth) {
         this.fiscalYearStartMonth = fiscalYearStartMonth;
+    }
+
+    public boolean isPostedJournalEditingEnabled() {
+        return postedJournalEditingEnabled;
+    }
+
+    public void setPostedJournalEditingEnabled(boolean postedJournalEditingEnabled) {
+        this.postedJournalEditingEnabled = postedJournalEditingEnabled;
     }
 
     public LocalDateTime getCreatedAt() {

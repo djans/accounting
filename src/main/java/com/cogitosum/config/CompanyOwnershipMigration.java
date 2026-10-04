@@ -24,7 +24,7 @@ public class CompanyOwnershipMigration implements CommandLineRunner {
         "payments", "bill_payments", "general_journals", "general_ledger",
         "tax_agencies", "tax_items", "tax_groups", "tax_codes",
         "tax_filing_periods", "fiscal_years", "written_cheques",
-        "credit_card_charges", "transfers"
+        "credit_card_charges", "transfers", "bank_transactions"
     );
 
     private static final List<UniqueRule> UNIQUE_RULES = List.of(

@@ -2,12 +2,17 @@ package com.cogitosum.web;
 
 import com.cogitosum.entity.TaxAgency;
 import com.cogitosum.entity.TaxCode;
+import com.cogitosum.entity.TaxFilingPeriod;
+import com.cogitosum.entity.TaxFilingStatus;
 import com.cogitosum.entity.TaxGroup;
 import com.cogitosum.entity.TaxItem;
+import com.cogitosum.dto.TaxReturnRowDTO;
+import com.cogitosum.dto.TaxReturnLineDetailDTO;
 import com.cogitosum.repository.ChartOfAccountRepository;
 import com.cogitosum.service.TaxAgencyService;
 import com.cogitosum.service.TaxCodeService;
 import com.cogitosum.service.TaxFilingService;
+import com.cogitosum.service.TaxReturnReportPdfService;
 import com.cogitosum.service.CurrentCompanyContext;
 import com.cogitosum.repository.GeneralLedgerRepository;
 import org.junit.jupiter.api.Test;
@@ -44,6 +49,9 @@ public class TaxWebControllerTest {
     private TaxFilingService taxFilingService;
 
     @MockitoBean
+    private TaxReturnReportPdfService returnReportPdfService;
+
+    @MockitoBean
     private CurrentCompanyContext companyContext;
 
     @MockitoBean
@@ -66,6 +74,34 @@ public class TaxWebControllerTest {
     }
 
     @Test
+    public void periodLineDetailsShowsTheSelectedReturnLineSources() throws Exception {
+        TaxAgency agency = new TaxAgency();
+        agency.setId(10L);
+        agency.setCode("CRA");
+        TaxFilingPeriod period = new TaxFilingPeriod();
+        period.setId(1L);
+        period.setAgency(agency);
+        period.setPeriodStart(java.time.LocalDate.of(2026, 1, 1));
+        period.setPeriodEnd(java.time.LocalDate.of(2026, 1, 31));
+        period.setStatus(TaxFilingStatus.OPEN);
+        TaxReturnRowDTO row = new TaxReturnRowDTO(
+                "tax.detail.returnLine103", "103", new BigDecimal("5.00"), null, false, false);
+        TaxReturnLineDetailDTO source = new TaxReturnLineDetailDTO(
+                "INVOICE", 71L, java.time.LocalDate.of(2026, 1, 15),
+                "INV-71", "GST — Customer", null, new BigDecimal("5.00"));
+        when(taxFilingService.getById(1L)).thenReturn(Optional.of(period));
+        when(taxFilingService.getReturnLineBreakdown(period)).thenReturn(java.util.List.of());
+        when(taxFilingService.getTaxReturnRows(period, java.util.List.of())).thenReturn(java.util.List.of(row));
+        when(taxFilingService.getReturnLineDetails(period, "103")).thenReturn(java.util.List.of(source));
+
+        mockMvc.perform(get("/tax/periods/1/lines/103"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("tax/period-line-detail"))
+                .andExpect(model().attribute("returnRow", row))
+                .andExpect(model().attribute("lineDetails", java.util.List.of(source)));
+    }
+
+    @Test
     public void saveCode_Success() throws Exception {
         when(taxCodeService.createCode(any(TaxCode.class))).thenReturn(new TaxCode());
         when(taxCodeService.getGroupById(anyLong())).thenReturn(Optional.of(new TaxGroup()));
@@ -80,6 +116,31 @@ public class TaxWebControllerTest {
                 .andExpect(flash().attributeExists("flashSuccess"));
 
         verify(taxCodeService).createCode(any(TaxCode.class));
+    }
+
+    @Test
+    public void saveItem_SavesSeparateReturnLines() throws Exception {
+        TaxAgency agency = new TaxAgency();
+        agency.setId(1L);
+        when(taxAgencyService.getById(1L)).thenReturn(Optional.of(agency));
+        when(companyContext.requireCompanyId()).thenReturn(1L);
+
+        mockMvc.perform(post("/tax/items")
+                .param("code", "GST")
+                .param("name", "GST")
+                .param("rate", "0.05")
+                .param("agencyId", "1")
+                .param("salesReturnLine", "103")
+                .param("purchaseReturnLine", "106"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/tax/codes"))
+                .andExpect(flash().attributeExists("flashSuccess"));
+
+        org.mockito.ArgumentCaptor<TaxItem> itemCaptor =
+                org.mockito.ArgumentCaptor.forClass(TaxItem.class);
+        verify(taxCodeService).createItem(itemCaptor.capture());
+        org.junit.jupiter.api.Assertions.assertEquals("103", itemCaptor.getValue().getSalesReturnLine());
+        org.junit.jupiter.api.Assertions.assertEquals("106", itemCaptor.getValue().getPurchaseReturnLine());
     }
 
     @Test
@@ -172,6 +233,42 @@ public class TaxWebControllerTest {
                 .andExpect(flash().attribute("flashSuccess", "Tax item deactivated"));
 
         verify(taxCodeService).deleteItem(1L);
+    }
+
+    @Test
+    public void fileReturnRedirectsToDownloadableReport() throws Exception {
+        mockMvc.perform(post("/tax/periods/45/file"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/tax/periods/45/report"));
+
+        verify(taxFilingService).file(45L, "portal");
+    }
+
+    @Test
+    public void reportDownloadIsNotFoundWhenPeriodIsNotFiledOrOutsideCompany() throws Exception {
+        when(taxFilingService.getFiledReturnReport(45L)).thenReturn(java.util.Optional.empty());
+
+        mockMvc.perform(get("/tax/periods/45/report"))
+                .andExpect(status().isNotFound());
+
+        verifyNoInteractions(returnReportPdfService);
+    }
+
+    @Test
+    public void reportDownloadReturnsPdfForFiledPeriod() throws Exception {
+        TaxFilingService.TaxReturnReportData report = new TaxFilingService.TaxReturnReportData(
+                "Company", "CRA", java.time.LocalDate.of(2026, 7, 1),
+                java.time.LocalDate.of(2026, 9, 30), java.util.List.of(), false);
+        byte[] pdf = new byte[]{1, 2, 3};
+        when(taxFilingService.getFiledReturnReport(45L)).thenReturn(java.util.Optional.of(report));
+        when(returnReportPdfService.create(any(), any())).thenReturn(pdf);
+
+        mockMvc.perform(get("/tax/periods/45/report"))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType("application/pdf"))
+                .andExpect(header().string("Content-Disposition",
+                        containsString("attachment; filename=\"tax-return-45.pdf\"")))
+                .andExpect(content().bytes(pdf));
     }
 
     @Test

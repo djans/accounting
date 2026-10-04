@@ -21,6 +21,7 @@ CREATE TABLE IF NOT EXISTS companies (
     currency                VARCHAR(3)   NOT NULL,
     default_tax_province    VARCHAR(2)   NOT NULL,
     fiscal_year_start_month INT          NOT NULL,
+    posted_journal_editing_enabled BOOLEAN NOT NULL DEFAULT FALSE,
     created_at              DATETIME(6)  NOT NULL,
     updated_at              DATETIME(6)  NOT NULL,
     PRIMARY KEY (id),
@@ -42,6 +43,16 @@ CREATE TABLE IF NOT EXISTS app_users (
     UNIQUE KEY uk_app_users_email (email),
     KEY idx_app_users_company (company_id),
     CONSTRAINT fk_app_users_company FOREIGN KEY (company_id) REFERENCES companies (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 2. user_company_memberships ---------------------------------------------
+CREATE TABLE IF NOT EXISTS user_company_memberships (
+    user_id    BIGINT NOT NULL,
+    company_id BIGINT NOT NULL,
+    PRIMARY KEY (user_id, company_id),
+    KEY idx_user_company_memberships_company (company_id),
+    CONSTRAINT fk_user_company_memberships_user FOREIGN KEY (user_id) REFERENCES app_users (id) ON DELETE CASCADE,
+    CONSTRAINT fk_user_company_memberships_company FOREIGN KEY (company_id) REFERENCES companies (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- 3. customers ------------------------------------------------------------
@@ -116,6 +127,7 @@ CREATE TABLE IF NOT EXISTS invoices (
     qst_amount     DECIMAL(19, 2) NOT NULL,
     total_amount   DECIMAL(19, 2) NOT NULL,
     paid_amount    DECIMAL(19, 2) NULL,
+    opening_paid_amount DECIMAL(19, 2) NOT NULL DEFAULT 0,
     notes          VARCHAR(1000)  NULL,
     created_at     DATETIME(6)    NOT NULL,
     updated_at     DATETIME(6)    NOT NULL,
@@ -194,6 +206,10 @@ CREATE TABLE IF NOT EXISTS journal_entries (
     id          BIGINT         NOT NULL AUTO_INCREMENT,
     journal_id  BIGINT         NOT NULL,
     account_id  BIGINT         NOT NULL,
+    customer_id BIGINT         NULL,
+    vendor_id   BIGINT         NULL,
+    tax_agency_id BIGINT       NULL,
+    tax_item_id BIGINT         NULL,
     debit       DECIMAL(19, 2) NOT NULL,
     credit      DECIMAL(19, 2) NOT NULL,
     cleared     BOOLEAN        NOT NULL DEFAULT FALSE,
@@ -202,6 +218,10 @@ CREATE TABLE IF NOT EXISTS journal_entries (
     PRIMARY KEY (id),
     KEY idx_journal_entries_journal (journal_id),
     KEY idx_journal_entries_account (account_id),
+    KEY idx_journal_entries_customer (customer_id),
+    KEY idx_journal_entries_vendor (vendor_id),
+    KEY idx_journal_entries_tax_agency (tax_agency_id),
+    KEY idx_journal_entries_tax_item (tax_item_id),
     CONSTRAINT fk_journal_entries_journal FOREIGN KEY (journal_id) REFERENCES general_journals (id) ON DELETE CASCADE,
     CONSTRAINT fk_journal_entries_account FOREIGN KEY (account_id) REFERENCES chart_of_accounts (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -234,6 +254,8 @@ CREATE TABLE IF NOT EXISTS tax_items (
     itc_account_id      BIGINT        NULL,
     for_sales           BIT(1)        NOT NULL,
     for_purchases       BIT(1)        NOT NULL,
+    sales_return_line   VARCHAR(20)   NULL,
+    purchase_return_line VARCHAR(20)  NULL,
     is_active           BIT(1)        NOT NULL DEFAULT 1,
     created_at          DATETIME(6)   NOT NULL,
     updated_at          DATETIME(6)   NOT NULL,
@@ -319,6 +341,23 @@ CREATE TABLE IF NOT EXISTS tax_filing_periods (
     CONSTRAINT fk_tax_filing_periods_company FOREIGN KEY (company_id) REFERENCES companies (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Filed tax return rows are retained independently of source transactions.
+CREATE TABLE IF NOT EXISTS tax_return_row_snapshots (
+    id              BIGINT         NOT NULL AUTO_INCREMENT,
+    period_id       BIGINT         NOT NULL,
+    display_order   INT            NOT NULL,
+    description_key VARCHAR(200)   NOT NULL,
+    line            VARCHAR(20)    NULL,
+    amount          DECIMAL(19, 2) NULL,
+    balance         DECIMAL(19, 2) NULL,
+    total           BOOLEAN        NOT NULL,
+    unmapped        BOOLEAN        NOT NULL,
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_tax_return_snapshot_period_order (period_id, display_order),
+    CONSTRAINT fk_tax_return_snapshot_period FOREIGN KEY (period_id)
+        REFERENCES tax_filing_periods (id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- 12. vendors -------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS vendors (
     id              BIGINT       NOT NULL AUTO_INCREMENT,
@@ -351,6 +390,7 @@ CREATE TABLE IF NOT EXISTS bills (
     bill_date    DATE           NOT NULL,
     due_date     DATE           NOT NULL,
     status       VARCHAR(32)    NOT NULL,
+    tax_regime   VARCHAR(30)    NULL,
     subtotal     DECIMAL(19, 2) NOT NULL,
     gst_amount   DECIMAL(19, 2) NOT NULL,
     hst_amount   DECIMAL(19, 2) NOT NULL,
@@ -444,12 +484,31 @@ CREATE TABLE IF NOT EXISTS bank_reconciliation_sessions (
     opening_balance   DECIMAL(19, 2) NOT NULL,
     transaction_total DECIMAL(19, 2) NOT NULL,
     ending_balance    DECIMAL(19, 2) NOT NULL,
+    register_balance  DECIMAL(19, 2) NULL,
+    report_lines_captured BOOLEAN NOT NULL DEFAULT FALSE,
     completed_at      DATETIME(6)    NOT NULL,
     PRIMARY KEY (id),
     KEY idx_bank_reconciliation_sessions_company_account (company_id, bank_account_id),
     KEY idx_bank_reconciliation_sessions_statement_date (statement_date),
     CONSTRAINT fk_bank_reconciliation_sessions_company FOREIGN KEY (company_id) REFERENCES companies (id),
     CONSTRAINT fk_bank_reconciliation_sessions_account FOREIGN KEY (bank_account_id) REFERENCES chart_of_accounts (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS bank_reconciliation_report_lines (
+    id               BIGINT         NOT NULL AUTO_INCREMENT,
+    session_id       BIGINT         NOT NULL,
+    journal_entry_id BIGINT         NOT NULL,
+    transaction_type VARCHAR(32)    NOT NULL,
+    transaction_date DATE           NOT NULL,
+    document_number  VARCHAR(100)   NULL,
+    name             VARCHAR(255)   NULL,
+    description      VARCHAR(500)   NULL,
+    amount           DECIMAL(19, 2) NOT NULL,
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_bank_reconciliation_report_journal_entry (journal_entry_id),
+    KEY idx_bank_reconciliation_report_session (session_id),
+    CONSTRAINT fk_bank_reconciliation_report_session FOREIGN KEY (session_id)
+        REFERENCES bank_reconciliation_sessions (id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS bank_transactions (
@@ -806,6 +865,10 @@ PREPARE stmt FROM @company_column_sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 SET @company_column_sql = (SELECT IF(
     (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'transfers' AND COLUMN_NAME = 'company_id') > 0,
     'SELECT 1', 'ALTER TABLE transfers ADD COLUMN company_id BIGINT NULL'));
+PREPARE stmt FROM @company_column_sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+SET @company_column_sql = (SELECT IF(
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'bank_transactions' AND COLUMN_NAME = 'company_id') > 0,
+    'SELECT 1', 'ALTER TABLE bank_transactions ADD COLUMN company_id BIGINT NULL'));
 PREPARE stmt FROM @company_column_sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 SET @dropdown_query = (SELECT IF(

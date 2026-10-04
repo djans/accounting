@@ -39,8 +39,12 @@ public class InvoiceWebController {
     @Autowired private DocumentAttachmentService attachmentService;
 
     @GetMapping
-    public String list(Model model) {
-        model.addAttribute("invoices", invoiceService.getAllInvoices());
+    public String list(@RequestParam(required = false) InvoiceStatus status, Model model) {
+        model.addAttribute("invoices", status == null
+                ? invoiceService.getAllInvoices()
+                : invoiceService.getInvoicesByStatus(status));
+        model.addAttribute("invoiceStatuses", InvoiceStatus.values());
+        model.addAttribute("selectedStatus", status);
         return "invoices/list";
     }
 

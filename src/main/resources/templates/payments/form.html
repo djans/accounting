@@ -31,6 +31,11 @@
                             <input type="number" step="0.01" min="0.01" name="amount" id="amountInput" required/>
                         </div>
                         <div class="form-field">
+                            <label for="paymentDate" th:text="#{form.paymentDate}">Payment date</label>
+                            <input id="paymentDate" type="date" name="paymentDate"
+                                   th:value="${paymentDate}" required />
+                        </div>
+                        <div class="form-field">
                             <label th:text="#{form.method}">Method</label>
                             <select name="paymentMethod" required>
                                 <option th:each="m : ${methods}"

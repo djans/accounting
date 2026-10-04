@@ -41,7 +41,11 @@ public class Bill implements CompanyOwned {
     @Column(nullable = false)
     private BillStatus status;
 
+    @Column(name = "tax_regime", length = 30)
+    private String taxRegime;
+
     @OneToMany(mappedBy = "bill", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
+    @OrderBy("id ASC")
     private List<BillLineItem> lineItems = new ArrayList<>();
 
     @Column(nullable = false, precision = 19, scale = 2)
@@ -165,6 +169,14 @@ public class Bill implements CompanyOwned {
 
     public void setStatus(BillStatus status) {
         this.status = status;
+    }
+
+    public String getTaxRegime() {
+        return taxRegime;
+    }
+
+    public void setTaxRegime(String taxRegime) {
+        this.taxRegime = taxRegime;
     }
 
     public List<BillLineItem> getLineItems() {

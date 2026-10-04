@@ -20,6 +20,7 @@ public class ChartOfAccountWebController {
     @GetMapping
     public String list(Model model) {
         model.addAttribute("accounts", chartOfAccountService.getAllAccounts());
+        model.addAttribute("accountTypes", AccountType.values());
         return "accounts/list";
     }
 

@@ -17,6 +17,10 @@
 
     <link rel="stylesheet" th:href="@{/css/portal.css}"/>
     <script th:src="@{/js/sortable-tables.js}" defer></script>
+    <script th:src="@{/js/date-input-validation.js}" defer></script>
+    <script th:inline="javascript">
+        window.dateInputFormatMessage = /*[[#{date.validation.format}]]*/ 'Enter a valid date with a four-digit year.';
+    </script>
     <style>
         :root { --muted: #666; }
         /* Sidebar collapse styles */
@@ -163,7 +167,8 @@
         <a th:href="@{/reports/accounting}" class="nav-link" th:classappend="${active=='financial-statements'} ? ' active'"><i class="bi bi-pie-chart-fill nav-icon"></i> <span th:text="#{nav.financialStatements}">Financial Statements</span></a>
         <a th:href="@{/accounting/trial-balance}" class="nav-link" th:classappend="${active=='trial-balance'} ? ' active'"><i class="bi bi-check2-square nav-icon"></i> <span th:text="#{nav.trialBalance}">Trial Balance</span></a>
         <a th:href="@{/fiscal}" class="nav-link" th:classappend="${active=='fiscal'} ? ' active'"><i class="bi bi-calendar-check nav-icon"></i> <span th:text="#{nav.fiscalClose}">Fiscal Years / Closing</span></a>
-        <a th:href="@{/reconcile}" class="nav-link"><i class="bi bi-ui-checks-grid nav-icon"></i> <span th:text="#{nav.reconcile}">Reconcile</span></a>
+        <a th:href="@{/reconcile}" class="nav-link" th:classappend="${active=='reconcile'} ? ' active'"><i class="bi bi-ui-checks-grid nav-icon"></i> <span th:text="#{nav.reconcile}">Reconcile</span></a>
+        <a th:href="@{/reconcile/reports}" class="nav-link" th:classappend="${active=='reconciliation-reports'} ? ' active'"><i class="bi bi-file-earmark-pdf nav-icon"></i> <span th:text="#{nav.reconciliationReports}">Reconciliation Reports</span></a>
     </div>
 
     <!-- Sales Tax -->
@@ -182,8 +187,11 @@
         <button class="section-toggle" data-section="administration"><span th:text="#{nav.section.administration}">Administration</span> <i class="bi bi-chevron-down"></i></button>
     </div>
     <div class="nav-group">
+        <a th:href="@{/companies}" class="nav-link" th:classappend="${active=='companies'} ? ' active'"><i class="bi bi-buildings nav-icon"></i> <span th:text="#{company.list.nav}">Companies</span></a>
         <a th:href="@{/database/backup}" class="nav-link" th:classappend="${active=='database'} ? ' active'"><i class="bi bi-database-down nav-icon"></i> <span th:text="#{nav.databaseBackup}">Database backup</span></a>
+        <a th:href="@{/admin/reset}" class="nav-link" th:classappend="${active=='admin-reset'} ? ' active'"><i class="bi bi-arrow-counterclockwise nav-icon"></i> <span th:text="#{nav.resetData}">Reset activities</span></a>
         <a th:href="@{/database/migration}" class="nav-link" th:classappend="${active=='migration'} ? ' active'"><i class="bi bi-database-up nav-icon"></i> <span th:text="#{nav.databaseMigration}">Initial data migration</span></a>
+        <a th:href="@{/database/query}" class="nav-link" th:classappend="${active=='database-query'} ? ' active'"><i class="bi bi-database-gear nav-icon"></i> <span th:text="#{nav.databaseQuery}">Database SQL</span></a>
     </div>
 
 </aside>

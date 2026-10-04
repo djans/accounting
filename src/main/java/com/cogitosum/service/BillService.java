@@ -64,7 +64,9 @@ public class BillService {
         if (bill.getDueDate() == null) {
             bill.setDueDate(LocalDate.now().plusDays(30));
         }
-        calculateBillTotals(bill, regimeCode);
+        String effectiveCode = effectiveRegimeCode(bill, regimeCode);
+        bill.setTaxRegime(effectiveCode);
+        calculateBillTotals(bill, effectiveCode);
 
         Bill saved = billRepository.save(bill);
         billPostingService.postBill(saved);
@@ -87,7 +89,9 @@ public class BillService {
             b.setNotes(bill.getNotes());
             resolveExpenseAccounts(bill, companyId);
             b.setLineItems(bill.getLineItems());
-            calculateBillTotals(b, regimeCode);
+            String effectiveCode = effectiveRegimeCode(b, regimeCode);
+            b.setTaxRegime(effectiveCode);
+            calculateBillTotals(b, effectiveCode);
             Bill saved = billRepository.save(b);
             billPostingService.repostBill(saved);
             return saved;
@@ -191,6 +195,17 @@ public class BillService {
         bill.setHstAmount(hst);
         bill.setQstAmount(qst);
         bill.setTotalAmount(subtotal.add(gst).add(hst).add(qst));
+    }
+
+    private String effectiveRegimeCode(Bill bill, String regimeCode) {
+        if (regimeCode != null && !regimeCode.isBlank()) {
+            return regimeCode;
+        }
+        if (bill.getTaxRegime() != null && !bill.getTaxRegime().isBlank()) {
+            return bill.getTaxRegime();
+        }
+        String province = bill.getVendor() != null ? bill.getVendor().getProvince() : null;
+        return province != null && !province.isBlank() ? province : "FED";
     }
 
     public void deleteBill(Long id) {

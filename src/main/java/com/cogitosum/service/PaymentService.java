@@ -10,6 +10,7 @@ import com.cogitosum.repository.PaymentRepository;
 import com.cogitosum.repository.ChartOfAccountRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
@@ -34,6 +35,7 @@ public class PaymentService {
     @Autowired
     private CurrentCompanyContext companyContext;
 
+    @Transactional
     public Payment recordPayment(Payment payment) {
         Long companyId = companyContext.requireCompanyId();
         payment.setCompany(companyContext.requireCompany());
@@ -53,7 +55,7 @@ public class PaymentService {
         // Post Dr Bank / Cr A/R if a bank account was provided
         paymentPostingService.postPayment(savedPayment);
 
-        updateInvoicePaymentStatus(payment.getInvoice().getId(), payment.getAmount());
+        recalculateInvoicePaymentState(payment.getInvoice().getId());
 
         return savedPayment;
     }
@@ -86,57 +88,80 @@ public class PaymentService {
         return paymentRepository.findByCompanyIdAndPaymentMethod(companyContext.requireCompanyId(), paymentMethod);
     }
 
+    @Transactional
     public Payment markPaymentAsCompleted(Long id) {
-        Optional<Payment> payment = paymentRepository.findByIdAndCompanyId(id, companyContext.requireCompanyId());
-        if (payment.isPresent()) {
-            payment.get().setStatus(PaymentStatus.COMPLETED);
-            Payment savedPayment = paymentRepository.save(payment.get());
-            updateInvoicePaymentStatus(payment.get().getInvoice().getId(), payment.get().getAmount());
-            return savedPayment;
+        Payment payment = paymentRepository.findByIdAndCompanyId(id, companyContext.requireCompanyId())
+                .orElseThrow(() -> new IllegalArgumentException("Payment not found"));
+        if (payment.getStatus() == PaymentStatus.REFUNDED
+                || payment.getStatus() == PaymentStatus.FAILED
+                || payment.getStatus() == PaymentStatus.CANCELLED) {
+            throw new IllegalStateException("Only active payments can be marked as completed");
         }
-        return null;
+        payment.setStatus(PaymentStatus.COMPLETED);
+        Payment savedPayment = paymentRepository.save(payment);
+        recalculateInvoicePaymentState(payment.getInvoice().getId());
+        return savedPayment;
     }
 
+    @Transactional
     public Payment refundPayment(Long id) {
-        Optional<Payment> payment = paymentRepository.findByIdAndCompanyId(id, companyContext.requireCompanyId());
-        if (payment.isPresent()) {
-            Payment p = payment.get();
-            paymentPostingService.reversePayment(p, "Payment refunded");
-            p.setStatus(PaymentStatus.REFUNDED);
-            Payment savedPayment = paymentRepository.save(p);
-
-            Invoice invoice = p.getInvoice();
-            BigDecimal newPaidAmount = invoice.getPaidAmount().subtract(p.getAmount());
-            invoice.setPaidAmount(newPaidAmount);
-            invoiceRepository.save(invoice);
-
-            return savedPayment;
-        }
-        return null;
+        return refundPayment(id, "Payment refunded");
     }
 
+    @Transactional
+    public Payment refundPayment(Long id, String reason) {
+        Payment payment = paymentRepository.findByIdAndCompanyId(id, companyContext.requireCompanyId())
+                .orElseThrow(() -> new IllegalArgumentException("Payment not found"));
+        if (payment.getStatus() == PaymentStatus.REFUNDED) {
+            throw new IllegalStateException("Payment has already been reversed");
+        }
+        if (payment.getStatus() != PaymentStatus.PENDING
+                && payment.getStatus() != PaymentStatus.COMPLETED) {
+            throw new IllegalStateException("Only active payments can be reversed");
+        }
+
+        paymentPostingService.reversePayment(payment, reason);
+        payment.setStatus(PaymentStatus.REFUNDED);
+        Payment savedPayment = paymentRepository.save(payment);
+        recalculateInvoicePaymentState(payment.getInvoice().getId());
+        return savedPayment;
+    }
+
+    @Transactional
     public void deletePayment(Long id) {
-        Optional<Payment> payment = paymentRepository.findByIdAndCompanyId(id, companyContext.requireCompanyId());
-        payment.ifPresent(p -> paymentPostingService.reversePayment(p, "Payment deleted"));
-        payment.ifPresent(paymentRepository::delete);
+        Payment payment = paymentRepository.findByIdAndCompanyId(id, companyContext.requireCompanyId())
+                .orElseThrow(() -> new IllegalArgumentException("Payment not found"));
+        Long invoiceId = payment.getInvoice().getId();
+        paymentPostingService.reversePayment(payment, "Payment deleted");
+        paymentRepository.delete(payment);
+        recalculateInvoicePaymentState(invoiceId);
     }
 
-    private void updateInvoicePaymentStatus(Long invoiceId, BigDecimal paymentAmount) {
-        Optional<Invoice> invoice = invoiceRepository.findByIdAndCompanyId(invoiceId, companyContext.requireCompanyId());
-        if (invoice.isPresent()) {
-            Invoice inv = invoice.get();
-            BigDecimal newPaidAmount = inv.getPaidAmount().add(paymentAmount);
-            inv.setPaidAmount(newPaidAmount);
+    private void recalculateInvoicePaymentState(Long invoiceId) {
+        Long companyId = companyContext.requireCompanyId();
+        Invoice invoice = invoiceRepository.findByIdAndCompanyId(invoiceId, companyId)
+                .orElseThrow(() -> new IllegalStateException("Invoice not found for payment"));
+        BigDecimal openingPaidAmount = invoice.getOpeningPaidAmount() == null
+                ? BigDecimal.ZERO : invoice.getOpeningPaidAmount();
+        BigDecimal paidAmount = paymentRepository.findByCompanyIdAndInvoiceId(companyId, invoiceId).stream()
+                .filter(payment -> payment.getStatus() == PaymentStatus.PENDING
+                        || payment.getStatus() == PaymentStatus.COMPLETED)
+                .map(Payment::getAmount)
+                .reduce(openingPaidAmount, BigDecimal::add);
 
-            // Update invoice status based on payment progress
-            if (newPaidAmount.compareTo(inv.getTotalAmount()) >= 0) {
-                inv.setStatus(InvoiceStatus.PAID);
-            } else if (newPaidAmount.compareTo(BigDecimal.ZERO) > 0) {
-                inv.setStatus(InvoiceStatus.PARTIALLY_PAID);
+        invoice.setPaidAmount(paidAmount);
+        if (invoice.getStatus() != InvoiceStatus.CANCELLED && invoice.getStatus() != InvoiceStatus.DRAFT) {
+            if (paidAmount.compareTo(invoice.getTotalAmount()) >= 0) {
+                invoice.setStatus(InvoiceStatus.PAID);
+            } else if (paidAmount.compareTo(BigDecimal.ZERO) > 0) {
+                invoice.setStatus(InvoiceStatus.PARTIALLY_PAID);
+            } else if (invoice.getStatus() == InvoiceStatus.PAID
+                    || invoice.getStatus() == InvoiceStatus.PARTIALLY_PAID
+                    || invoice.getStatus() == InvoiceStatus.REFUNDED) {
+                invoice.setStatus(InvoiceStatus.SENT);
             }
-
-            invoiceRepository.save(inv);
         }
+        invoiceRepository.save(invoice);
     }
 
     private Long requiredId(Invoice invoice, String name) {

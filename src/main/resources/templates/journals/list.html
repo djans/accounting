@@ -1,21 +1,47 @@
 <!DOCTYPE html>
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments/layout :: head('General Journal')}"></head>
+<head th:replace="~{fragments/layout :: head(#{journals.title})}"></head>
 <body>
 <div class="portal-shell">
     <div th:replace="~{fragments/layout :: sidebar('journals')}"></div>
     <main class="portal-main">
-        <div th:replace="~{fragments/layout :: topbar('General Journal')}"></div>
+        <div th:replace="~{fragments/layout :: topbar(#{journals.title})}"></div>
         <section class="portal-content">
             <div th:replace="~{fragments/layout :: flash}"></div>
 
             <div class="portal-card">
-                <h3 class="portal-card-title">
-                    Journal Entries
-                    <a th:href="@{/journals/new}" class="btn-portal"><i class="bi bi-plus-lg"></i> New Journal</a>
-                </h3>
-                <div th:if="${#lists.isEmpty(journals)}" class="empty-state">
-                    No journal entries yet. <a th:href="@{/journals/new}">Create one</a>.
+                <div class="portal-card-title">
+                    <div class="d-flex align-items-center gap-2 flex-wrap">
+                        <span th:text="#{journals.title}">Journal Entries</span>
+                        <form th:action="@{/journals}" method="get" class="d-flex align-items-center">
+                            <label class="visually-hidden" for="journalStatusFilter"
+                                   th:text="#{journals.filter.label}">Filter journal entries by status</label>
+                            <select id="journalStatusFilter" name="status"
+                                    class="form-select form-select-sm"
+                                    onchange="this.form.submit()">
+                                <option value="" th:selected="${selectedStatus == null}"
+                                        th:text="#{journals.filter.allStatuses}">All statuses</option>
+                                <option th:each="status : ${journalStatuses}"
+                                        th:value="${status.name()}"
+                                        th:selected="${status == selectedStatus}"
+                                        th:text="${#messages.msg('journal.status.' + status.name())}">
+                                    Draft
+                                </option>
+                            </select>
+                        </form>
+                    </div>
+                    <a th:href="@{/journals/new}" class="btn-portal">
+                        <i class="bi bi-plus-lg"></i>
+                        <span th:text="#{journals.newEntry}">New Journal</span>
+                    </a>
+                </div>
+                <div th:if="${#lists.isEmpty(journals) and selectedStatus == null}" class="empty-state">
+                    <span th:text="#{journals.noEntries}">No journal entries yet.</span>
+                    <a th:href="@{/journals/new}" th:text="#{journals.createOne}">Create one</a>.
+                </div>
+                <div th:if="${#lists.isEmpty(journals) and selectedStatus != null}" class="empty-state">
+                    <span th:text="#{journals.filter.noMatches}">No journal entries match this status.</span>
+                    <a th:href="@{/journals}" th:text="#{journals.filter.clear}">Show all statuses</a>.
                 </div>
                 <table th:if="${not #lists.isEmpty(journals)}" class="table-portal">
                     <thead>
@@ -24,6 +50,7 @@
                         <th th:text="#{table.date}">Date</th>
                         <th th:text="#{table.narrative}">Narrative</th>
                         <th th:text="#{table.reference}">Reference</th>
+                        <th class="num" th:text="#{table.amount}">Amount</th>
                         <th th:text="#{table.status}">Status</th>
                         <th th:text="#{table.posted}">Posted</th>
                     </tr>
@@ -34,10 +61,11 @@
                         <td th:text="${j.journalDate}">2026-01-01</td>
                         <td th:text="${j.narrative}">Sale</td>
                         <td th:text="${j.reference}">—</td>
+                        <td class="num" th:text="${#numbers.formatCurrency(journalAmounts[j.id])}">$0.00</td>
                         <td>
                             <span class="badge-pill"
                                   th:classappend="${' ' + #strings.toLowerCase(j.status.name())}"
-                                  th:text="${j.status}">DRAFT</span>
+                                  th:text="${#messages.msg('journal.status.' + j.status.name())}">Draft</span>
                         </td>
                         <td th:text="${j.postedDate} ?: '—'">—</td>
                     </tr>

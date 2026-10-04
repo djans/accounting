@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(#{nav.reconcile})}"></head>
+<body>
+<div class="portal-shell">
+    <div th:replace="~{fragments/layout :: sidebar('reconcile')}"></div>
+    <main class="portal-main">
+        <div th:replace="~{fragments/layout :: topbar(#{nav.reconcile})}"></div>
+        <section class="portal-content">
+            <div th:replace="~{fragments/layout :: flash}"></div>
+
+            <div class="portal-card mb-4">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h3 class="mb-0">
+                        <span th:text="#{nav.reconcile}">Reconcile</span>:
+                        <span th:text="${account.accountNumber + ' - ' + account.accountName}">1001 - Bank</span>
+                    </h3>
+                    <a th:href="@{/reconcile}" class="btn btn-sm btn-outline-secondary">
+                        <i class="bi bi-arrow-left"></i> <span th:text="#{btn.back}">Back</span>
+                    </a>
+                </div>
+            </div>
+
+            <form th:action="@{/reconcile/finish}" method="post" id="reconcileForm">
+                <input th:if="${_csrf != null}" type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                <input type="hidden" name="accountId" th:value="${account.id}">
+
+                <div class="portal-card mb-4">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label for="statementDate" class="form-label" th:text="#{reconcile.statementDate}">Statement date</label>
+                            <input type="date" class="form-control" name="statementDate" id="statementDate"
+                                   th:value="${statementDate}" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label" th:text="#{reconcile.beginBalance}">Opening balance</label>
+                            <input type="text" class="form-control bg-light"
+                                   th:value="${#numbers.formatCurrency(openingBalance)}" readonly>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label" th:text="#{reconcile.statementEndingBalance}">Statement ending balance</label>
+                            <input type="number" step="0.01" class="form-control" name="statementEndingBalance"
+                                   id="statementEndingBalance" required>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="portal-card">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="card-title mb-0" th:text="#{reconcile.journalEntries}">Posted journal entries</h5>
+                        <span class="small text-muted" th:text="#{reconcile.selectInstructions}">
+                            Select the entries that appear on the bank statement.
+                        </span>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover table-portal">
+                            <thead>
+                            <tr>
+                                <th>
+                                    <button type="button" class="btn btn-link btn-sm p-0" id="toggleAllEntries"
+                                            th:text="#{reconcile.selectAll}">Select all</button>
+                                </th>
+                                <th th:text="#{table.date}">Date</th>
+                                <th th:text="#{table.journalNumber}">Journal #</th>
+                                <th th:text="#{table.description}">Description</th>
+                                <th class="text-end" th:text="#{table.debit}">Debit</th>
+                                <th class="text-end" th:text="#{table.credit}">Credit</th>
+                                <th class="text-end" th:text="#{reconcile.netAmount}">Net amount</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <tr th:each="entry : ${journalEntries}">
+                                <td>
+                                    <input type="checkbox" class="form-check-input journal-entry-select"
+                                           name="entryIds" th:value="${entry.id}"
+                                           th:data-amount="${entry.debit - entry.credit}"
+                                           th:data-entry-date="${entry.journal.journalDate}">
+                                </td>
+                                <td th:text="${#temporals.format(entry.journal.journalDate, 'yyyy-MM-dd')}">2026-01-01</td>
+                                <td th:text="${entry.journal.journalNumber}">GJ-1</td>
+                                <td th:text="${#strings.isEmpty(entry.description) ? entry.journal.narrative : entry.description}">
+                                    Bank transaction
+                                </td>
+                                <td class="text-end" th:text="${#numbers.formatDecimal(entry.debit, 1, 2)}">0.00</td>
+                                <td class="text-end" th:text="${#numbers.formatDecimal(entry.credit, 1, 2)}">0.00</td>
+                                <td class="text-end entry-amount"
+                                    th:text="${#numbers.formatDecimal(entry.debit - entry.credit, 1, 2)}">0.00</td>
+                            </tr>
+                            <tr th:if="${#lists.isEmpty(journalEntries)}">
+                                <td colspan="7" class="text-center text-muted py-4" th:text="#{reconcile.noJournalEntries}">
+                                    No posted journal entries are available to reconcile.
+                                </td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <p class="small text-muted mb-0 mt-2" th:text="#{reconcile.futureEntryWarning}">
+                        Entries dated after the statement date cannot be selected.
+                    </p>
+                </div>
+
+                <div class="portal-card mt-4 border-top border-4 border-primary">
+                    <div class="row align-items-center">
+                        <div class="col-md-4">
+                            <div class="small text-muted" th:text="#{reconcile.clearedBalanceTitle}">Calculated ending balance</div>
+                            <div class="h5 mb-0" id="calculatedBalance">$0.00</div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="small text-muted" th:text="#{reconcile.diffTitle}">Difference</div>
+                            <div class="h5 mb-0" id="differenceText">$0.00</div>
+                        </div>
+                        <div class="col-md-4 text-end">
+                            <button type="submit" class="btn btn-primary px-4" id="btnFinish" disabled
+                                    th:text="#{reconcile.finish}">Finish reconciliation</button>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </section>
+    </main>
+</div>
+
+<script th:inline="javascript">
+    const openingBalance = /*[[${openingBalance}]]*/ 0;
+    const selectAllLabel = /*[[#{reconcile.selectAll}]]*/ 'Select all';
+    const deselectAllLabel = /*[[#{reconcile.deselectAll}]]*/ 'Deselect all';
+
+    function updateDateEligibility() {
+        const statementDate = document.getElementById('statementDate').value;
+        document.querySelectorAll('.journal-entry-select').forEach(function (checkbox) {
+            const cannotSelect = !statementDate || checkbox.dataset.entryDate > statementDate;
+            if (cannotSelect) {
+                checkbox.checked = false;
+            }
+            checkbox.disabled = cannotSelect;
+        });
+    }
+
+    function updateSummary() {
+        let transactionTotal = 0;
+        document.querySelectorAll('.journal-entry-select:checked:not(:disabled)').forEach(function (checkbox) {
+            transactionTotal += Number.parseFloat(checkbox.dataset.amount) || 0;
+        });
+
+        const expectedEnding = openingBalance + transactionTotal;
+        const endingInput = document.getElementById('statementEndingBalance');
+        const statementEnding = Number.parseFloat(endingInput.value);
+        const difference = Number.isFinite(statementEnding) ? expectedEnding - statementEnding : Number.NaN;
+
+        document.getElementById('calculatedBalance').textContent = formatCurrency(expectedEnding);
+        const differenceText = document.getElementById('differenceText');
+        differenceText.textContent = Number.isFinite(difference) ? formatCurrency(difference) : '—';
+        const balanced = Number.isFinite(difference) && Math.abs(difference) < 0.001;
+        differenceText.className = balanced ? 'h5 mb-0 text-success fw-bold' : 'h5 mb-0 text-danger fw-bold';
+        document.getElementById('btnFinish').disabled = !balanced;
+
+        const eligibleEntries = Array.from(document.querySelectorAll('.journal-entry-select:not(:disabled)'));
+        const toggleAllButton = document.getElementById('toggleAllEntries');
+        const allSelected = eligibleEntries.length > 0 && eligibleEntries.every(function (checkbox) {
+            return checkbox.checked;
+        });
+        toggleAllButton.textContent = allSelected ? deselectAllLabel : selectAllLabel;
+        toggleAllButton.disabled = eligibleEntries.length === 0;
+    }
+
+    function formatCurrency(amount) {
+        return new Intl.NumberFormat(undefined, {style: 'currency', currency: 'CAD'}).format(amount);
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        document.querySelectorAll('.journal-entry-select, #statementDate, #statementEndingBalance')
+            .forEach(function (element) {
+            element.addEventListener('change', updateSummary);
+            element.addEventListener('input', updateSummary);
+        });
+        document.getElementById('toggleAllEntries').addEventListener('click', function () {
+            const eligibleEntries = Array.from(document.querySelectorAll('.journal-entry-select:not(:disabled)'));
+            const selectAll = eligibleEntries.some(function (checkbox) { return !checkbox.checked; });
+            eligibleEntries.forEach(function (checkbox) { checkbox.checked = selectAll; });
+            updateSummary();
+        });
+        document.getElementById('statementDate').addEventListener('change', function () {
+            updateDateEligibility();
+            updateSummary();
+        });
+        updateDateEligibility();
+        updateSummary();
+    });
+</script>
+</body>
+</html>

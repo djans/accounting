@@ -4,8 +4,10 @@ import com.cogitosum.entity.Company;
 import com.cogitosum.entity.UserAccount;
 import com.cogitosum.entity.UserRole;
 import com.cogitosum.repository.UserAccountRepository;
+import com.cogitosum.repository.CompanyMembershipRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
@@ -19,9 +21,16 @@ public class UserAccountService {
     @Autowired
     private CurrentCompanyContext companyContext;
 
+    @Autowired
+    private CompanyMembershipRepository membershipRepository;
+
+    @Transactional
     public UserAccount createUser(UserAccount userAccount) {
-        userAccount.setCompany(companyContext.requireCompany());
-        return userAccountRepository.save(userAccount);
+        var company = companyContext.requireCompany();
+        userAccount.setCompany(company);
+        UserAccount saved = userAccountRepository.save(userAccount);
+        membershipRepository.grant(saved.getId(), company.getId());
+        return saved;
     }
 
     public List<UserAccount> getUsersByCompany(Long companyId) {

@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en" th:lang="${#locale.language}" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(${copyCharge ? #messages.msg('creditCardCharges.copyDraft') : charge.id == null ? #messages.msg('creditCardCharges.newDraft') : #messages.msg('creditCardCharges.editDraft')})}"></head>
+<body>
+<div class="portal-shell">
+    <div th:replace="~{fragments/layout :: sidebar('credit-card-charges')}"></div>
+    <main class="portal-main">
+        <div th:replace="~{fragments/layout :: topbar(${copyCharge ? #messages.msg('creditCardCharges.copyDraft') : charge.id == null ? #messages.msg('creditCardCharges.newDraft') : #messages.msg('creditCardCharges.editDraft')})}"></div>
+        <section class="portal-content">
+            <div th:replace="~{fragments/layout :: flash}"></div>
+            <div class="portal-card">
+                <form th:action="@{${charge.id == null ? '/credit-card-charges' : '/credit-card-charges/' + charge.id}}" method="post" id="chargeForm">
+                    <input th:if="${reissueOfId != null}" type="hidden" name="reissueOfId" th:value="${reissueOfId}"/>
+                    <div class="form-grid">
+                        <div class="form-field"><label th:text="#{creditCardCharges.vendor}">Supplier</label><select name="vendorId" required><option value="" th:text="#{select.chooseSupplier}">Choose a supplier...</option><option th:each="v : ${vendors}" th:value="${v.id}" th:selected="${charge.vendor != null and charge.vendor.id == v.id}" th:text="${v.businessName}"></option></select></div>
+                        <div class="form-field"><label th:text="#{creditCardCharges.date}">Date</label><input type="date" name="chargeDate" th:value="${copyCharge ? charge.chargeDate : (charge.chargeDate != null ? charge.chargeDate : today)}" required/></div>
+                        <div class="form-field full"><label th:text="#{creditCardCharges.memo}">Memo</label><textarea name="memo" rows="2" th:text="${charge.memo}"></textarea></div>
+                        <div class="form-field"><label th:text="#{creditCardCharges.expenseAccount}">Expense / asset account</label><select name="expenseAccountId" required><option value="" th:text="#{select.chooseAccount}">Choose an account...</option><option th:each="a : ${expenseAccounts}" th:value="${a.id}" th:selected="${charge.expenseAccount != null and charge.expenseAccount.id == a.id}" th:text="${a.accountNumber + ' — ' + a.accountName}"></option></select></div>
+                        <div class="form-field"><label th:text="#{creditCardCharges.cardAccount}">Credit card</label><select name="cardAccountId" required><option value="" th:text="#{select.chooseLiabilityAccount}">Choose liability account...</option><option th:each="a : ${cardAccounts}" th:value="${a.id}" th:selected="${charge.cardAccount != null and charge.cardAccount.id == a.id}" th:text="${a.accountNumber + ' — ' + a.accountName}"></option></select></div>
+                        <div class="form-field"><label th:text="#{creditCardCharges.taxRegime}">Tax type</label><select name="taxRegime" id="taxRegime" required><option value="" th:text="#{select.chooseTaxRegime}">Choose a tax regime...</option><option th:each="r : ${regimes}" th:value="${r.code}" th:selected="${charge.taxRegime == r.code}" th:attr="data-gst=${r.gstRate},data-hst=${r.hstRate},data-qst=${r.qstRate}" th:text="${r.label}"></option></select></div>
+                        <div class="form-field"><label th:text="#{creditCardCharges.totalIncludingTax}">Total including taxes</label><input type="number" name="totalAmount" id="totalAmount" min="0.01" step="0.01" required th:value="${charge.totalAmount}"/></div>
+                    </div>
+                    <div class="portal-card" id="taxBreakdown" style="margin-top:1rem;background:#f7f9fc;">
+                        <h3 class="portal-card-title" th:text="#{creditCardCharges.taxBreakdown}">Tax breakdown</h3>
+                        <div id="taxBreakdownEmpty" class="empty-state" style="padding:1rem"
+                             th:text="#{creditCardCharges.selectTaxRegime}">Choose a tax type to see its breakdown.</div>
+                        <div class="report-totals" id="taxBreakdownAmounts" style="display:none">
+                            <div class="stat-card is-accent">
+                                <div class="stat-label" th:text="#{creditCardCharges.netAmount}">Amount excluding taxes</div>
+                                <div class="stat-value" id="netAmount">$0.00</div>
+                            </div>
+                            <div class="stat-card" id="gstTax" style="display:none">
+                                <div class="stat-label"><span th:text="#{creditCardCharges.gst}">GST</span> <span id="gstRate" class="text-muted"></span></div>
+                                <div class="stat-value" id="gstAmount">$0.00</div>
+                            </div>
+                            <div class="stat-card" id="qstTax" style="display:none">
+                                <div class="stat-label"><span th:text="#{creditCardCharges.qst}">QST</span> <span id="qstRate" class="text-muted"></span></div>
+                                <div class="stat-value" id="qstAmount">$0.00</div>
+                            </div>
+                            <div class="stat-card" id="hstTax" style="display:none">
+                                <div class="stat-label"><span th:text="#{creditCardCharges.hst}">HST</span> <span id="hstRate" class="text-muted"></span></div>
+                                <div class="stat-value" id="hstAmount">$0.00</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-actions"><a th:href="@{/credit-card-charges}" class="btn-portal btn-ghost" th:text="#{btn.cancel}">Cancel</a><button type="submit" class="btn-portal" th:text="#{creditCardCharges.saveDraft}">Save draft</button></div>
+                </form>
+            </div>
+        </section>
+    </main>
+</div>
+<script>
+function roundCurrency(amount) {
+    return Math.round((amount + Number.EPSILON) * 100) / 100;
+}
+
+function formatCurrency(amount) {
+    const locale = document.documentElement.lang === 'fr' ? 'fr-CA' : 'en-CA';
+    return amount.toLocaleString(locale, { style: 'currency', currency: 'CAD' });
+}
+
+function formatRate(rate) {
+    const locale = document.documentElement.lang === 'fr' ? 'fr-CA' : 'en-CA';
+    return '(' + (rate * 100).toLocaleString(locale, { maximumFractionDigits: 3 }) + '%)';
+}
+
+function refreshTaxBreakdown() {
+    const select = document.getElementById('taxRegime');
+    const option = select.options[select.selectedIndex];
+    const hasRegime = option && option.value;
+    const total = roundCurrency(parseFloat(document.getElementById('totalAmount').value) || 0);
+    const summary = document.getElementById('taxBreakdownAmounts');
+    const empty = document.getElementById('taxBreakdownEmpty');
+
+    if (!hasRegime) {
+        ['gstTax', 'qstTax', 'hstTax'].forEach(id => document.getElementById(id).style.display = 'none');
+        summary.style.display = 'none';
+        empty.style.display = 'block';
+        return;
+    }
+
+    const gstRate = parseFloat(option.dataset.gst) || 0;
+    const qstRate = parseFloat(option.dataset.qst) || 0;
+    const hstRate = parseFloat(option.dataset.hst) || 0;
+    const net = roundCurrency(total / (1 + gstRate + qstRate + hstRate));
+    const taxTotal = roundCurrency(total - net);
+    let gst = roundCurrency(net * gstRate);
+    let qst = roundCurrency(net * qstRate);
+    let hst = roundCurrency(net * hstRate);
+    const roundingAdjustment = roundCurrency(taxTotal - gst - qst - hst);
+
+    if (hstRate > 0) hst = roundCurrency(hst + roundingAdjustment);
+    else if (qstRate > 0) qst = roundCurrency(qst + roundingAdjustment);
+    else if (gstRate > 0) gst = roundCurrency(gst + roundingAdjustment);
+
+    document.getElementById('netAmount').textContent = formatCurrency(net);
+    document.getElementById('gstAmount').textContent = formatCurrency(gst);
+    document.getElementById('qstAmount').textContent = formatCurrency(qst);
+    document.getElementById('hstAmount').textContent = formatCurrency(hst);
+    document.getElementById('gstRate').textContent = formatRate(gstRate);
+    document.getElementById('qstRate').textContent = formatRate(qstRate);
+    document.getElementById('hstRate').textContent = formatRate(hstRate);
+    document.getElementById('gstTax').style.display = gstRate > 0 ? '' : 'none';
+    document.getElementById('qstTax').style.display = qstRate > 0 ? '' : 'none';
+    document.getElementById('hstTax').style.display = hstRate > 0 ? '' : 'none';
+    empty.style.display = 'none';
+    summary.style.display = '';
+}
+
+document.getElementById('totalAmount').addEventListener('input', refreshTaxBreakdown);
+document.getElementById('taxRegime').addEventListener('change', refreshTaxBreakdown);
+refreshTaxBreakdown();
+</script>
+</body>
+</html>

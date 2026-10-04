@@ -38,6 +38,7 @@ public class Invoice implements CompanyOwned {
     private InvoiceStatus status;
     
     @OneToMany(mappedBy = "invoice", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
+    @OrderBy("id ASC")
     private List<LineItem> lineItems = new ArrayList<>();
     
     @Column(nullable = false, precision = 19, scale = 2)
@@ -57,6 +58,9 @@ public class Invoice implements CompanyOwned {
     
     @Column(precision = 19, scale = 2)
     private BigDecimal paidAmount;
+
+    @Column(name = "opening_paid_amount", nullable = false, precision = 19, scale = 2)
+    private BigDecimal openingPaidAmount = BigDecimal.ZERO;
 
     @Column(length = 30)
     private String taxRegime;
@@ -79,6 +83,9 @@ public class Invoice implements CompanyOwned {
         }
         if (paidAmount == null) {
             paidAmount = BigDecimal.ZERO;
+        }
+        if (openingPaidAmount == null) {
+            openingPaidAmount = BigDecimal.ZERO;
         }
         if (qstAmount == null) {
             qstAmount = BigDecimal.ZERO;
@@ -217,9 +224,17 @@ public class Invoice implements CompanyOwned {
     public BigDecimal getPaidAmount() {
         return paidAmount;
     }
-    
+
     public void setPaidAmount(BigDecimal paidAmount) {
         this.paidAmount = paidAmount;
+    }
+
+    public BigDecimal getOpeningPaidAmount() {
+        return openingPaidAmount;
+    }
+
+    public void setOpeningPaidAmount(BigDecimal openingPaidAmount) {
+        this.openingPaidAmount = openingPaidAmount;
     }
 
     public String getTaxRegime() {

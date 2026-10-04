@@ -2,6 +2,7 @@ package com.cogitosum.service;
 
 import com.cogitosum.entity.*;
 import com.cogitosum.repository.BankReconciliationSessionRepository;
+import com.cogitosum.repository.BankReconciliationLineRepository;
 import com.cogitosum.repository.BankTransactionRepository;
 import com.cogitosum.repository.ChartOfAccountRepository;
 import com.cogitosum.repository.GeneralLedgerRepository;
@@ -35,6 +36,7 @@ public class BankReconciliationService {
 
     private final BankTransactionRepository bankTransactionRepository;
     private final BankReconciliationSessionRepository sessionRepository;
+    private final BankReconciliationLineRepository reconciliationLineRepository;
     private final ChartOfAccountRepository accountRepository;
     private final GeneralLedgerRepository ledgerRepository;
     private final JournalEntryRepository journalEntryRepository;
@@ -43,6 +45,7 @@ public class BankReconciliationService {
 
     public BankReconciliationService(BankTransactionRepository bankTransactionRepository,
                                      BankReconciliationSessionRepository sessionRepository,
+                                     BankReconciliationLineRepository reconciliationLineRepository,
                                      ChartOfAccountRepository accountRepository,
                                      GeneralLedgerRepository ledgerRepository,
                                      JournalEntryRepository journalEntryRepository,
@@ -50,6 +53,7 @@ public class BankReconciliationService {
                                      CurrentCompanyContext companyContext) {
         this.bankTransactionRepository = bankTransactionRepository;
         this.sessionRepository = sessionRepository;
+        this.reconciliationLineRepository = reconciliationLineRepository;
         this.accountRepository = accountRepository;
         this.ledgerRepository = ledgerRepository;
         this.journalEntryRepository = journalEntryRepository;
@@ -88,6 +92,68 @@ public class BankReconciliationService {
         findBankAccount(accountId);
         return journalEntryRepository.findByJournalCompanyIdAndAccountIdAndClearedAndJournalStatus(
                 companyId, accountId, false, JournalStatus.POSTED);
+    }
+
+    @Transactional(readOnly = true)
+    public List<BankReconciliationLine> recoverLegacyReportLines(BankReconciliationSession session) {
+        if (session.isReportLinesCaptured()) {
+            return List.of();
+        }
+
+        Long companyId = companyContext.requireCompanyId();
+        ChartOfAccount account = session.getBankAccount();
+        LocalDate previousStatementDate = sessionRepository
+                .findByCompanyIdAndBankAccountIdOrderByStatementDateDescIdDesc(companyId, account.getId())
+                .stream()
+                .filter(previous -> isBefore(previous, session))
+                .map(BankReconciliationSession::getStatementDate)
+                .findFirst()
+                .orElse(account.getOpeningBalanceDate());
+        LocalDate lowerBound = account.getOpeningBalanceDate();
+        if (previousStatementDate != null
+                && (lowerBound == null || previousStatementDate.isAfter(lowerBound))) {
+            lowerBound = previousStatementDate;
+        }
+        LocalDate statementPeriodStart = lowerBound;
+
+        List<JournalEntry> candidates = journalEntryRepository
+                .findByJournalCompanyIdAndAccountIdAndClearedAndJournalStatus(
+                        companyId, account.getId(), true, JournalStatus.POSTED)
+                .stream()
+                .filter(entry -> {
+                    GeneralJournal journal = entry.getJournal();
+                    LocalDate date = journal.getJournalDate();
+                    return date != null
+                            && (statementPeriodStart == null || date.isAfter(statementPeriodStart))
+                            && !date.isAfter(session.getStatementDate())
+                            && (session.getCompletedAt() == null || journal.getPostedDate() == null
+                            || !journal.getPostedDate().isAfter(session.getCompletedAt()));
+                })
+                .sorted(Comparator
+                        .comparing((JournalEntry entry) -> entry.getJournal().getJournalDate())
+                        .thenComparing(JournalEntry::getLineNumber)
+                        .thenComparing(JournalEntry::getId))
+                .toList();
+
+        List<Long> candidateIds = candidates.stream().map(JournalEntry::getId).toList();
+        if (candidateIds.isEmpty()) {
+            return List.of();
+        }
+        Set<Long> alreadyCapturedIds = reconciliationLineRepository.findByJournalEntryIdIn(candidateIds)
+                .stream()
+                .map(BankReconciliationLine::getJournalEntryId)
+                .collect(Collectors.toSet());
+        return candidates.stream()
+                .filter(entry -> !alreadyCapturedIds.contains(entry.getId()))
+                .map(entry -> reportLine(session, entry))
+                .toList();
+    }
+
+    private boolean isBefore(BankReconciliationSession candidate, BankReconciliationSession session) {
+        int dateComparison = candidate.getStatementDate().compareTo(session.getStatementDate());
+        return dateComparison < 0 || (dateComparison == 0
+                && candidate.getId() != null && session.getId() != null
+                && candidate.getId() < session.getId());
     }
 
     @Transactional(readOnly = true)
@@ -154,52 +220,38 @@ public class BankReconciliationService {
     public BankReconciliationSession reconcile(Long accountId,
                                                 LocalDate statementDate,
                                                 BigDecimal submittedEndingBalance,
-                                                Map<Long, Long> matches) {
+                                                List<Long> selectedEntryIds) {
         if (statementDate == null) {
             throw new IllegalArgumentException("Statement date is required");
         }
         BigDecimal endingBalance = monetary(submittedEndingBalance, "Statement ending balance");
-        if (matches == null || matches.isEmpty() || matches.values().stream().anyMatch(Objects::isNull)) {
-            throw new IllegalArgumentException("Every imported bank transaction must be matched");
+        List<Long> submittedIds = selectedEntryIds == null ? List.of() : selectedEntryIds;
+        Set<Long> uniqueEntryIds = new LinkedHashSet<>(submittedIds);
+        if (uniqueEntryIds.contains(null) || uniqueEntryIds.size() != submittedIds.size()) {
+            throw new IllegalArgumentException("Selected journal entries must be unique and valid");
         }
 
         Long companyId = companyContext.requireCompanyId();
         ChartOfAccount account = findLockedBankAccount(accountId, companyId);
-        List<BankTransaction> pendingTransactions = bankTransactionRepository
-                .findByCompanyIdAndBankAccountIdAndReconciledFalseOrderByTransactionDateAscIdAsc(companyId, accountId);
-        Set<Long> pendingIds = pendingTransactions.stream().map(BankTransaction::getId).collect(Collectors.toSet());
-
-        if (!pendingIds.equals(matches.keySet())) {
-            throw new IllegalArgumentException("All unreconciled bank transactions must be matched exactly once");
-        }
-        Set<Long> entryIds = new HashSet<>(matches.values());
-        if (entryIds.size() != matches.size()) {
-            throw new IllegalArgumentException("A journal entry can only be matched to one bank transaction");
-        }
-
-        List<JournalEntry> entries = journalEntryRepository.findByIdInAndJournalCompanyId(
-                new ArrayList<>(entryIds), companyId);
-        if (entries.size() != entryIds.size()) {
+        List<JournalEntry> entries = uniqueEntryIds.isEmpty()
+                ? List.of()
+                : journalEntryRepository.findByIdInAndJournalCompanyId(
+                        new ArrayList<>(uniqueEntryIds), companyId);
+        if (entries.size() != uniqueEntryIds.size()) {
             throw new IllegalArgumentException("One or more selected journal entries do not belong to your company");
         }
-        Map<Long, JournalEntry> entriesById = entries.stream()
-                .collect(Collectors.toMap(JournalEntry::getId, entry -> entry));
-
-        for (BankTransaction transaction : pendingTransactions) {
-            if (transaction.isReconciled()) {
-                throw new IllegalArgumentException("A selected bank transaction has already been reconciled");
-            }
-            JournalEntry entry = entriesById.get(matches.get(transaction.getId()));
-            validateMatch(accountId, transaction, entry);
+        for (JournalEntry entry : entries) {
+            validateEligibleEntry(accountId, statementDate, entry);
         }
 
         BigDecimal openingBalance = openingBalance(companyId, account);
-        BigDecimal transactionTotal = pendingTransactions.stream()
-                .map(BankTransaction::getAmount)
+        BigDecimal transactionTotal = entries.stream()
+                .map(entry -> entry.getDebit().subtract(entry.getCredit()))
                 .reduce(BigDecimal.ZERO, BigDecimal::add)
                 .setScale(2, RoundingMode.UNNECESSARY);
         if (openingBalance.add(transactionTotal).compareTo(endingBalance) != 0) {
-            throw new IllegalArgumentException("Opening balance plus imported bank transactions does not equal the statement ending balance");
+            throw new IllegalArgumentException(
+                    "Opening balance plus selected journal entries does not equal the statement ending balance");
         }
 
         BankReconciliationSession session = new BankReconciliationSession();
@@ -209,20 +261,128 @@ public class BankReconciliationService {
         session.setOpeningBalance(openingBalance);
         session.setTransactionTotal(transactionTotal);
         session.setEndingBalance(endingBalance);
+        session.setRegisterBalance(registerBalanceAt(companyId, account, statementDate));
+        session.setReportLinesCaptured(true);
         session.setCompletedAt(LocalDateTime.now());
-        session = sessionRepository.save(session);
+        BankReconciliationSession savedSession = sessionRepository.save(session);
 
-        for (BankTransaction transaction : pendingTransactions) {
-            transaction.setReconciled(true);
-            transaction.setReconciliationSession(session);
+        List<BankReconciliationLine> reportLines = entries.stream()
+                .map(entry -> reportLine(savedSession, entry))
+                .toList();
+        if (!reportLines.isEmpty()) {
+            reconciliationLineRepository.saveAll(reportLines);
         }
+
         for (JournalEntry entry : entries) {
             entry.setCleared(true);
             chequeService.markClearedByJournal(entry.getJournal());
         }
-        bankTransactionRepository.saveAll(pendingTransactions);
-        journalEntryRepository.saveAll(entries);
-        return session;
+        if (!entries.isEmpty()) {
+            journalEntryRepository.saveAll(entries);
+        }
+        return savedSession;
+    }
+
+    private BigDecimal registerBalanceAt(Long companyId, ChartOfAccount account, LocalDate statementDate) {
+        LocalDate openingBalanceDate = account.getOpeningBalanceDate();
+        if (openingBalanceDate != null && openingBalanceDate.isAfter(statementDate)) {
+            return null;
+        }
+        BigDecimal openingBalance = account.getOpeningBalance() == null
+                ? BigDecimal.ZERO
+                : account.getOpeningBalance();
+        BigDecimal activity = journalEntryRepository.findPostedEntriesForAccountThroughDate(
+                        companyId, account.getId(), JournalStatus.POSTED, statementDate).stream()
+                .filter(entry -> openingBalanceDate == null
+                        || entry.getJournal().getJournalDate().isAfter(openingBalanceDate))
+                .map(entry -> entry.getDebit().subtract(entry.getCredit()))
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        return openingBalance.add(activity).setScale(2, RoundingMode.UNNECESSARY);
+    }
+
+    private BankReconciliationLine reportLine(BankReconciliationSession session, JournalEntry entry) {
+        GeneralJournal journal = entry.getJournal();
+        BankReconciliationLine line = new BankReconciliationLine();
+        line.setSession(session);
+        line.setJournalEntryId(entry.getId());
+        line.setTransactionType(transactionType(journal.getReference()));
+        line.setTransactionDate(journal.getJournalDate());
+        line.setDocumentNumber(documentNumber(
+                line.getTransactionType(), journal.getReference(), journal.getNarrative()));
+        line.setName(transactionName(line.getTransactionType(), journal.getNarrative(), entry));
+        line.setDescription(entry.getDescription() == null || entry.getDescription().isBlank()
+                ? journal.getNarrative()
+                : entry.getDescription());
+        line.setAmount(entry.getDebit().subtract(entry.getCredit())
+                .setScale(2, RoundingMode.UNNECESSARY));
+        return line;
+    }
+
+    private BankReconciliationLineType transactionType(String reference) {
+        if (reference == null) {
+            return BankReconciliationLineType.GENERAL_JOURNAL;
+        }
+        String normalizedReference = reference.toUpperCase(Locale.ROOT);
+        if (normalizedReference.startsWith("CHEQUE-")) {
+            return BankReconciliationLineType.CHEQUE;
+        }
+        if (normalizedReference.startsWith("TRANSFER-")) {
+            return BankReconciliationLineType.TRANSFER;
+        }
+        if (normalizedReference.startsWith("PAYMENT-")
+                || normalizedReference.startsWith("BILLPAYMENT-")
+                || normalizedReference.startsWith("TAX-PAYMENT-")) {
+            return BankReconciliationLineType.PAYMENT;
+        }
+        return BankReconciliationLineType.GENERAL_JOURNAL;
+    }
+
+    private String documentNumber(BankReconciliationLineType type, String reference, String narrative) {
+        if (type == BankReconciliationLineType.TRANSFER) {
+            return reference;
+        }
+        if (narrative == null) {
+            return null;
+        }
+        String prefix = switch (type) {
+            case CHEQUE -> "Cheque ";
+            case PAYMENT -> narrative.startsWith("Bill payment ")
+                    ? "Bill payment "
+                    : "Payment ";
+            default -> null;
+        };
+        if (prefix == null || !narrative.startsWith(prefix)) {
+            return null;
+        }
+        int suffix = narrative.indexOf(type == BankReconciliationLineType.CHEQUE ? " - " : " for ", prefix.length());
+        return suffix < 0 ? narrative.substring(prefix.length()) : narrative.substring(prefix.length(), suffix);
+    }
+
+    private String transactionName(BankReconciliationLineType type, String narrative, JournalEntry entry) {
+        if (entry.getCustomer() != null) {
+            return entry.getCustomer().getBusinessName();
+        }
+        if (entry.getVendor() != null) {
+            return entry.getVendor().getBusinessName();
+        }
+        if (entry.getTaxAgency() != null) {
+            return entry.getTaxAgency().getName();
+        }
+        if (type == BankReconciliationLineType.CHEQUE && narrative != null) {
+            int separator = narrative.indexOf(" - ");
+            if (separator >= 0 && separator + 3 < narrative.length()) {
+                return narrative.substring(separator + 3);
+            }
+        }
+        if (type == BankReconciliationLineType.TRANSFER && entry.getJournal() != null) {
+            return entry.getJournal().getEntries().stream()
+                    .filter(other -> other.getAccount() != null
+                            && !other.getAccount().getId().equals(entry.getAccount().getId()))
+                    .map(other -> other.getAccount().getAccountName())
+                    .findFirst()
+                    .orElse(narrative);
+        }
+        return narrative;
     }
 
     private ChartOfAccount findBankAccount(Long accountId) {
@@ -257,18 +417,16 @@ public class BankReconciliationService {
                 .setScale(2, RoundingMode.UNNECESSARY);
     }
 
-    private void validateMatch(Long accountId, BankTransaction transaction, JournalEntry entry) {
+    private void validateEligibleEntry(Long accountId, LocalDate statementDate, JournalEntry entry) {
         if (entry == null
                 || entry.isCleared()
                 || entry.getJournal() == null
                 || entry.getJournal().getStatus() != JournalStatus.POSTED
+                || entry.getJournal().getJournalDate() == null
+                || entry.getJournal().getJournalDate().isAfter(statementDate)
                 || entry.getAccount() == null
                 || !accountId.equals(entry.getAccount().getId())) {
             throw new IllegalArgumentException("Selected journal entry is not an eligible uncleared posted entry");
-        }
-        BigDecimal journalAmount = entry.getDebit().subtract(entry.getCredit()).setScale(2, RoundingMode.UNNECESSARY);
-        if (transaction.getAmount().compareTo(journalAmount) != 0) {
-            throw new IllegalArgumentException("Bank transaction and journal entry amounts must have the same signed value");
         }
     }
 

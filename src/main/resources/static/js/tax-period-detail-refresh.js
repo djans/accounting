@@ -7,6 +7,9 @@
     const netEl = document.getElementById('period-net');
     const collectedTbody = document.querySelector('#table-collected tbody');
     const itcTbody = document.querySelector('#table-itc tbody');
+    const returnRowsTbody = document.getElementById('table-return-lines-body');
+    const returnLineWarning = document.getElementById('returnLineMappingWarning');
+    const fileReturnButton = document.getElementById('fileReturnButton');
 
     function setLoading(on){ if(spinner) spinner.style.display = on ? '' : 'none'; if(btn) btn.disabled = on; }
     function fmt(v){ try{ return new Intl.NumberFormat(undefined,{style:'currency',currency:'CAD'}).format(v); }catch(e){ return v; } }
@@ -34,6 +37,18 @@
                     itcTbody.innerHTML = data.itcDetail.length > 0
                         ? data.itcDetail.map(d => `<tr><td>${escapeHtml(d.date)}</td><td><a href="/bills/${d.id}">${escapeHtml(d.number)}</a></td><td>${escapeHtml(d.entityName)}</td><td class="num">${fmt(d.amount)}</td></tr>`).join('')
                         : '<tr><td colspan="4" class="text-center text-muted">Aucun ITC pour cette période.</td></tr>';
+                }
+                if (data.taxReturnRows && returnRowsTbody) {
+                    returnRowsTbody.innerHTML = data.taxReturnRows.map(row => {
+                        const classes = row.total ? 'table-secondary fw-bold' : (row.unmapped ? 'table-warning' : '');
+                        const amount = row.amount == null ? '' : fmt(row.amount);
+                        const balance = row.balance == null ? '' : fmt(row.balance);
+                        return `<tr class="${classes}"><td>${escapeHtml(row.description)}</td><td>${escapeHtml(row.line)}</td><td class="num">${amount}</td><td class="num">${balance}</td></tr>`;
+                    }).join('');
+                    if(returnLineWarning) {
+                        returnLineWarning.classList.toggle('d-none', !data.hasUnmappedReturnLineAmounts);
+                    }
+                    if(fileReturnButton) fileReturnButton.disabled = Boolean(data.hasUnmappedReturnLineAmounts);
                 }
             } 
         }catch(e){ console.error('period refresh failed', e);} finally{ setLoading(false);} 

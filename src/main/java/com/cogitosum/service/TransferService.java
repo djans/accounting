@@ -179,6 +179,9 @@ public class TransferService {
         if (transferDate == null) {
             throw new IllegalArgumentException("A transfer date is required");
         }
+        if (!Boolean.TRUE.equals(from.getActive()) || !Boolean.TRUE.equals(to.getActive())) {
+            throw new IllegalArgumentException("Transfers can only use active accounts");
+        }
         if (!isTransferAccount(from) || !isTransferAccount(to)) {
             throw new IllegalArgumentException("Transfers are limited to bank and credit card accounts");
         }

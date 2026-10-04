@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "tax_filing_periods")
@@ -53,6 +55,9 @@ public class TaxFilingPeriod implements CompanyOwned {
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "payment_journal_id")
     private GeneralJournal paymentJournal;
+
+    @OneToMany(mappedBy = "period", cascade = CascadeType.REMOVE, orphanRemoval = true)
+    private List<TaxReturnRowSnapshot> returnRowSnapshots = new ArrayList<>();
 
     @Column(length = 1000)
     private String notes;

@@ -16,6 +16,10 @@
                         <span class="badge-pill" th:text="${period.status}">OPEN</span>
                     </span>
                     <span>
+                        <a class="btn-portal btn-sm"
+                           th:if="${period.status.name() == 'FILED' or period.status.name() == 'PAID'}"
+                           th:href="@{/tax/periods/{id}/report(id=${period.id})}"
+                           th:text="#{tax.detail.downloadReturn}">Download tax return PDF</a>
                         <button id="period-refresh" class="btn-portal btn-sm"><i class="bi bi-arrow-clockwise"></i> <span th:text="#{tax.detail.refresh}">Refresh</span></button>
                         <span id="period-spinner" class="spinner-border spinner-border-sm ms-2" style="display:none"></span>
                         <form th:action="@{/tax/periods/{id}/calculate(id=${period.id})}" method="post" style="display:inline"
@@ -53,24 +57,67 @@
                 </div>
             </div>
 
+            <div class="portal-card">
+                <h3 class="portal-card-title" th:text="#{tax.detail.calculatedReturn}">Your calculated tax return</h3>
+                <div id="returnLineMappingWarning" class="alert alert-warning"
+                     th:classappend="${hasUnmappedReturnLineAmounts} ? '' : ' d-none'">
+                    <span th:text="#{tax.detail.returnLineMappingRequired}">Some non-zero tax amounts have no unambiguous return-line mapping.</span>
+                    <a th:href="@{/tax/codes}" th:text="#{tax.detail.configureTaxItems}">Configure Tax Items</a>
+                </div>
+                <p class="text-muted" th:text="#{tax.detail.clickLineToViewSources}">
+                    Select a return line number to view its source transactions and calculation.
+                </p>
+                <table class="table-portal" id="table-return-lines">
+                    <thead>
+                    <tr>
+                        <th th:text="#{tax.detail.returnLineDescription}">Sales tax description</th>
+                        <th th:text="#{tax.detail.returnLine}">Line</th>
+                        <th class="num" th:text="#{tax.detail.returnLineAmount}">Amount</th>
+                        <th class="num" th:text="#{tax.detail.returnLineBalance}">Balance</th>
+                    </tr>
+                    </thead>
+                    <tbody id="table-return-lines-body">
+                    <th:block th:each="row : ${taxReturnRows}">
+                        <tr th:classappend="${row.total()} ? 'table-secondary fw-bold' : (${row.unmapped()} ? 'table-warning' : '')">
+                            <td>
+                                <a th:if="${row.descriptionKey() == 'tax.detail.returnLinePayable'}"
+                                   th:href="@{/tax/periods/{id}/lines/payable(id=${period.id})}"
+                                   th:text="${#messages.msg(row.descriptionKey())}">
+                                    Amount payable or net refund
+                                </a>
+                                <span th:unless="${row.descriptionKey() == 'tax.detail.returnLinePayable'}"
+                                      th:text="${#messages.msg(row.descriptionKey())}">
+                                    Sales and other revenue
+                                </span>
+                            </td>
+                            <td>
+                                <a th:if="${row.line() != null and !row.unmapped()}"
+                                   th:href="@{/tax/periods/{id}/lines/{line}(id=${period.id},line=${row.line()})}"
+                                   th:text="${row.line()}">101</a>
+                                <span th:unless="${row.line() != null and !row.unmapped()}"
+                                      th:text="${row.line()}"></span>
+                            </td>
+                            <td class="num" th:text="${row.amount() != null ? #numbers.formatCurrency(row.amount()) : ''}">$0.00</td>
+                            <td class="num" th:text="${row.balance() != null ? #numbers.formatCurrency(row.balance()) : ''}">$0.00</td>
+                        </tr>
+                    </th:block>
+                    </tbody>
+                </table>
+            </div>
+
             <div class="portal-card" th:if="${period.status.name() == 'OPEN' or period.status.name() == 'CALCULATED'}">
                 <h3 class="portal-card-title" th:text="#{tax.detail.fileReturn}">File Return</h3>
                 <p class="text-muted" th:text="#{tax.detail.fileReturnDesc(${period.agency.name})}">
                     Submit the totals to <span th:text="${period.agency.name}"></span>.
-                    Le CTI/RTI est calculé automatiquement à partir des factures d'achat de la période
-                    (pré-rempli ci-dessous). Vous pouvez le remplacer manuellement au besoin. La production
-                    comptabilise l'écriture : Dr taxe à payer / Cr taxe à recevoir.
+                    ITC/ITR is calculated automatically from the purchase bills in the period.
+                    Filing posts the adjustment journal using the calculated totals.
                 </p>
                 <form th:action="@{/tax/periods/{id}/file(id=${period.id})}" method="post">
-                    <div class="form-grid">
-                        <div class="form-field">
-                            <label th:text="#{tax.detail.itcAmount}">Montant CTI / RTI</label>
-                            <input type="number" step="0.01" name="itcAmount"
-                                   th:value="${period.taxItc}" required/>
-                        </div>
-                    </div>
                     <div class="form-actions">
-                        <button type="submit" class="btn-portal"><i class="bi bi-send-check"></i> <span th:text="#{tax.detail.fileReturn}">File Return</span></button>
+                        <button id="fileReturnButton" type="submit" class="btn-portal"
+                                th:disabled="${hasUnmappedReturnLineAmounts}">
+                            <i class="bi bi-send-check"></i> <span th:text="#{tax.detail.fileReturn}">File Return</span>
+                        </button>
                     </div>
                 </form>
             </div>
@@ -127,7 +174,8 @@
                     <tr th:each="d : ${collectedDetail}">
                         <td th:text="${d.date}"></td>
                         <td>
-                            <a th:href="@{/invoices/{id}(id=${d.id})}" th:text="${d.number}">INV-000</a>
+                            <a th:if="${d.type == 'INVOICE'}" th:href="@{/invoices/{id}(id=${d.id})}" th:text="${d.number}">INV-000</a>
+                            <a th:if="${d.type == 'JOURNAL'}" th:href="@{/journals/{id}(id=${d.id})}" th:text="${d.number}">JL-000</a>
                         </td>
                         <td th:text="${d.entityName}">Client</td>
                         <td class="num" th:text="${#numbers.formatCurrency(d.amount)}">$0.00</td>
@@ -154,7 +202,10 @@
                     <tr th:each="d : ${itcDetail}">
                         <td th:text="${d.date}"></td>
                         <td>
-                            <a th:href="@{/bills/{id}(id=${d.id})}" th:text="${d.number}">BILL-000</a>
+                            <a th:if="${d.type == 'BILL'}" th:href="@{/bills/{id}(id=${d.id})}" th:text="${d.number}">BILL-000</a>
+                            <span th:if="${d.type == 'CREDIT_CARD_CHARGE' or d.type == 'CHEQUE'}"
+                                  th:text="${d.number}">CC-000</span>
+                            <a th:if="${d.type == 'JOURNAL'}" th:href="@{/journals/{id}(id=${d.id})}" th:text="${d.number}">JL-000</a>
                         </td>
                         <td th:text="${d.entityName}">Vendor</td>
                         <td class="num" th:text="${#numbers.formatCurrency(d.amount)}">$0.00</td>

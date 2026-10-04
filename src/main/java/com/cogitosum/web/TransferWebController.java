@@ -44,6 +44,20 @@ public class TransferWebController {
         return "transfers/form";
     }
 
+    @GetMapping("/{id}")
+    public String details(@PathVariable Long id, Model model, RedirectAttributes ra) {
+        try {
+            Transfer transfer = transferService.findById(id)
+                    .orElseThrow(() -> new IllegalArgumentException("Transfer not found"));
+            model.addAttribute("transfer", transfer);
+            model.addAttribute("active", "transfers");
+            return "transfers/details";
+        } catch (IllegalArgumentException e) {
+            ra.addFlashAttribute("flashError", message("transfers.detailError", e.getMessage()));
+            return "redirect:/transfers";
+        }
+    }
+
     @GetMapping("/{id}/copy")
     public String copyTransfer(@PathVariable Long id, Model model, RedirectAttributes ra) {
         try {
@@ -144,7 +158,7 @@ public class TransferWebController {
         if (!copyTransfer && transfer.getTransferDate() == null) {
             transfer.setTransferDate(LocalDate.now());
         }
-        List<ChartOfAccount> transferAccounts = accountService.getAllAccounts().stream()
+        List<ChartOfAccount> transferAccounts = accountService.getActiveAccounts().stream()
                 .filter(account -> account.getAccountType() == AccountType.ASSET
                         || account.getAccountType() == AccountType.LIABILITY
                         || account.getAccountType() == AccountType.EQUITY

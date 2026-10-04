@@ -9,12 +9,14 @@ import com.cogitosum.service.ChartOfAccountService;
 import com.cogitosum.service.InvoiceService;
 import com.cogitosum.service.PaymentService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 
 @Controller
@@ -43,6 +45,7 @@ public class PaymentWebController {
         model.addAttribute("arAccounts", arAccountChoices());
         model.addAttribute("preselectedInvoiceId", invoiceId);
         model.addAttribute("selectedMethod", paymentMethod);
+        model.addAttribute("paymentDate", LocalDate.now());
         model.addAttribute("active", "payments");
 
         Long defaultBank = (Long) session.getAttribute("lastBankAccountId");
@@ -58,6 +61,7 @@ public class PaymentWebController {
                          @RequestParam(required = false) Long bankAccountId,
                          @RequestParam(required = false) Long arAccountId,
                          @RequestParam BigDecimal amount,
+                         @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate paymentDate,
                          @RequestParam PaymentMethod paymentMethod,
                          @RequestParam(required = false) String transactionId,
                          @RequestParam(required = false) String notes,
@@ -74,6 +78,7 @@ public class PaymentWebController {
             Payment payment = new Payment();
             payment.setInvoice(invoice);
             payment.setAmount(amount);
+            payment.setPaymentDate(paymentDate);
             payment.setPaymentMethod(paymentMethod);
             payment.setTransactionId(transactionId);
             payment.setNotes(notes);
@@ -192,15 +197,23 @@ public class PaymentWebController {
 
     @PostMapping("/{id}/complete")
     public String complete(@PathVariable Long id, RedirectAttributes ra) {
-        paymentService.markPaymentAsCompleted(id);
-        ra.addFlashAttribute("flashSuccess", "Payment marked as completed");
+        try {
+            paymentService.markPaymentAsCompleted(id);
+            ra.addFlashAttribute("flashSuccess", "Payment marked as completed");
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            ra.addFlashAttribute("flashError", "Could not complete payment: " + e.getMessage());
+        }
         return "redirect:/payments";
     }
 
     @PostMapping("/{id}/refund")
     public String refund(@PathVariable Long id, RedirectAttributes ra) {
-        paymentService.refundPayment(id);
-        ra.addFlashAttribute("flashSuccess", "Payment refunded");
+        try {
+            paymentService.refundPayment(id);
+            ra.addFlashAttribute("flashSuccess", "Payment refunded");
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            ra.addFlashAttribute("flashError", "Could not refund payment: " + e.getMessage());
+        }
         return "redirect:/payments";
     }
 

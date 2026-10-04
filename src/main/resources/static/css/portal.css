@@ -236,6 +236,14 @@ body {
     vertical-align: middle;
 }
 
+.table-portal.entries-table {
+    font-size: 0.80rem;
+}
+
+.table-portal.entries-table tbody td {
+    padding: 0.10rem 0.20rem;
+}
+
 .table-portal tbody tr:hover {
     background: #f8fafc;
 }

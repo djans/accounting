@@ -15,10 +15,12 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
@@ -68,7 +70,9 @@ public class PaymentWebControllerTest {
         mockMvc.perform(get("/payments/new"))
                 .andExpect(status().isOk())
                 .andExpect(view().name("payments/form"))
-                .andExpect(model().attribute("invoices", List.of(invoice)));
+                .andExpect(model().attribute("invoices", List.of(invoice)))
+                .andExpect(model().attributeExists("paymentDate"))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("name=\"paymentDate\"")));
 
         verify(invoiceService).getUnpaidInvoices();
         verify(invoiceService, never()).getAllInvoices();
@@ -85,12 +89,34 @@ public class PaymentWebControllerTest {
         mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/payments")
                         .param("invoiceId", "1")
                         .param("amount", "30.00")
+                        .param("paymentDate", "2026-09-30")
                         .param("paymentMethod", "CASH"))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/payments/new"))
                 .andExpect(flash().attributeExists("flashError"));
 
         verify(paymentService, never()).recordPayment(any(Payment.class));
+    }
+
+    @Test
+    public void createPayment_UsesSelectedPaymentDate() throws Exception {
+        Invoice invoice = new Invoice();
+        invoice.setId(1L);
+        when(invoiceService.getInvoiceById(1L)).thenReturn(Optional.of(invoice));
+        when(invoiceService.getOutstandingAmount(invoice)).thenReturn(new BigDecimal("100.00"));
+
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/payments")
+                        .param("invoiceId", "1")
+                        .param("amount", "30.00")
+                        .param("paymentDate", "2026-09-30")
+                        .param("paymentMethod", "CASH"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/invoices/1"));
+
+        org.mockito.ArgumentCaptor<Payment> paymentCaptor =
+                org.mockito.ArgumentCaptor.forClass(Payment.class);
+        verify(paymentService).recordPayment(paymentCaptor.capture());
+        assertEquals(LocalDate.of(2026, 9, 30), paymentCaptor.getValue().getPaymentDate());
     }
 
     @Test

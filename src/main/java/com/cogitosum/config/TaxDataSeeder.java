@@ -67,6 +67,8 @@ public class TaxDataSeeder implements CommandLineRunner {
         ensureAccount("2310", "TPS à payer", AccountType.LIABILITY, "TPS perçue sur les ventes — à remettre à Revenu Canada");
         ensureAccount("2320", "TVQ à payer", AccountType.LIABILITY, "TVQ perçue sur les ventes — à remettre à Revenu Québec");
         ensureAccount("2330", "HST à payer", AccountType.LIABILITY, "HST perçue sur les ventes — à remettre à Revenu Canada");
+        ensureAccount("2340", "TPS/TVQ 2013 à payer", AccountType.LIABILITY,
+                "Solde net des taxes de vente combinées 2013 à remettre");
 
         // Retenues sur la paie — renumérotées en 24xx pour ne pas chevaucher les taxes de vente.
         ensureAccount("2400", "Impôts fédéraux à payer", AccountType.LIABILITY, "Impôts sur salaires (T4)");
@@ -138,6 +140,7 @@ public class TaxDataSeeder implements CommandLineRunner {
         ChartOfAccount tvqItc = accounts.findByCompanyIdAndAccountNumber(company.getId(), "1310").orElseThrow();
         ChartOfAccount hstItc = accounts.findByCompanyIdAndAccountNumber(company.getId(), "1320").orElseThrow();
         ChartOfAccount combined2013 = accounts.findByCompanyIdAndAccountNumber(company.getId(), "1330").orElseThrow();
+        ChartOfAccount combined2013Payable = accounts.findByCompanyIdAndAccountNumber(company.getId(), "2340").orElseThrow();
 
         ensureItem("TPS", "Taxe sur les produits et services (5%)", new BigDecimal("0.05000"), cra, tpsPayable, tpsItc);
         ensureItem("TVQ", "Taxe de vente du Quebec (9.975%)", new BigDecimal("0.09975"), rq, tvqPayable, tvqItc);
@@ -145,10 +148,10 @@ public class TaxDataSeeder implements CommandLineRunner {
         ensureItem("HST-15", "Maritime HST (15%)", new BigDecimal("0.15000"), cra, hstPayable, hstItc);
 
         // Données 2013
-        ensureItem("S13-TPS", "TPS/GST_2013 (5%)", new BigDecimal("0.05000"), mrq2013, combined2013, combined2013);
-        ensureItem("S13-TVQ", "TVQ/QST_2013 (9.98%)", new BigDecimal("0.09980"), mrq2013, combined2013, combined2013);
-        ensureItem("S13-TPS-ITC", "TPS(CTI)/GST(ITC)_2013 (5%)", new BigDecimal("0.05000"), mrq2013, combined2013, combined2013);
-        ensureItem("S13-TVQ-ITC", "TVQ(CTI)/QST(ITC) (9.98%)", new BigDecimal("0.09980"), mrq2013, combined2013, combined2013);
+        ensureItem("S13-TPS", "TPS/GST_2013 (5%)", new BigDecimal("0.05000"), mrq2013, combined2013Payable, combined2013);
+        ensureItem("S13-TVQ", "TVQ/QST_2013 (9.98%)", new BigDecimal("0.09980"), mrq2013, combined2013Payable, combined2013);
+        ensureItem("S13-TPS-ITC", "TPS(CTI)/GST(ITC)_2013 (5%)", new BigDecimal("0.05000"), mrq2013, combined2013Payable, combined2013);
+        ensureItem("S13-TVQ-ITC", "TVQ(CTI)/QST(ITC) (9.98%)", new BigDecimal("0.09980"), mrq2013, combined2013Payable, combined2013);
     }
 
     private void seedGroups() {
@@ -222,7 +225,22 @@ public class TaxDataSeeder implements CommandLineRunner {
 
     private void ensureItem(String code, String name, BigDecimal rate, TaxAgency agency,
                             ChartOfAccount payable, ChartOfAccount itc) {
-        if (items.findByCompanyIdAndCode(company.getId(), code).isPresent()) return;
+        var existing = items.findByCompanyIdAndCode(company.getId(), code);
+        if (existing.isPresent()) {
+            TaxItem item = existing.get();
+            if (code.startsWith("S13-") && item.getPayableAccount() != null
+                    && "1330".equals(item.getPayableAccount().getAccountNumber())) {
+                item.setPayableAccount(payable);
+            }
+            if (item.getSalesReturnLine() == null) {
+                item.setSalesReturnLine(defaultReturnLine(code, true));
+            }
+            if (item.getPurchaseReturnLine() == null) {
+                item.setPurchaseReturnLine(defaultReturnLine(code, false));
+            }
+            items.save(item);
+            return;
+        }
         TaxItem i = new TaxItem();
         i.setCompany(company);
         i.setCode(code);
@@ -233,8 +251,22 @@ public class TaxDataSeeder implements CommandLineRunner {
         i.setItcAccount(itc);
         i.setForSales(true);
         i.setForPurchases(true);
+        i.setSalesReturnLine(defaultReturnLine(code, true));
+        i.setPurchaseReturnLine(defaultReturnLine(code, false));
         i.setActive(true);
         items.save(i);
+    }
+
+    private String defaultReturnLine(String code, boolean sales) {
+        String normalizedCode = code.toUpperCase();
+        if (normalizedCode.contains("TVQ") || normalizedCode.contains("QST")) {
+            return sales ? "203" : "206";
+        }
+        if (normalizedCode.contains("TPS") || normalizedCode.contains("GST")
+                || normalizedCode.contains("HST")) {
+            return sales ? "103" : "106";
+        }
+        return null;
     }
 
     private void ensureCode(String code, String name, String salesGroupCode, String purchaseGroupCode) {

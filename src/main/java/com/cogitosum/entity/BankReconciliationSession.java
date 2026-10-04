@@ -34,6 +34,12 @@ public class BankReconciliationSession implements CompanyOwned {
     @Column(nullable = false, precision = 19, scale = 2)
     private BigDecimal endingBalance;
 
+    @Column(name = "register_balance", precision = 19, scale = 2)
+    private BigDecimal registerBalance;
+
+    @Column(name = "report_lines_captured", nullable = false)
+    private boolean reportLinesCaptured;
+
     @Column(nullable = false)
     private LocalDateTime completedAt;
 
@@ -93,6 +99,22 @@ public class BankReconciliationSession implements CompanyOwned {
 
     public void setEndingBalance(BigDecimal endingBalance) {
         this.endingBalance = endingBalance;
+    }
+
+    public BigDecimal getRegisterBalance() {
+        return registerBalance;
+    }
+
+    public void setRegisterBalance(BigDecimal registerBalance) {
+        this.registerBalance = registerBalance;
+    }
+
+    public boolean isReportLinesCaptured() {
+        return reportLinesCaptured;
+    }
+
+    public void setReportLinesCaptured(boolean reportLinesCaptured) {
+        this.reportLinesCaptured = reportLinesCaptured;
     }
 
     public LocalDateTime getCompletedAt() {
