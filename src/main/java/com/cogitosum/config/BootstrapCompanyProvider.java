@@ -1,6 +1,7 @@
 package com.cogitosum.config;
 
 import com.cogitosum.entity.Company;
+import com.cogitosum.entity.UserRole;
 import com.cogitosum.repository.UserAccountRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -35,10 +36,10 @@ public class BootstrapCompanyProvider {
         return userAccountRepository.findByEmail(bootstrapAdminEmail)
             .filter(user -> user.isEnabled() && user.getCompany() != null)
             .map(user -> user.getCompany())
+            .or(() -> userAccountRepository.findFirstByRoleOrderByIdAsc(UserRole.ADMIN)
+                    .filter(user -> user.isEnabled() && user.getCompany() != null)
+                    .map(user -> user.getCompany()))
             .orElseThrow(() -> new IllegalStateException(
-                "APP_BOOTSTRAP_ADMIN_EMAIL is set to '" + bootstrapAdminEmail + "', but no enabled user with an "
-                + "assigned company was found for that email. Make sure the bootstrap admin account exists "
-                + "(restart once with APP_BOOTSTRAP_ADMIN_PASSWORD also set so it can be created), is enabled, "
-                + "and belongs to a company."));
+                "No enabled administrator with an assigned company is available for reference-data seeding."));
     }
 }

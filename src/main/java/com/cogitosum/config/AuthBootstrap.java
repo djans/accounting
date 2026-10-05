@@ -13,6 +13,8 @@ import org.springframework.core.annotation.Order;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
+import java.util.Optional;
+
 @Component
 @Order(0)
 public class AuthBootstrap implements CommandLineRunner {
@@ -39,53 +41,64 @@ public class AuthBootstrap implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
+        Optional<UserAccount> existingAdmin = bootstrapAdminEmail.isBlank()
+                ? Optional.empty()
+                : userAccountRepository.findByEmail(bootstrapAdminEmail);
+        Company exampleCompany = companyRepository.count() == 0 ? createExampleCompany() : null;
+        if (userAccountRepository.count() > 0) {
+            if (existingAdmin.isPresent() && existingAdmin.get().getCompany() == null) {
+                UserAccount admin = existingAdmin.get();
+                Company company = exampleCompany == null ? findOrCreateBootstrapCompany() : exampleCompany;
+                admin.setCompany(company);
+                admin.setRole(UserRole.ADMIN);
+                admin.setEnabled(true);
+                userAccountRepository.save(admin);
+            }
+            return;
+        }
+
         if (bootstrapAdminEmail.isBlank() || bootstrapAdminPassword.isBlank()) {
             if (userAccountRepository.count() == 0) {
                 throw new IllegalStateException(
                     "No admin account exists yet, and no bootstrap credentials were supplied.\n"
-                    + "To create the first administrator, set these environment variables before starting the app:\n"
-                    + "  APP_BOOTSTRAP_ADMIN_EMAIL=you@example.com\n"
-                    + "  APP_BOOTSTRAP_ADMIN_PASSWORD=<a strong password>\n"
-                    + "Then restart the application. These variables are only needed once, to seed the initial\n"
-                    + "administrator account; they can be removed afterwards.");
+                    + "Set APP_BOOTSTRAP_ADMIN_EMAIL and APP_BOOTSTRAP_ADMIN_PASSWORD before starting the app.");
             }
             return;
         }
-        Company company = companyRepository.findByEmail(bootstrapAdminEmail).orElseGet(() -> {
-            Company newCompany = new Company();
-            newCompany.setName("Accounting Company");
-            newCompany.setLegalName("Accounting Company");
-            newCompany.setEmail(bootstrapAdminEmail);
-            newCompany.setPhone("Not configured");
-            newCompany.setAddress("Not configured");
-            newCompany.setCity("Not configured");
-            newCompany.setProvince("ON");
-            newCompany.setPostalCode("A1A 1A1");
-            newCompany.setCountry("Canada");
-            newCompany.setCurrency("CAD");
-            newCompany.setDefaultTaxProvince("ON");
-            newCompany.setFiscalYearStartMonth(1);
-            return companyRepository.save(newCompany);
-        });
 
-        UserAccount admin = userAccountRepository.findByEmail(bootstrapAdminEmail).orElse(null);
-        if (admin == null) {
-            admin = new UserAccount();
-            admin.setCompany(company);
-            admin.setFullName("Administrator");
-            admin.setEmail(bootstrapAdminEmail);
-            admin.setPasswordHash(passwordEncoder.encode(bootstrapAdminPassword));
-            admin.setRole(UserRole.ADMIN);
-            admin.setEnabled(true);
-            userAccountRepository.save(admin);
-            log.info("Bootstrap administrator created: {} (company: {}). "
-                + "You can now remove APP_BOOTSTRAP_ADMIN_EMAIL/APP_BOOTSTRAP_ADMIN_PASSWORD.",
+        Company company = exampleCompany == null ? findOrCreateBootstrapCompany() : exampleCompany;
+        UserAccount admin = new UserAccount();
+        admin.setCompany(company);
+        admin.setFullName("Administrator");
+        admin.setEmail(bootstrapAdminEmail);
+        admin.setPasswordHash(passwordEncoder.encode(bootstrapAdminPassword));
+        admin.setRole(UserRole.ADMIN);
+        admin.setEnabled(true);
+        userAccountRepository.save(admin);
+        log.info("Bootstrap administrator created: {} (company: {}).",
                 bootstrapAdminEmail, company.getName());
-        } else if (admin.getCompany() == null) {
-            admin.setCompany(company);
-            admin.setRole(UserRole.ADMIN);
-            admin.setEnabled(true);
-            userAccountRepository.save(admin);
-        }
+    }
+
+    private Company createExampleCompany() {
+        Company company = new Company();
+        company.setName("Example Company");
+        company.setLegalName("Example Company");
+        company.setEmail(bootstrapAdminEmail.isBlank() ? "example@example.com" : bootstrapAdminEmail);
+        company.setPhone("Not configured");
+        company.setAddress("Not configured");
+        company.setCity("Not configured");
+        company.setProvince("ON");
+        company.setPostalCode("A1A 1A1");
+        company.setCountry("Canada");
+        company.setCurrency("CAD");
+        company.setDefaultTaxProvince("ON");
+        company.setFiscalYearStartMonth(1);
+        return companyRepository.save(company);
+    }
+
+    private Company findOrCreateBootstrapCompany() {
+        String companyEmail = bootstrapAdminEmail.isBlank() ? "example@example.com" : bootstrapAdminEmail;
+        return companyRepository.findByEmail(companyEmail)
+                .orElseGet(this::createExampleCompany);
     }
 }

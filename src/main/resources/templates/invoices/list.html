@@ -32,6 +32,62 @@
                     </div>
                     <a th:href="@{/invoices/new}" class="btn-portal"><i class="bi bi-plus-lg"></i> <span th:text="#{invoices.newInvoice}">New Invoice</span></a>
                 </div>
+                <div class="d-flex align-items-end gap-2 flex-wrap mb-3"
+                     data-list-filter
+                     data-rows-selector="#invoiceRows tr[data-list-date]"
+                     data-no-matches-selector="#invoiceFilterNoMatches"
+                     data-customer-filter-id="invoiceCustomerFilter"
+                     th:attr="data-current-period-start=${dateFilterPeriods.current != null ? dateFilterPeriods.current.startDate : ''},
+                              data-current-period-end=${dateFilterPeriods.current != null ? dateFilterPeriods.current.endDate : ''},
+                              data-previous-period-start=${dateFilterPeriods.previous != null ? dateFilterPeriods.previous.startDate : ''},
+                              data-previous-period-end=${dateFilterPeriods.previous != null ? dateFilterPeriods.previous.endDate : ''}">
+                    <div>
+                        <label class="form-label mb-1" for="invoiceDatePreset"
+                               th:text="#{listFilter.dateLabel}">Filter by date</label>
+                        <select id="invoiceDatePreset" class="form-select form-select-sm" data-date-preset>
+                            <option value="all" th:text="#{listFilter.allDates}">All dates</option>
+                            <option value="this-month" th:text="#{listFilter.thisMonth}">This month</option>
+                            <option value="current-period" th:if="${dateFilterPeriods.current != null}"
+                                    th:text="#{listFilter.currentPeriod(${dateFilterPeriods.current.agencyCode}, ${dateFilterPeriods.current.startDate}, ${dateFilterPeriods.current.endDate})}">
+                                Current tax filing period
+                            </option>
+                            <option value="" disabled="disabled" th:unless="${dateFilterPeriods.current != null}"
+                                    th:text="#{listFilter.noCurrentTaxPeriod}">No open tax filing period</option>
+                            <option value="previous-period" th:if="${dateFilterPeriods.previous != null}"
+                                    th:text="#{listFilter.previousPeriod(${dateFilterPeriods.previous.agencyCode}, ${dateFilterPeriods.previous.startDate}, ${dateFilterPeriods.previous.endDate})}">
+                                Previous tax filing period
+                            </option>
+                            <option value="" disabled="disabled" th:unless="${dateFilterPeriods.previous != null}"
+                                    th:text="#{listFilter.noPreviousTaxPeriod}">No previous filed tax period</option>
+                            <option value="this-year" th:text="#{listFilter.thisYear}">This year</option>
+                            <option value="last-year" th:text="#{listFilter.lastYear}">Last year</option>
+                            <option value="custom" th:text="#{listFilter.customRange}">Custom range</option>
+                        </select>
+                    </div>
+                    <div class="d-flex align-items-end gap-2" data-custom-date-range hidden>
+                        <div>
+                            <label class="form-label mb-1" for="invoiceDateFrom"
+                                   th:text="#{listFilter.from}">From</label>
+                            <input id="invoiceDateFrom" type="date" class="form-control form-control-sm" data-date-from/>
+                        </div>
+                        <div>
+                            <label class="form-label mb-1" for="invoiceDateTo"
+                                   th:text="#{listFilter.to}">To</label>
+                            <input id="invoiceDateTo" type="date" class="form-control form-control-sm" data-date-to/>
+                        </div>
+                    </div>
+                    <small class="text-danger" data-filter-range-error hidden
+                           th:text="#{listFilter.invalidDateRange}">Start date must be before the end date.</small>
+                    <div>
+                        <label class="form-label mb-1" for="invoiceCustomerFilter"
+                               th:text="#{listFilter.customerLabel}">Filter by customer</label>
+                        <select id="invoiceCustomerFilter" class="form-select form-select-sm" data-customer-filter>
+                            <option value="" th:text="#{listFilter.allCustomers}">All customers</option>
+                            <option th:each="customer : ${customers}" th:value="${customer.id}"
+                                    th:text="${customer.businessName}">Customer</option>
+                        </select>
+                    </div>
+                </div>
                 <div th:if="${#lists.isEmpty(invoices) and selectedStatus == null}" class="empty-state">
                     <span th:text="#{invoices.noInvoices}">No invoices yet.</span> <a th:href="@{/invoices/new}" th:text="#{invoices.createOne}">Create one</a>.
                 </div>
@@ -39,6 +95,8 @@
                     <span th:text="#{invoices.filter.noMatches}">No invoices match this status.</span>
                     <a th:href="@{/invoices}" th:text="#{invoices.filter.clear}">Show all statuses</a>.
                 </div>
+                <div id="invoiceFilterNoMatches" class="empty-state" hidden
+                     th:text="#{listFilter.noMatches}">No invoices match these filters.</div>
                 <table th:if="${not #lists.isEmpty(invoices)}" class="table-portal">
                     <thead>
                     <tr>
@@ -53,8 +111,10 @@
                         <th class="num" th:text="#{table.paid}">Paid</th>
                     </tr>
                     </thead>
-                    <tbody>
-                    <tr th:each="inv : ${invoices}">
+                    <tbody id="invoiceRows">
+                    <tr th:each="inv : ${invoices}"
+                        th:attr="data-list-date=${inv.invoiceDate},
+                                 data-list-customer-id=${inv.customer != null ? inv.customer.id : ''}">
                         <td><a th:href="@{/invoices/{id}(id=${inv.id})}" th:text="${inv.invoiceNumber}">INV-1</a></td>
                         <td th:text="${inv.customer != null ? inv.customer.businessName : '—'}">Acme</td>
                         <td th:text="${inv.invoiceDate}">2026-01-01</td>
@@ -77,5 +137,6 @@
         </section>
     </main>
 </div>
+<script th:src="@{/js/list-filters.js}"></script>
 </body>
 </html>

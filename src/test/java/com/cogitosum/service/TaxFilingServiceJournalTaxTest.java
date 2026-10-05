@@ -25,6 +25,7 @@ import com.cogitosum.repository.BillRepository;
 import com.cogitosum.repository.ChartOfAccountRepository;
 import com.cogitosum.repository.CreditCardChargeRepository;
 import com.cogitosum.repository.InvoiceRepository;
+import com.cogitosum.repository.TaxFilingPeriodRepository;
 import com.cogitosum.repository.WrittenChequeRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -33,11 +34,14 @@ import org.springframework.test.util.ReflectionTestUtils;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 class TaxFilingServiceJournalTaxTest {
@@ -50,6 +54,8 @@ class TaxFilingServiceJournalTaxTest {
     private InvoiceRepository invoiceRepository;
     private CreditCardChargeRepository creditCardChargeRepository;
     private WrittenChequeRepository chequeRepository;
+    private ChartOfAccountRepository accountRepository;
+    private TaxFilingPeriodRepository periodRepository;
     private TaxCodeService taxCodeService;
     private LocalDate start;
     private LocalDate end;
@@ -60,6 +66,8 @@ class TaxFilingServiceJournalTaxTest {
         journalService = mock(GeneralJournalService.class);
         ReflectionTestUtils.setField(service, "journalService", journalService);
         ReflectionTestUtils.setField(service, "companyContext", mockCompanyContext());
+        periodRepository = mock(TaxFilingPeriodRepository.class);
+        ReflectionTestUtils.setField(service, "periodRepository", periodRepository);
 
         BillRepository billRepository = mock(BillRepository.class);
         when(billRepository.findByCompanyIdAndBillDateBetweenOrderByBillDateDesc(eq(1L), any(), any()))
@@ -82,7 +90,8 @@ class TaxFilingServiceJournalTaxTest {
         when(invoiceRepository.findByCompanyIdAndInvoiceDateBetweenOrderByInvoiceDateDesc(eq(1L), any(), any()))
                 .thenReturn(List.of());
         ReflectionTestUtils.setField(service, "invoiceRepository", invoiceRepository);
-        ReflectionTestUtils.setField(service, "accountRepository", mock(ChartOfAccountRepository.class));
+        accountRepository = mock(ChartOfAccountRepository.class);
+        ReflectionTestUtils.setField(service, "accountRepository", accountRepository);
         taxCodeService = mock(TaxCodeService.class);
         when(taxCodeService.getItemsByAgency(10L)).thenReturn(List.of());
         when(taxCodeService.getAllCodes()).thenReturn(List.of());
@@ -106,6 +115,27 @@ class TaxFilingServiceJournalTaxTest {
 
         start = LocalDate.of(2026, 1, 1);
         end = LocalDate.of(2026, 1, 31);
+    }
+
+    @Test
+    void rejectsInactiveBankAccountForTaxPayment() {
+        TaxFilingPeriod period = new TaxFilingPeriod();
+        period.setId(45L);
+        period.setStatus(com.cogitosum.entity.TaxFilingStatus.FILED);
+        period.setNetOwing(new BigDecimal("100.00"));
+        period.setAgency(agency);
+        when(periodRepository.findByIdAndCompanyId(45L, 1L)).thenReturn(Optional.of(period));
+
+        ChartOfAccount bank = new ChartOfAccount();
+        bank.setAccountNumber("1000");
+        bank.setAccountType(AccountType.ASSET);
+        bank.setCategory(AccountCategory.BANK);
+        bank.setActive(false);
+        when(accountRepository.findByCompanyIdAndAccountNumber(1L, "1000")).thenReturn(Optional.of(bank));
+
+        assertThrows(IllegalArgumentException.class,
+                () -> service.recordPayment(45L, "1000", start, "portal"));
+        verifyNoInteractions(journalService);
     }
 
     @Test

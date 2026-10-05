@@ -12,6 +12,7 @@ import com.cogitosum.service.PaymentService;
 import com.cogitosum.service.TaxAgencyService;
 import com.cogitosum.service.TaxCodeService;
 import com.cogitosum.service.VendorService;
+import com.cogitosum.service.TaxFilingService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -45,6 +46,7 @@ public class JournalWebController {
     @Autowired private VendorService vendorService;
     @Autowired private TaxAgencyService taxAgencyService;
     @Autowired private TaxCodeService taxCodeService;
+    @Autowired private TaxFilingService taxFilingService;
 
     @GetMapping
     public String list(@RequestParam(required = false) JournalStatus status, Model model) {
@@ -62,6 +64,7 @@ public class JournalWebController {
         model.addAttribute("journalAmounts", journalAmounts);
         model.addAttribute("journalStatuses", JournalStatus.values());
         model.addAttribute("selectedStatus", status);
+        model.addAttribute("dateFilterPeriods", taxFilingService.getDateFilterPeriods(LocalDate.now()));
         return "journals/list";
     }
 

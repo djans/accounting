@@ -189,6 +189,7 @@
     <div class="nav-group">
         <a th:href="@{/companies}" class="nav-link" th:classappend="${active=='companies'} ? ' active'"><i class="bi bi-buildings nav-icon"></i> <span th:text="#{company.list.nav}">Companies</span></a>
         <a th:href="@{/database/backup}" class="nav-link" th:classappend="${active=='database'} ? ' active'"><i class="bi bi-database-down nav-icon"></i> <span th:text="#{nav.databaseBackup}">Database backup</span></a>
+        <a th:href="@{/database/schema}" class="nav-link" th:classappend="${active=='schema-version'} ? ' active'"><i class="bi bi-database-gear nav-icon"></i> <span th:text="#{nav.databaseSchema}">Database schema</span></a>
         <a th:href="@{/admin/reset}" class="nav-link" th:classappend="${active=='admin-reset'} ? ' active'"><i class="bi bi-arrow-counterclockwise nav-icon"></i> <span th:text="#{nav.resetData}">Reset activities</span></a>
         <a th:href="@{/admin/database/recreate}" class="nav-link" th:classappend="${active=='schema-reset'} ? ' active'"><i class="bi bi-database-x nav-icon"></i> <span th:text="#{nav.recreateDatabase}">Recreate database</span></a>
         <a th:href="@{/database/migration}" class="nav-link" th:classappend="${active=='migration'} ? ' active'"><i class="bi bi-database-up nav-icon"></i> <span th:text="#{nav.databaseMigration}">Initial data migration</span></a>
@@ -211,6 +212,9 @@
         </span>
         <a th:if="${currentUser == null}" th:href="@{/login}" class="btn-portal btn-ghost btn-sm">
             <i class="bi bi-box-arrow-in-right"></i> <span th:text="#{auth.login.link}">Connexion</span>
+        </a>
+        <a th:if="${currentUser != null}" th:href="@{/account/credentials}" class="btn-portal btn-ghost btn-sm">
+            <i class="bi bi-person-lock"></i> <span th:text="#{nav.credentials}">Credentials</span>
         </a>
         <form th:if="${currentUser != null}" th:action="@{/logout}" method="post" style="display:inline;">
             <button type="submit" class="btn-portal btn-ghost btn-sm">

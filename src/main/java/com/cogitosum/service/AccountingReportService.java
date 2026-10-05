@@ -171,6 +171,7 @@ public class AccountingReportService {
                     row.put("debit", e.getDebit());
                     row.put("credit", e.getCredit());
                     row.put("journalId", e.getJournal().getId());
+                    row.put("status", e.getJournal().getStatus());
                     return row;
                 })
                 .sorted((a, b) -> ((java.time.LocalDate) b.get("date")).compareTo((java.time.LocalDate) a.get("date")))

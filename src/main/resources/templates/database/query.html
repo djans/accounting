@@ -114,7 +114,113 @@
         const sql = document.getElementById('sql');
         const warning = document.getElementById('writeWarning');
         const confirmation = document.getElementById('confirmChanges');
+        const tableChoice = document.getElementById('tableChoice');
+        const sqlTable = form.querySelector('input[name="table"]');
         const readOnlyCommands = ['SELECT', 'SHOW', 'DESCRIBE', 'DESC', 'EXPLAIN'];
+
+        function findTopLevelKeyword(statement, pattern) {
+            let quote = '';
+            let lineComment = false;
+            let blockComment = false;
+            let depth = 0;
+
+            for (let index = 0; index < statement.length; index++) {
+                const character = statement[index];
+                const next = statement[index + 1];
+
+                if (lineComment) {
+                    if (character === '\n') lineComment = false;
+                    continue;
+                }
+                if (blockComment) {
+                    if (character === '*' && next === '/') {
+                        blockComment = false;
+                        index++;
+                    }
+                    continue;
+                }
+                if (quote) {
+                    if (character === quote) {
+                        if (next === quote) index++;
+                        else quote = '';
+                    }
+                    continue;
+                }
+                if (character === '-' && next === '-') {
+                    lineComment = true;
+                    index++;
+                    continue;
+                }
+                if (character === '/' && next === '*') {
+                    blockComment = true;
+                    index++;
+                    continue;
+                }
+                if (character === "'" || character === '"' || character === '`' || character === '[') {
+                    quote = character === '[' ? ']' : character;
+                    continue;
+                }
+                if (character === '(') {
+                    depth++;
+                    continue;
+                }
+                if (character === ')') {
+                    depth = Math.max(0, depth - 1);
+                    continue;
+                }
+                if (depth === 0 && pattern.test(statement.slice(index))) {
+                    return index;
+                }
+            }
+
+            return -1;
+        }
+
+        function updateFromTable(tableName) {
+            const statement = sql.value;
+            if (!statement.trim()) {
+                sql.value = `SELECT * FROM ${tableName} LIMIT 100;`;
+                return;
+            }
+
+            const fromIndex = findTopLevelKeyword(statement, /^FROM\b/i);
+            if (fromIndex >= 0) {
+                const expressionStart = fromIndex + 'FROM'.length;
+                const remainder = statement.slice(expressionStart);
+                const whitespace = /^\s*/.exec(remainder)[0];
+                const separator = whitespace || ' ';
+                const source = remainder.slice(whitespace.length);
+                const tableExpression = /^(?:"[^"]+"|`[^`]+`|\[[^\]]+\]|[A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)*)/.exec(source);
+
+                if (tableExpression) {
+                    sql.value = statement.slice(0, expressionStart)
+                        + separator + tableName + source.slice(tableExpression[0].length);
+                } else if (!source || /^(?:;|WHERE\b|GROUP\s+BY\b|HAVING\b|ORDER\s+BY\b|LIMIT\b|OFFSET\b|FETCH\b|FOR\b)/i.test(source)) {
+                    sql.value = statement.slice(0, expressionStart)
+                        + separator + tableName + source;
+                }
+                return;
+            }
+
+            if (findTopLevelKeyword(statement, /^(?:SELECT|WITH)\b/i) < 0) return;
+
+            const terminator = /;\s*$/.exec(statement);
+            const suffix = terminator ? terminator[0] : '';
+            const body = terminator ? statement.slice(0, terminator.index) : statement;
+            const clausePoint = findTopLevelKeyword(
+                body, /^(?:WHERE\b|GROUP\s+BY\b|HAVING\b|ORDER\s+BY\b|LIMIT\b|OFFSET\b|FETCH\b|FOR\b)/i);
+            const insertionPoint = clausePoint >= 0 ? clausePoint : body.trimEnd().length;
+            const before = body.slice(0, insertionPoint).trimEnd();
+            const after = body.slice(insertionPoint).trimStart();
+            sql.value = before + ` FROM ${tableName}`
+                + (after ? ` ${after}` : '') + suffix;
+        }
+
+        tableChoice.addEventListener('change', function () {
+            sqlTable.value = tableChoice.value;
+            updateFromTable(tableChoice.value);
+            refreshWarning();
+        });
 
         function requiresConfirmation() {
             const match = sql.value.trimStart().match(/^([A-Za-z]+)/);

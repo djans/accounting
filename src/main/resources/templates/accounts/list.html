@@ -45,7 +45,7 @@
                             <th th:text="#{table.type}">Type</th>
                             <th th:text="#{table.detailCategory}">Détail / Catégorie</th>
                             <th th:text="#{table.currency}">Devise</th>
-                            <th th:text="#{table.balance}">Solde</th>
+                            <th th:text="#{accounts.endingBalance}">Solde final</th>
                             <th th:text="#{table.status}">Statut</th>
                             <th class="text-end" th:text="#{table.actions}">Actions</th>
                         </tr>
@@ -54,10 +54,16 @@
                         <tr th:each="a : ${accounts}"
                             th:attr="data-account-type=${a.accountType.name()},
                                      data-account-search=${a.accountNumber + ' ' + a.accountName}">
-                            <td th:text="${a.accountNumber}">1010</td>
+                            <td>
+                                <a th:href="@{/accounts/{id}(id=${a.id})}"
+                                   th:text="${a.accountNumber}"
+                                   style="text-decoration: none; color: var(--portal-primary);">1010</a>
+                            </td>
                             <td style="font-weight:600">
                                 <span th:if="${a.parentAccount != null}" class="text-muted ms-2">↳</span>
-                                <span th:text="${a.accountName}">Caisse</span>
+                                <a th:href="@{/accounts/{id}(id=${a.id})}"
+                                   th:text="${a.accountName}"
+                                   style="text-decoration: none; color: var(--portal-primary);">Caisse</a>
                             </td>
                             <td>
                                 <span class="badge-pill"
@@ -68,7 +74,7 @@
                             </td>
                             <td th:text="${a.currency}">CAD</td>
                             <td class="text-end" style="font-family: monospace;">
-                                <span th:text="${a.openingBalance != null ? #numbers.formatCurrency(a.openingBalance) : '0,00 $'}">0,00 $</span>
+                                <span th:text="${#numbers.formatCurrency(accountEndingBalances[a.id])}">0,00 $</span>
                             </td>
                             <td>
                                 <span class="badge-pill"

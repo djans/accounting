@@ -6,6 +6,8 @@ import com.cogitosum.entity.Customer;
 import com.cogitosum.entity.Invoice;
 import com.cogitosum.entity.InvoiceStatus;
 import com.cogitosum.entity.Payment;
+import com.cogitosum.entity.PaymentMethod;
+import com.cogitosum.entity.PaymentStatus;
 import com.cogitosum.service.*;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -44,6 +46,41 @@ public class PaymentWebControllerTest {
 
     @MockitoBean
     private CustomerService customerService;
+
+    @MockitoBean
+    private TaxFilingService taxFilingService;
+
+    @Test
+    public void paymentListShowsDateAndCustomerFilters() throws Exception {
+        Customer customer = new Customer();
+        customer.setId(4L);
+        customer.setBusinessName("Test Customer");
+        Invoice invoice = new Invoice();
+        invoice.setId(7L);
+        invoice.setInvoiceNumber("INV-7");
+        invoice.setCustomer(customer);
+        Payment payment = new Payment();
+        payment.setId(3L);
+        payment.setInvoice(invoice);
+        payment.setTransactionId("TXN-3");
+        payment.setPaymentDate(LocalDate.of(2026, 10, 4));
+        payment.setPaymentMethod(PaymentMethod.CASH);
+        payment.setStatus(PaymentStatus.PENDING);
+        payment.setAmount(new BigDecimal("25.00"));
+        when(paymentService.getAllPayments()).thenReturn(List.of(payment));
+        when(taxFilingService.getDateFilterPeriods(any(LocalDate.class))).thenReturn(
+                new TaxFilingService.FilterPeriodRanges(
+                        new TaxFilingService.DateRange("CRA", LocalDate.of(2026, 10, 1), LocalDate.of(2026, 12, 31)),
+                        new TaxFilingService.DateRange("CRA", LocalDate.of(2026, 7, 1), LocalDate.of(2026, 9, 30))));
+
+        mockMvc.perform(get("/payments"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("payments/list"))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("data-date-preset")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("data-customer-filter")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("Test Customer")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("data-list-customer-id=\"4\"")));
+    }
 
     @Test
     public void customerPaymentForm_ReturnsView() throws Exception {

@@ -14,6 +14,7 @@ import com.cogitosum.service.GeneralJournalService;
 import com.cogitosum.service.PaymentService;
 import com.cogitosum.service.TaxAgencyService;
 import com.cogitosum.service.TaxCodeService;
+import com.cogitosum.service.TaxFilingService;
 import com.cogitosum.service.VendorService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.AfterEach;
@@ -45,6 +46,7 @@ class JournalWebControllerTest {
     private VendorService vendorService;
     private TaxAgencyService taxAgencyService;
     private TaxCodeService taxCodeService;
+    private TaxFilingService taxFilingService;
     private StaticMessageSource messages;
     private JournalWebController controller;
 
@@ -75,12 +77,18 @@ class JournalWebControllerTest {
         vendorService = mock(VendorService.class);
         taxAgencyService = mock(TaxAgencyService.class);
         taxCodeService = mock(TaxCodeService.class);
+        taxFilingService = mock(TaxFilingService.class);
+        when(taxFilingService.getDateFilterPeriods(any(LocalDate.class))).thenReturn(
+                new TaxFilingService.FilterPeriodRanges(
+                        new TaxFilingService.DateRange("CRA", LocalDate.of(2026, 10, 1), LocalDate.of(2026, 12, 31)),
+                        new TaxFilingService.DateRange("CRA", LocalDate.of(2026, 7, 1), LocalDate.of(2026, 9, 30))));
         ReflectionTestUtils.setField(controller, "accountService", accountService);
         ReflectionTestUtils.setField(controller, "messageSource", messages);
         ReflectionTestUtils.setField(controller, "customerService", customerService);
         ReflectionTestUtils.setField(controller, "vendorService", vendorService);
         ReflectionTestUtils.setField(controller, "taxAgencyService", taxAgencyService);
         ReflectionTestUtils.setField(controller, "taxCodeService", taxCodeService);
+        ReflectionTestUtils.setField(controller, "taxFilingService", taxFilingService);
     }
 
     @AfterEach
@@ -98,6 +106,7 @@ class JournalWebControllerTest {
         assertEquals("journals/list", view);
         assertEquals(JournalStatus.values().length, ((JournalStatus[]) model.get("journalStatuses")).length);
         assertNull(model.get("selectedStatus"));
+        org.junit.jupiter.api.Assertions.assertNotNull(model.get("dateFilterPeriods"));
         verify(journalService).getAllJournals();
         verify(journalService, never()).getJournalsByStatus(any());
     }

@@ -304,8 +304,12 @@ public class TaxWebController {
                 model.addAttribute("taxReturnRows", filingService.getTaxReturnRows(p, returnLines));
                 model.addAttribute("hasUnmappedReturnLineAmounts",
                         filingService.hasUnmappedReturnLineAmounts(p, returnLines));
-                model.addAttribute("bankAccounts", accountRepository.findByCompanyIdAndAccountTypeOrderByAccountNumberAsc(
-                        companyContext.requireCompanyId(), AccountType.ASSET));
+                model.addAttribute("bankAccounts",
+                        accountRepository.findByCompanyIdAndCategory(
+                                        companyContext.requireCompanyId(), AccountCategory.BANK).stream()
+                                .filter(account -> Boolean.TRUE.equals(account.getActive()))
+                                .filter(account -> account.getAccountType() == AccountType.ASSET)
+                                .toList());
                 model.addAttribute("active", "tax-agency-detail-report");
                 return "tax/period-detail";
             })

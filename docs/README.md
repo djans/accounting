@@ -147,6 +147,10 @@ See `API_DOCUMENTATION.md` for complete API reference with all endpoints and exa
 
 See `IMPLEMENTATION_SUMMARY.md` for detailed information about what was implemented.
 
+## Database schema versions
+
+See `SCHEMA_VERSIONING.md` for the installed schema version, update and backup flow, reset behavior, and instructions for adding future incremental migrations.
+
 ## Project Structure
 
 - **entity/** - JPA entities (Customer, Invoice, LineItem, Payment)

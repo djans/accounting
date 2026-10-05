@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="fr" th:lang="${#locale.language}" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(#{accounts.detailTitle})}"></head>
+<body>
+<div class="portal-shell">
+    <div th:replace="~{fragments/layout :: sidebar('accounts')}"></div>
+    <main class="portal-main">
+        <div th:replace="~{fragments/layout :: topbar(#{accounts.detailTitle})}"></div>
+        <section class="portal-content">
+            <div class="portal-card">
+                <div class="portal-card-header d-flex justify-content-between align-items-center mb-4">
+                    <div>
+                        <h3 class="portal-card-title mb-1">
+                            <span th:text="${account.accountNumber}">1010</span>
+                            <span>—</span>
+                            <span th:text="${account.accountName}">Cash</span>
+                        </h3>
+                        <span class="badge-pill"
+                              th:text="${#messages.msg('account.type.' + account.accountType.name())}">Asset</span>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <a th:href="@{/accounts/{id}/edit(id=${account.id})}"
+                           class="btn-portal btn-ghost btn-sm" th:text="#{form.editAccount}">Edit account</a>
+                        <a th:href="@{/accounts}" class="btn-portal btn-ghost btn-sm"
+                           th:text="#{accounts.backToChart}">Back to Chart of Accounts</a>
+                    </div>
+                </div>
+
+                <div class="row g-3 mb-4">
+                    <div class="col-md-6">
+                        <div class="p-3 border rounded">
+                            <div class="text-muted small" th:text="#{accounts.openingBalance}">Opening balance</div>
+                            <strong th:text="${#numbers.formatCurrency(account.openingBalance != null ? account.openingBalance : 0)}">$0.00</strong>
+                            <div class="text-muted small mt-1">
+                                <span th:text="#{accounts.openingBalanceDate}">As of</span>:
+                                <span th:text="${account.openingBalanceDate != null ? account.openingBalanceDate : '—'}">—</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="p-3 border rounded">
+                            <div class="text-muted small" th:text="#{accounts.endingBalance}">Ending balance</div>
+                            <strong th:text="${#numbers.formatCurrency(endingBalance)}">$0.00</strong>
+                        </div>
+                    </div>
+                </div>
+
+                <h4 class="section-title border-bottom pb-2 mb-3" th:text="#{accounts.generalJournalEntries}">
+                    General journal entries
+                </h4>
+                <div th:if="${#lists.isEmpty(journalEntries)}" class="empty-state"
+                     th:text="#{accounts.noJournalEntries}">No general journal entries for this account.</div>
+                <div th:unless="${#lists.isEmpty(journalEntries)}" class="table-responsive">
+                    <table class="table-portal">
+                        <thead>
+                        <tr>
+                            <th th:text="#{table.date}">Date</th>
+                            <th th:text="#{table.journalNumber}">Journal #</th>
+                            <th th:text="#{table.description}">Description</th>
+                            <th th:text="#{table.status}">Status</th>
+                            <th class="num" th:text="#{table.debit}">Debit</th>
+                            <th class="num" th:text="#{table.credit}">Credit</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr th:each="entry : ${journalEntries}">
+                            <td th:text="${entry['date']}">2026-01-01</td>
+                            <td>
+                                <a th:href="@{/journals/{id}(id=${entry['journalId']})}"
+                                   th:text="${entry['journalNumber']}">JL-1</a>
+                            </td>
+                            <td th:text="${entry['description']}">Opening entry</td>
+                            <td th:text="${#messages.msg('journal.status.' + entry['status'].name())}">Posted</td>
+                            <td class="num" th:text="${#numbers.formatCurrency(entry['debit'])}">$0.00</td>
+                            <td class="num" th:text="${#numbers.formatCurrency(entry['credit'])}">$0.00</td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+    </main>
+</div>
+</body>
+</html>

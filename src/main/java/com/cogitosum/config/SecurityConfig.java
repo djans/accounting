@@ -12,7 +12,6 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 
@@ -21,14 +20,13 @@ import org.springframework.security.web.SecurityFilterChain;
 public class SecurityConfig {
 
     private final AppUserDetailsService appUserDetailsService;
+    private final DatabaseSchemaLoginSuccessHandler loginSuccessHandler;
 
-    public SecurityConfig(AppUserDetailsService appUserDetailsService) {
+    public SecurityConfig(
+            AppUserDetailsService appUserDetailsService,
+            DatabaseSchemaLoginSuccessHandler loginSuccessHandler) {
         this.appUserDetailsService = appUserDetailsService;
-    }
-
-    @Bean
-    public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
+        this.loginSuccessHandler = loginSuccessHandler;
     }
 
     @Bean
@@ -53,6 +51,9 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/auth/me").authenticated()
                 .requestMatchers(HttpMethod.POST, "/login").permitAll()
                 .requestMatchers("/login", "/favicon.ico", "/css/**", "/js/**", "/vendor/**").permitAll()
+                .requestMatchers("/database/schema").authenticated()
+                .requestMatchers(HttpMethod.POST, "/database/schema/apply").hasRole("ADMIN")
+                .requestMatchers("/account/credentials/**").authenticated()
                 .requestMatchers("/database/backup/**").hasRole("ADMIN")
                 .requestMatchers("/admin/reset", "/admin/reset/**").hasRole("ADMIN")
                 .requestMatchers("/admin/database/**").hasRole("ADMIN")
@@ -69,7 +70,7 @@ public class SecurityConfig {
                 .anyRequest().authenticated())
             .formLogin(form -> form
                 .loginPage("/login")
-                .defaultSuccessUrl("/", false)
+                .successHandler(loginSuccessHandler)
                 .failureUrl("/login?error"))
             .httpBasic(AbstractHttpConfigurer::disable);
 

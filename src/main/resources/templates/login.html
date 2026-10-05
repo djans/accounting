@@ -12,6 +12,10 @@
             <div th:if="${param.logout}" class="flash flash-success" th:text="#{auth.login.logout}">
                 Vous êtes déconnecté.
             </div>
+            <div th:if="${param.credentialsUpdated}" class="flash flash-success"
+                 th:text="#{auth.login.credentialsUpdated}">
+                Your credentials were updated. Sign in again with the new values.
+            </div>
             <form th:action="@{/login}" method="post">
                 <input type="hidden" th:if="${_csrf != null}" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
                 <div class="form-field">
@@ -27,7 +31,7 @@
                 </button>
             </form>
             <p class="text-muted small" style="margin-top:1.5rem;" th:text="#{auth.login.initialCredentials}">
-                Define the initial administrator environment variables before the first startup.
+                First sign-in: root@example.com / password. Change these credentials after signing in.
             </p>
         </div>
     </section>

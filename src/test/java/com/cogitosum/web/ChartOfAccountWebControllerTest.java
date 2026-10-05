@@ -3,7 +3,11 @@ package com.cogitosum.web;
 import com.cogitosum.entity.AccountCategory;
 import com.cogitosum.entity.AccountType;
 import com.cogitosum.entity.ChartOfAccount;
+import com.cogitosum.entity.GeneralLedger;
+import com.cogitosum.entity.JournalStatus;
+import com.cogitosum.service.AccountingReportService;
 import com.cogitosum.service.ChartOfAccountService;
+import com.cogitosum.service.GeneralLedgerService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
@@ -13,6 +17,9 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.hamcrest.Matchers.containsString;
@@ -32,13 +39,38 @@ public class ChartOfAccountWebControllerTest {
     @MockitoBean
     private ChartOfAccountService chartOfAccountService;
 
+    @MockitoBean
+    private AccountingReportService accountingReportService;
+
+    @MockitoBean
+    private GeneralLedgerService generalLedgerService;
+
     @Test
     public void list_ReturnsView() throws Exception {
         when(chartOfAccountService.getAllAccounts()).thenReturn(new ArrayList<>());
+        when(generalLedgerService.getAllLedgerAccounts()).thenReturn(List.of());
         mockMvc.perform(get("/accounts"))
                 .andExpect(status().isOk())
                 .andExpect(view().name("accounts/list"))
-                .andExpect(model().attributeExists("accounts", "accountTypes"));
+                .andExpect(model().attributeExists("accounts", "accountTypes", "accountEndingBalances"));
+    }
+
+    @Test
+    public void list_ShowsEndingBalanceIncludingPostedLedgerActivity() throws Exception {
+        ChartOfAccount account = new ChartOfAccount();
+        account.setId(1L);
+        account.setAccountType(AccountType.ASSET);
+        account.setOpeningBalance(new BigDecimal("125.00"));
+        GeneralLedger ledger = new GeneralLedger();
+        ledger.setAccount(account);
+        ledger.setBalance(new BigDecimal("50.00"));
+        when(chartOfAccountService.getAllAccounts()).thenReturn(List.of(account));
+        when(generalLedgerService.getAllLedgerAccounts()).thenReturn(List.of(ledger));
+
+        mockMvc.perform(get("/accounts"))
+                .andExpect(status().isOk())
+                .andExpect(model().attribute("accountEndingBalances",
+                        Map.of(1L, new BigDecimal("175.00"))));
     }
 
     @Test
@@ -67,6 +99,39 @@ public class ChartOfAccountWebControllerTest {
                 .andExpect(content().string(containsString("data-original-value=\"57867.87\"")))
                 .andExpect(content().string(containsString("id=\"openingBalanceDate\"")))
                 .andExpect(content().string(containsString("role=\"alert\"")));
+    }
+
+    @Test
+    public void detail_ShowsOpeningBalanceAndGeneralJournalEntries() throws Exception {
+        ChartOfAccount account = new ChartOfAccount();
+        account.setId(1L);
+        account.setAccountNumber("1010");
+        account.setAccountName("Cash");
+        account.setAccountType(AccountType.ASSET);
+        account.setOpeningBalance(new BigDecimal("125.00"));
+        when(chartOfAccountService.getAccountById(1L)).thenReturn(Optional.of(account));
+        GeneralLedger ledger = new GeneralLedger();
+        ledger.setAccount(account);
+        ledger.setBalance(new BigDecimal("50.00"));
+        when(generalLedgerService.getLedgerByAccountId(1L)).thenReturn(Optional.of(ledger));
+
+        Map<String, Object> entry = new HashMap<>();
+        entry.put("date", LocalDate.of(2026, 1, 15));
+        entry.put("journalNumber", "JE-2026-001");
+        entry.put("description", "Customer payment");
+        entry.put("status", JournalStatus.POSTED);
+        entry.put("debit", new BigDecimal("50.00"));
+        entry.put("credit", BigDecimal.ZERO);
+        entry.put("journalId", 8L);
+        when(accountingReportService.getAccountTransactions(1L)).thenReturn(List.of(entry));
+
+        mockMvc.perform(get("/accounts/1"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("accounts/detail"))
+                .andExpect(model().attributeExists("account", "journalEntries"))
+                .andExpect(model().attribute("endingBalance", new BigDecimal("175.00")))
+                .andExpect(content().string(containsString("Customer payment")))
+                .andExpect(content().string(containsString("JE-2026-001")));
     }
 
     @Test

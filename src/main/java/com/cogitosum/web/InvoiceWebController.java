@@ -10,6 +10,7 @@ import com.cogitosum.service.InvoiceEmailService;
 import com.cogitosum.service.InvoicePdfService;
 import com.cogitosum.service.InvoiceService;
 import com.cogitosum.service.PaymentService;
+import com.cogitosum.service.TaxFilingService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.CacheControl;
 import org.springframework.http.ContentDisposition;
@@ -37,6 +38,7 @@ public class InvoiceWebController {
     @Autowired private InvoicePdfService invoicePdfService;
     @Autowired private InvoiceEmailService invoiceEmailService;
     @Autowired private DocumentAttachmentService attachmentService;
+    @Autowired private TaxFilingService taxFilingService;
 
     @GetMapping
     public String list(@RequestParam(required = false) InvoiceStatus status, Model model) {
@@ -45,6 +47,8 @@ public class InvoiceWebController {
                 : invoiceService.getInvoicesByStatus(status));
         model.addAttribute("invoiceStatuses", InvoiceStatus.values());
         model.addAttribute("selectedStatus", status);
+        model.addAttribute("customers", customerService.getAllCustomers());
+        model.addAttribute("dateFilterPeriods", taxFilingService.getDateFilterPeriods(LocalDate.now()));
         return "invoices/list";
     }
 

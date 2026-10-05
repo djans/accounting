@@ -171,6 +171,12 @@ public class TaxFilingService {
 
         ChartOfAccount bank = accountRepository.findByCompanyIdAndAccountNumber(companyId, bankAccountNumber)
             .orElseThrow(() -> new IllegalArgumentException("Bank account not found: " + bankAccountNumber));
+        if (!Boolean.TRUE.equals(bank.getActive())
+                || bank.getAccountType() != AccountType.ASSET
+                || bank.getCategory() != AccountCategory.BANK) {
+            throw new IllegalArgumentException(
+                    "Tax payment requires an active bank account: " + bankAccountNumber);
+        }
 
         GeneralJournal paymentJournal = buildPaymentJournal(period, bank, paymentDate);
         GeneralJournal saved = journalService.createJournal(paymentJournal);
@@ -232,6 +238,43 @@ public class TaxFilingService {
 
     public List<TaxFilingPeriod> getAll() {
         return periodRepository.findAllByCompanyId(companyContext.requireCompanyId());
+    }
+
+    public FilterPeriodRanges getDateFilterPeriods(LocalDate asOfDate) {
+        List<TaxFilingPeriod> periods = getAll();
+        Comparator<TaxFilingPeriod> byPeriod = Comparator
+                .comparing(TaxFilingPeriod::getPeriodStart)
+                .thenComparing(TaxFilingPeriod::getPeriodEnd)
+                .thenComparing(period -> period.getAgency().getCode(), String.CASE_INSENSITIVE_ORDER);
+
+        TaxFilingPeriod currentPeriod = periods.stream()
+                .filter(period -> period.getStatus() == TaxFilingStatus.OPEN
+                        || period.getStatus() == TaxFilingStatus.CALCULATED)
+                .filter(period -> !period.getPeriodStart().isAfter(asOfDate))
+                .max(byPeriod)
+                .orElse(null);
+        DateRange current = currentPeriod == null ? null : dateRange(currentPeriod);
+        DateRange previous = periods.stream()
+                .filter(period -> period.getStatus() == TaxFilingStatus.FILED
+                        || period.getStatus() == TaxFilingStatus.PAID)
+                .filter(period -> !period.getPeriodEnd().isAfter(asOfDate))
+                .filter(period -> current == null || period.getPeriodEnd().isBefore(current.startDate()))
+                .filter(period -> currentPeriod == null
+                        || period.getAgency().getId().equals(currentPeriod.getAgency().getId()))
+                .max(byPeriod)
+                .map(TaxFilingService::dateRange)
+                .orElse(null);
+        return new FilterPeriodRanges(current, previous);
+    }
+
+    private static DateRange dateRange(TaxFilingPeriod period) {
+        return new DateRange(period.getAgency().getCode(), period.getPeriodStart(), period.getPeriodEnd());
+    }
+
+    public record DateRange(String agencyCode, LocalDate startDate, LocalDate endDate) {
+    }
+
+    public record FilterPeriodRanges(DateRange current, DateRange previous) {
     }
 
     @Transactional
@@ -1346,8 +1389,21 @@ public class TaxFilingService {
                     "ITC/ITR claimed for period", line);
         }
 
+        validateFilingJournalAccounts(entries);
         jl.setEntries(entries);
         return jl;
+    }
+
+    private void validateFilingJournalAccounts(List<JournalEntry> entries) {
+        for (JournalEntry entry : entries) {
+            ChartOfAccount account = entry.getAccount();
+            if (!Boolean.TRUE.equals(account.getActive())
+                    || account.getCategory() == AccountCategory.BANK) {
+                throw new IllegalStateException(
+                        "Tax filing journal cannot post to inactive or bank account "
+                                + account.getAccountNumber());
+            }
+        }
     }
 
     private int addSignedJournalEntry(
@@ -1382,6 +1438,12 @@ public class TaxFilingService {
 
     private GeneralJournal buildPaymentJournal(TaxFilingPeriod period, ChartOfAccount bank, LocalDate paymentDate) {
         ChartOfAccount payable = lookupPayableAccount(period.getAgency());
+        if (!Boolean.TRUE.equals(payable.getActive())
+                || payable.getAccountType() != AccountType.LIABILITY) {
+            throw new IllegalStateException(
+                    "Tax payment requires an active tax payable liability account: "
+                            + payable.getAccountNumber());
+        }
         BigDecimal amount = period.getNetOwing();
 
         GeneralJournal jl = new GeneralJournal();

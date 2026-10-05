@@ -3,12 +3,20 @@ package com.cogitosum.web;
 import com.cogitosum.entity.AccountType;
 import com.cogitosum.entity.AccountCategory;
 import com.cogitosum.entity.ChartOfAccount;
+import com.cogitosum.entity.GeneralLedger;
+import com.cogitosum.service.AccountingReportService;
 import com.cogitosum.service.ChartOfAccountService;
+import com.cogitosum.service.GeneralLedgerService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+
+import java.math.BigDecimal;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 @Controller
 @RequestMapping("/accounts")
@@ -17,9 +25,32 @@ public class ChartOfAccountWebController {
     @Autowired
     private ChartOfAccountService chartOfAccountService;
 
+    @Autowired
+    private AccountingReportService accountingReportService;
+
+    @Autowired
+    private GeneralLedgerService generalLedgerService;
+
     @GetMapping
     public String list(Model model) {
-        model.addAttribute("accounts", chartOfAccountService.getAllAccounts());
+        List<ChartOfAccount> accounts = chartOfAccountService.getAllAccounts();
+        Map<Long, GeneralLedger> ledgersByAccountId = new HashMap<>();
+        for (GeneralLedger ledger : generalLedgerService.getAllLedgerAccounts()) {
+            ledgersByAccountId.put(ledger.getAccount().getId(), ledger);
+        }
+        Map<Long, BigDecimal> endingBalances = new HashMap<>();
+        for (ChartOfAccount account : accounts) {
+            BigDecimal openingBalance = account.getOpeningBalance() == null
+                    ? BigDecimal.ZERO
+                    : account.getOpeningBalance();
+            GeneralLedger ledger = ledgersByAccountId.get(account.getId());
+            BigDecimal postedBalance = ledger == null || ledger.getBalance() == null
+                    ? BigDecimal.ZERO
+                    : ledger.getBalance();
+            endingBalances.put(account.getId(), openingBalance.add(postedBalance));
+        }
+        model.addAttribute("accounts", accounts);
+        model.addAttribute("accountEndingBalances", endingBalances);
         model.addAttribute("accountTypes", AccountType.values());
         return "accounts/list";
     }
@@ -35,6 +66,27 @@ public class ChartOfAccountWebController {
         model.addAttribute("accounts", chartOfAccountService.getAllAccounts());
         model.addAttribute("isNew", true);
         return "accounts/form";
+    }
+
+    @GetMapping("/{id}")
+    public String detail(@PathVariable Long id, Model model, RedirectAttributes ra) {
+        return chartOfAccountService.getAccountById(id)
+                .map(account -> {
+                    model.addAttribute("account", account);
+                    model.addAttribute("journalEntries", accountingReportService.getAccountTransactions(id));
+                    BigDecimal openingBalance = account.getOpeningBalance() == null
+                            ? BigDecimal.ZERO
+                            : account.getOpeningBalance();
+                    BigDecimal postedBalance = generalLedgerService.getLedgerByAccountId(id)
+                            .map(GeneralLedger::getBalance)
+                            .orElse(BigDecimal.ZERO);
+                    model.addAttribute("endingBalance", openingBalance.add(postedBalance));
+                    return "accounts/detail";
+                })
+                .orElseGet(() -> {
+                    ra.addFlashAttribute("flashError", "Account not found");
+                    return "redirect:/accounts";
+                });
     }
 
     @GetMapping("/{id}/edit")

@@ -8,6 +8,7 @@ import com.cogitosum.entity.PaymentMethod;
 import com.cogitosum.service.ChartOfAccountService;
 import com.cogitosum.service.InvoiceService;
 import com.cogitosum.service.PaymentService;
+import com.cogitosum.service.TaxFilingService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.stereotype.Controller;
@@ -27,10 +28,13 @@ public class PaymentWebController {
     @Autowired private InvoiceService invoiceService;
     @Autowired private ChartOfAccountService accountService;
     @Autowired private com.cogitosum.service.CustomerService customerService;
+    @Autowired private TaxFilingService taxFilingService;
 
     @GetMapping
     public String list(Model model) {
         model.addAttribute("payments", paymentService.getAllPayments());
+        model.addAttribute("customers", customerService.getAllCustomers());
+        model.addAttribute("dateFilterPeriods", taxFilingService.getDateFilterPeriods(LocalDate.now()));
         return "payments/list";
     }
 
