@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en" th:lang="${#locale.language}" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(#{reconcile.reports.title})}"></head>
+<body>
+<div class="portal-shell">
+    <div th:replace="~{fragments/layout :: sidebar('reconciliation-reports')}"></div>
+    <main class="portal-main">
+        <div th:replace="~{fragments/layout :: topbar(#{reconcile.reports.title})}"></div>
+        <section class="portal-content">
+            <div th:replace="~{fragments/layout :: flash}"></div>
+            <div class="portal-card">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h3 class="portal-card-title mb-0" th:text="#{reconcile.reports.title}">
+                        Reconciliation Reports
+                    </h3>
+                    <a th:href="@{/reconcile}" class="btn-portal btn-ghost" th:text="#{btn.back}">
+                        Back
+                    </a>
+                </div>
+                <div class="table-responsive" th:if="${not #lists.isEmpty(sessions)}">
+                    <table class="table-portal">
+                        <thead>
+                        <tr>
+                            <th th:text="#{reconcile.reports.statementDate}">Statement date</th>
+                            <th th:text="#{reconcile.reports.account}">Bank account</th>
+                            <th class="num" th:text="#{reconcile.beginBalance}">Beginning balance</th>
+                            <th class="num" th:text="#{reconcile.netAmount}">Cleared activity</th>
+                            <th class="num" th:text="#{reconcile.statementEndingBalance}">Ending balance</th>
+                            <th th:text="#{reconcile.reports.completedAt}">Completed</th>
+                            <th th:text="#{btn.actions}">Actions</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr th:each="reconciliation : ${sessions}">
+                            <td th:text="${#temporals.format(reconciliation.statementDate, 'yyyy-MM-dd')}">2026-09-30</td>
+                            <td th:text="${reconciliation.bankAccount.accountNumber + ' — ' + reconciliation.bankAccount.accountName}">
+                                1000 — Bank
+                            </td>
+                            <td class="num" th:text="${#numbers.formatCurrency(reconciliation.openingBalance)}">$0.00</td>
+                            <td class="num" th:text="${#numbers.formatCurrency(reconciliation.transactionTotal)}">$0.00</td>
+                            <td class="num" th:text="${#numbers.formatCurrency(reconciliation.endingBalance)}">$0.00</td>
+                            <td th:text="${#temporals.format(reconciliation.completedAt, 'yyyy-MM-dd HH:mm')}">2026-09-30 12:00</td>
+                            <td>
+                                <a th:href="@{/reconcile/sessions/{id}/report.pdf(id=${reconciliation.id})}"
+                                   class="btn-portal btn-sm">
+                                    <i class="bi bi-download"></i>
+                                    <span th:text="#{reconcile.reports.download}">Download PDF</span>
+                                </a>
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div th:if="${#lists.isEmpty(sessions)}" class="empty-state"
+                     th:text="#{reconcile.reports.empty}">
+                    No completed bank reconciliations yet.
+                </div>
+            </div>
+        </section>
+    </main>
+</div>
+</body>
+</html>

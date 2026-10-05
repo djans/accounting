@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(#{admin.reset.title})}"></head>
+<body>
+<div class="portal-shell">
+    <div th:replace="~{fragments/layout :: sidebar(${active})}"></div>
+    <main class="portal-main">
+        <div th:replace="~{fragments/layout :: topbar(#{admin.reset.title})}"></div>
+        <section class="portal-content">
+            <div th:replace="~{fragments/layout :: flash}"></div>
+
+            <div class="portal-card">
+                <h3 class="portal-card-title" th:text="#{admin.reset.scopeTitle}">Reset activity data</h3>
+                <p th:text="#{admin.reset.scope(${company.name})}">
+                    This operation affects only the current company.
+                </p>
+                <div class="alert alert-danger" role="alert">
+                    <strong th:text="#{admin.reset.warningTitle}">Irreversible operation</strong>
+                    <span th:text="#{admin.reset.warning}">A backup is strongly recommended before continuing.</span>
+                    <a th:href="@{/database/backup/export}" th:text="#{admin.reset.backupLink}">Download a database backup</a>
+                </div>
+                <p class="text-muted" th:text="#{admin.reset.preserved}">
+                    Customers, vendors, tax setup and bank opening balances are preserved; bank imports and reconciliation sessions are deleted.
+                </p>
+            </div>
+
+            <div class="portal-card">
+                <h3 class="portal-card-title" th:text="#{admin.reset.countsTitle}">Records that will be deleted</h3>
+                <table class="table-portal">
+                    <tbody>
+                    <tr><td th:text="#{admin.reset.invoices}">Sales invoices</td><td class="num" th:text="${counts.invoices()}">0</td></tr>
+                    <tr><td th:text="#{admin.reset.customerPayments}">Customer payments</td><td class="num" th:text="${counts.customerPayments()}">0</td></tr>
+                    <tr><td th:text="#{admin.reset.bills}">Purchase invoices</td><td class="num" th:text="${counts.bills()}">0</td></tr>
+                    <tr><td th:text="#{admin.reset.vendorPayments}">Supplier payments</td><td class="num" th:text="${counts.vendorPayments()}">0</td></tr>
+                    <tr><td th:text="#{admin.reset.cheques}">Written cheques</td><td class="num" th:text="${counts.cheques()}">0</td></tr>
+                    <tr><td th:text="#{admin.reset.creditCardCharges}">Credit card charges</td><td class="num" th:text="${counts.creditCardCharges()}">0</td></tr>
+                    <tr><td th:text="#{admin.reset.transfers}">Transfers</td><td class="num" th:text="${counts.transfers()}">0</td></tr>
+                    <tr><td th:text="#{admin.reset.journals}">General journal entries</td><td class="num" th:text="${counts.journals()}">0</td></tr>
+                    <tr><td th:text="#{admin.reset.taxFilingPeriods}">Sales tax filing periods</td><td class="num" th:text="${counts.taxFilingPeriods()}">0</td></tr>
+                    <tr><td th:text="#{admin.reset.fiscalYears}">Fiscal years and closing entries</td><td class="num" th:text="${counts.fiscalYears()}">0</td></tr>
+                    <tr><td th:text="#{admin.reset.importedBankTransactions}">Imported bank transactions</td><td class="num" th:text="${counts.importedBankTransactions()}">0</td></tr>
+                    <tr><td th:text="#{admin.reset.reconciliationSessions}">Reconciliation sessions</td><td class="num" th:text="${counts.reconciliationSessions()}">0</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="portal-card">
+                <h3 class="portal-card-title" th:text="#{admin.reset.bankTitle}">Reset existing bank reconciliation data</h3>
+                <p th:text="#{admin.reset.bankWarning}">
+                    This clears only the current company's imported bank transactions and completed reconciliation sessions.
+                    The latest reconciled ending balance and statement date are carried into the bank account opening balance.
+                </p>
+                <form th:action="@{/admin/reset/reconciliation}" method="post">
+                    <div class="form-field">
+                        <label for="bank-reset-confirmation" th:text="#{admin.reset.bankTypePrompt}">Type RESET BANK to confirm</label>
+                        <input id="bank-reset-confirmation" type="text" name="confirmation"
+                               required pattern="RESET BANK" autocomplete="off" />
+                    </div>
+                    <label class="d-flex align-items-center gap-2 my-3">
+                        <input type="checkbox" name="confirmReset" value="true" required />
+                        <span th:text="#{admin.reset.bankCheckbox}">I understand this removes the existing bank import and reconciliation history.</span>
+                    </label>
+                    <div class="form-actions">
+                        <button type="submit" class="btn-portal btn-danger"
+                                th:data-confirm="#{admin.reset.bankBrowserConfirm}"
+                                onclick="return confirm(this.getAttribute('data-confirm'))">
+                            <i class="bi bi-arrow-counterclockwise"></i>
+                            <span th:text="#{admin.reset.bankSubmit}">Reset bank reconciliation data</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="portal-card">
+                <h3 class="portal-card-title" th:text="#{admin.reset.confirmTitle}">Confirm reset</h3>
+                <form th:action="@{/admin/reset}" method="post">
+                    <div class="form-field">
+                        <label for="reset-confirmation" th:text="#{admin.reset.typePrompt}">Type RESET to confirm</label>
+                        <input id="reset-confirmation" type="text" name="confirmation"
+                               required pattern="RESET" autocomplete="off" />
+                    </div>
+                    <label class="d-flex align-items-center gap-2 my-3">
+                        <input type="checkbox" name="confirmReset" value="true" required />
+                        <span th:text="#{admin.reset.checkbox}">I understand this deletion cannot be undone.</span>
+                    </label>
+                    <div class="form-actions">
+                        <button type="submit" class="btn-portal btn-danger"
+                                th:data-confirm="#{admin.reset.browserConfirm}"
+                                onclick="return confirm(this.getAttribute('data-confirm'))">
+                            <i class="bi bi-arrow-counterclockwise"></i>
+                            <span th:text="#{nav.resetData}">Reset activities</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </section>
+    </main>
+</div>
+</body>
+</html>

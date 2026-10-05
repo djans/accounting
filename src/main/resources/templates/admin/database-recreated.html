@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(#{admin.schemaReset.completedTitle})}"></head>
+<body>
+<main class="portal-main" style="max-width:720px;margin:4rem auto;">
+    <section class="portal-content">
+        <div class="portal-card">
+            <h1 class="portal-card-title" th:text="#{admin.schemaReset.completedTitle}">Database schema recreated</h1>
+            <p th:text="#{admin.schemaReset.completed}">
+                All database tables were dropped and recreated from schema.sql. No records remain.
+            </p>
+            <p th:text="#{admin.schemaReset.restart}">
+                Restart and sign in with root@example.com and password, then change those initial credentials.
+            </p>
+            <a class="btn-portal" th:href="@{/login}" th:text="#{auth.login.link}">Sign in</a>
+        </div>
+    </section>
+</main>
+</body>
+</html>

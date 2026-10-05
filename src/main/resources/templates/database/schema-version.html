@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(#{database.schema.title})}"></head>
+<body>
+<div class="portal-shell">
+    <div th:replace="~{fragments/layout :: sidebar(${active})}"></div>
+    <main class="portal-main">
+        <div th:replace="~{fragments/layout :: topbar(#{database.schema.title})}"></div>
+        <section class="portal-content">
+            <div th:replace="~{fragments/layout :: flash}"></div>
+
+            <div class="portal-card">
+                <h3 class="portal-card-title" th:text="#{database.schema.summaryTitle}">Database schema status</h3>
+                <p>
+                    <span th:text="#{database.schema.currentVersion}">Installed version</span>:
+                    <strong th:text="${schemaStatus.currentVersion()}">1.0.0</strong>
+                </p>
+                <p>
+                    <span th:text="#{database.schema.latestVersion}">Latest available version</span>:
+                    <strong th:text="${schemaStatus.latestVersion()}">1.1.0</strong>
+                </p>
+                <div th:if="${schemaStatus.upToDate()}" class="alert alert-success" role="status"
+                     th:text="#{database.schema.upToDate}">
+                    The database schema is up to date.
+                </div>
+                <div th:if="${schemaStatus.updateAvailable()}" class="alert alert-warning" role="alert">
+                    <span th:text="#{database.schema.updateAvailable}">
+                        A schema update is available. Back up the database before continuing.
+                    </span>
+                    <a th:if="${isAdmin}" th:href="@{/database/backup/export}"
+                       th:text="#{database.schema.backupLink}">Download a database backup</a>
+                </div>
+                <div th:if="${!schemaStatus.migrationPossible()}" class="alert alert-danger" role="alert">
+                    <strong th:text="#{database.schema.migrationBlocked}">Automatic migration is unavailable.</strong>
+                    <span th:text="${schemaStatus.issue()}"></span>
+                </div>
+                <div th:if="${schemaStatus.requiresBackup()}" class="alert alert-danger" role="alert">
+                    <span th:text="#{database.schema.backupRequired}">
+                        One or more migrations may affect existing data. A backup is required before applying them.
+                    </span>
+                    <a th:if="${isAdmin}" th:href="@{/database/backup/export}"
+                       th:text="#{database.schema.backupLink}">Download a database backup</a>
+                </div>
+            </div>
+
+            <div class="portal-card">
+                <h3 class="portal-card-title" th:text="#{database.schema.historyTitle}">Available schema versions</h3>
+                <table class="table-portal">
+                    <thead>
+                    <tr>
+                        <th th:text="#{database.schema.version}">Version</th>
+                        <th th:text="#{database.schema.description}">Description</th>
+                        <th th:text="#{database.schema.status}">Status</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="version : ${schemaVersions}">
+                        <td th:text="${version.version()}">1.0.0</td>
+                        <td>
+                            <strong th:text="${version.title()}">Version title</strong>
+                            <div class="text-muted small" th:text="${version.description()}">Description</div>
+                        </td>
+                        <td>
+                            <span th:if="${version.current()}" th:text="#{database.schema.statusCurrent}">Current</span>
+                            <span th:if="${!version.current() && version.applied()}"
+                                  th:text="#{database.schema.statusApplied}">Installed</span>
+                            <span th:if="${!version.applied()}" th:text="#{database.schema.statusPending}">Available</span>
+                            <span th:if="${version.requiresBackup()}" class="text-danger"
+                                  th:text="#{database.schema.statusBackupRequired}">Backup required</span>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div th:if="${schemaStatus.updateAvailable() && isAdmin}" class="portal-card">
+                <h3 class="portal-card-title" th:text="#{database.schema.applyTitle}">Apply available updates</h3>
+                <form th:action="@{/database/schema/apply}" method="post">
+                    <label th:if="${schemaStatus.requiresBackup()}" class="d-flex align-items-center gap-2 my-3">
+                        <input type="checkbox" name="backupConfirmed" value="true" required/>
+                        <span th:text="#{database.schema.backupConfirmation}">
+                            I have downloaded a backup and understand that this migration may change existing data.
+                        </span>
+                    </label>
+                    <div class="form-actions">
+                        <button type="submit" class="btn-portal"
+                                th:data-confirm="#{database.schema.browserConfirm}"
+                                onclick="return confirm(this.getAttribute('data-confirm'))">
+                            <i class="bi bi-database-up"></i>
+                            <span th:text="#{database.schema.applyButton}">Update database schema</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+            <div th:if="${schemaStatus.updateAvailable() && !isAdmin}" class="portal-card">
+                <p th:text="#{database.schema.contactAdmin}">
+                    An administrator must approve and apply the schema update.
+                </p>
+            </div>
+
+            <div class="portal-card">
+                <h3 class="portal-card-title" th:text="#{database.schema.resetTitle}">Complete database reset</h3>
+                <p th:text="#{database.schema.resetWarning}">
+                    A reset permanently deletes all records and reinstalls the schema. Download a backup first.
+                </p>
+                <a th:href="@{/database/backup/export}" class="btn-portal btn-ghost"
+                   th:if="${isAdmin}" th:text="#{database.schema.backupLink}">Download a database backup</a>
+                <a th:href="@{/admin/database/recreate}" class="btn-portal btn-danger"
+                   th:if="${isAdmin}" th:text="#{database.schema.resetLink}">Reset database</a>
+            </div>
+        </section>
+    </main>
+</div>
+</body>
+</html>

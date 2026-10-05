@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(#{tax.detail.lineBreakdownTitle})}"></head>
+<body>
+<div class="portal-shell">
+    <div th:replace="~{fragments/layout :: sidebar(${active})}"></div>
+    <main class="portal-main">
+        <div th:replace="~{fragments/layout :: topbar(|${period.agency.code} · ${period.periodStart} → ${period.periodEnd}|)}"></div>
+        <section class="portal-content">
+            <div th:replace="~{fragments/layout :: flash}"></div>
+
+            <div class="portal-card">
+                <div class="portal-card-title">
+                    <span th:text="#{tax.detail.lineBreakdownTitle}">Filing line details</span>
+                    <a class="btn-portal btn-ghost btn-sm"
+                       th:href="@{/tax/periods/{id}(id=${period.id})}"
+                       th:text="#{tax.detail.backToPeriod}">Back to filing period</a>
+                </div>
+                <div class="form-grid">
+                    <div>
+                        <div class="stat-label" th:text="#{tax.detail.returnLine}">Line</div>
+                        <div>
+                            <span th:if="${returnRow.line() != null}" th:text="${returnRow.line()}">101</span>
+                            <span th:text="${#messages.msg(returnRow.descriptionKey())}">Sales and other revenue</span>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="stat-label" th:text="#{tax.detail.returnLineBalance}">Reported amount</div>
+                        <div class="stat-value" th:text="${#numbers.formatCurrency(lineAmount)}">$0.00</div>
+                    </div>
+                    <div class="full" style="grid-column:1/-1"
+                         th:if="${period.status.name() == 'FILED' or period.status.name() == 'PAID'}">
+                        <div class="flash flash-info" role="status" th:text="#{tax.detail.lineBreakdownFiledNote}">
+                            These details reflect current records; the filed PDF retains its saved historical snapshot.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="portal-card">
+                <h3 class="portal-card-title" th:text="#{tax.detail.lineSources}">Sources contributing to this line</h3>
+                <table class="table-portal">
+                    <thead>
+                    <tr>
+                        <th th:text="#{table.date}">Date</th>
+                        <th th:text="#{tax.detail.sourceType}">Source type</th>
+                        <th th:text="#{tax.detail.sourceDocument}">Document</th>
+                        <th th:text="#{tax.detail.sourceDescription}">Description</th>
+                        <th class="num" th:text="#{tax.detail.taxableAmount}">Taxable amount</th>
+                        <th class="num" th:text="#{tax.detail.rate}">Rate</th>
+                        <th class="num" th:text="#{tax.detail.returnLineAmount}">Contribution</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="detail : ${lineDetails}">
+                        <td th:text="${detail.date() != null ? detail.date() : '—'}">2026-01-01</td>
+                        <td th:text="${#messages.msg('tax.detail.source.' + #strings.toLowerCase(detail.sourceType()))}">
+                            Invoice
+                        </td>
+                        <td>
+                            <a th:if="${detail.sourceType() == 'INVOICE'}"
+                               th:href="@{/invoices/{id}(id=${detail.sourceId()})}"
+                               th:text="${detail.documentNumber()}">INV-001</a>
+                            <a th:if="${detail.sourceType() == 'BILL'}"
+                               th:href="@{/bills/{id}(id=${detail.sourceId()})}"
+                               th:text="${detail.documentNumber()}">BILL-001</a>
+                            <span th:if="${detail.sourceType() == 'CREDIT_CARD_CHARGE' or detail.sourceType() == 'CHEQUE'}"
+                                  th:text="${detail.documentNumber()}">CC-001</span>
+                            <a th:if="${detail.sourceType() == 'JOURNAL'}"
+                               th:href="@{/journals/{id}(id=${detail.sourceId()})}"
+                               th:text="${detail.documentNumber()}">JL-001 / 1</a>
+                            <a th:if="${detail.sourceType() == 'CALCULATION' and detail.calculationKey() == 'tax.detail.formulaContribution'}"
+                               th:href="@{/tax/periods/{id}/lines/{line}(id=${period.id},line=${detail.documentNumber()})}"
+                               th:text="${detail.documentNumber()}">103</a>
+                            <span th:if="${detail.sourceType() == 'CALCULATION' and detail.calculationKey() != 'tax.detail.formulaContribution'}">—</span>
+                        </td>
+                        <td>
+                            <span th:if="${detail.calculationKey() != null}"
+                                  th:text="${#messages.msg(detail.calculationKey(), detail.documentNumber())}">
+                                Included from return line 103
+                            </span>
+                            <span th:unless="${detail.calculationKey() != null}"
+                                  th:text="${detail.description() != null and !detail.description().isBlank() ? detail.description() : '—'}">
+                                Tax item
+                            </span>
+                        </td>
+                        <td class="num"
+                            th:text="${detail.taxableAmount() != null ? #numbers.formatCurrency(detail.taxableAmount()) : '—'}">$0.00</td>
+                        <td class="num"
+                            th:text="${detail.rate() != null ? #numbers.formatPercent(detail.rate(), 1, 2) : '—'}">5%</td>
+                        <td class="num" th:text="${#numbers.formatCurrency(detail.amount())}">$0.00</td>
+                    </tr>
+                    <tr th:if="${#lists.isEmpty(lineDetails)}">
+                        <td colspan="7" class="text-center text-muted" th:text="#{tax.detail.noLineSources}">
+                            No individual source contributions for this line.
+                        </td>
+                    </tr>
+                    </tbody>
+                    <tfoot>
+                    <tr style="font-weight:600">
+                        <td colspan="6" class="num" th:text="#{table.totals}">Total</td>
+                        <td class="num" th:text="${#numbers.formatCurrency(detailTotal)}">$0.00</td>
+                    </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </section>
+    </main>
+</div>
+</body>
+</html>

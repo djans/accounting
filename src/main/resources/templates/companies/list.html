@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en" th:lang="${#locale.language}" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(#{company.list.title})}"></head>
+<body>
+<div class="portal-shell">
+    <div th:replace="~{fragments/layout :: sidebar('companies')}"></div>
+    <main class="portal-main">
+        <div th:replace="~{fragments/layout :: topbar(#{company.list.title})}"></div>
+        <section class="portal-content">
+            <div class="portal-card">
+                <div class="portal-card-header d-flex justify-content-between align-items-center mb-4">
+                    <h3 class="portal-card-title mb-0" th:text="#{company.list.heading}">Your companies</h3>
+                    <a th:if="${canCreateCompany}" th:href="@{/companies/new}" class="btn-portal">
+                        <i class="bi bi-plus-lg"></i> <span th:text="#{company.create}">Create company</span>
+                    </a>
+                </div>
+                <p th:if="${canManagePostedJournalEditing}"
+                   class="text-muted" th:text="#{company.postedJournalEditing.description}">
+                    Allow posted journal contents and dates to be changed for a company.
+                </p>
+                <div th:if="${companyNotice}" class="flash flash-success" th:text="#{${companyNotice}}"></div>
+                <div th:if="${#lists.isEmpty(companies)}" class="empty-state" th:text="#{company.list.empty}">
+                    No companies are available.
+                </div>
+                <div th:if="${not #lists.isEmpty(companies)}" class="table-responsive">
+                    <table class="table-portal">
+                        <thead>
+                        <tr>
+                            <th th:text="#{company.name}">Company</th>
+                            <th th:text="#{company.legalName}">Legal name</th>
+                            <th th:text="#{company.email}">Email</th>
+                            <th th:if="${canManagePostedJournalEditing}"
+                                th:text="#{company.postedJournalEditing}">Posted journal editing</th>
+                            <th th:text="#{company.status}">Status</th>
+                            <th class="text-end" th:text="#{table.actions}">Actions</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr th:each="company : ${companies}">
+                            <td th:text="${company.name}">Company name</td>
+                            <td th:text="${company.legalName}">Legal name</td>
+                            <td th:text="${company.email}">email@example.com</td>
+                            <td th:if="${canManagePostedJournalEditing}">
+                                <span class="badge"
+                                      th:classappend="${company.postedJournalEditingEnabled} ? ' bg-warning text-dark' : ' bg-secondary'"
+                                      th:text="${company.postedJournalEditingEnabled ? #messages.msg('company.postedJournalEditing.enabledStatus') : #messages.msg('company.postedJournalEditing.disabledStatus')}">
+                                    Disabled
+                                </span>
+                                <form th:action="@{/companies/{id}/posted-journal-editing(id=${company.id})}"
+                                      method="post" class="mt-2">
+                                    <input type="hidden" name="enabled"
+                                           th:value="${!company.postedJournalEditingEnabled}"/>
+                                    <button type="submit" class="btn-portal btn-ghost btn-sm"
+                                            th:text="${company.postedJournalEditingEnabled ? #messages.msg('company.postedJournalEditing.disable') : #messages.msg('company.postedJournalEditing.enable')}">
+                                        Enable
+                                    </button>
+                                </form>
+                            </td>
+                            <td>
+                                <span th:if="${company.id == currentCompanyId}" class="badge bg-success"
+                                      th:text="#{company.current}">Current</span>
+                            </td>
+                            <td class="text-end">
+                                <form th:if="${company.id != currentCompanyId}"
+                                      th:action="@{/companies/{id}/select(id=${company.id})}" method="post">
+                                    <button type="submit" class="btn-portal btn-ghost btn-sm"
+                                            th:text="#{company.switch}">Switch</button>
+                                </form>
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+    </main>
+</div>
+</body>
+</html>

@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en" th:lang="${#locale.language}" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(#{transfers.view})}"></head>
+<body>
+<div class="portal-shell">
+    <div th:replace="~{fragments/layout :: sidebar('transfers')}"></div>
+    <main class="portal-main">
+        <div th:replace="~{fragments/layout :: topbar(#{transfers.view})}"></div>
+        <section class="portal-content">
+            <div th:replace="~{fragments/layout :: flash}"></div>
+
+            <div class="portal-card mb-4">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h3 class="mb-0">
+                        <span th:text="#{transfers.detailsHeading}">Transfer details</span>
+                        <span class="badge-pill"
+                              th:classappend="${' ' + #strings.toLowerCase(transfer.status.name())}"
+                              th:text="${#messages.msg('transfers.status.' + #strings.toLowerCase(transfer.status.name()))}">
+                            Posted
+                        </span>
+                    </h3>
+                    <a th:href="@{/transfers}" class="btn-portal btn-ghost">
+                        <i class="bi bi-arrow-left"></i>
+                        <span th:text="#{btn.back}">Back</span>
+                    </a>
+                </div>
+            </div>
+
+            <div class="portal-card mb-4">
+                <div class="form-grid">
+                    <div>
+                        <div class="stat-label" th:text="#{form.date}">Date</div>
+                        <div th:text="${transfer.transferDate != null ? #temporals.format(transfer.transferDate, 'yyyy-MM-dd') : '—'}">
+                            2026-01-01
+                        </div>
+                    </div>
+                    <div>
+                        <div class="stat-label" th:text="#{form.amount}">Amount</div>
+                        <div th:text="${#numbers.formatCurrency(transfer.amount)}">$0.00</div>
+                    </div>
+                    <div>
+                        <div class="stat-label" th:text="#{form.fromAccount}">From account</div>
+                        <div th:text="${transfer.fromAccount.accountNumber + ' — ' + transfer.fromAccount.accountName}">
+                            1000 — Bank
+                        </div>
+                    </div>
+                    <div>
+                        <div class="stat-label" th:text="#{form.toAccount}">To account</div>
+                        <div th:text="${transfer.toAccount.accountNumber + ' — ' + transfer.toAccount.accountName}">
+                            1010 — Savings
+                        </div>
+                    </div>
+                    <div class="full" style="grid-column:1/-1">
+                        <div class="stat-label" th:text="#{form.memo}">Memo</div>
+                        <div th:text="${!#strings.isEmpty(transfer.notes) ? transfer.notes : '—'}">—</div>
+                    </div>
+                    <div th:if="${transfer.voidReason != null}">
+                        <div class="stat-label" th:text="#{transfers.voidReason}">Reversal reason</div>
+                        <div th:text="${transfer.voidReason}">Reason</div>
+                    </div>
+                    <div th:if="${transfer.voidedAt != null}">
+                        <div class="stat-label" th:text="#{transfers.reversedAt}">Reversed on</div>
+                        <div th:text="${#temporals.format(transfer.voidedAt, 'yyyy-MM-dd HH:mm')}">2026-01-01 00:00</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="portal-card" th:if="${transfer.journal != null}">
+                <h4 class="portal-card-title" th:text="#{transfers.journalDetails}">General journal posting</h4>
+                <div class="form-grid mb-4">
+                    <div>
+                        <div class="stat-label" th:text="#{table.journalNumber}">Journal #</div>
+                        <div th:text="${transfer.journal.journalNumber}">GJ-1</div>
+                    </div>
+                    <div>
+                        <div class="stat-label" th:text="#{transfers.journalDate}">Journal date</div>
+                        <div th:text="${#temporals.format(transfer.journal.journalDate, 'yyyy-MM-dd')}">2026-01-01</div>
+                    </div>
+                    <div>
+                        <div class="stat-label" th:text="#{transfers.reference}">Reference</div>
+                        <div th:text="${transfer.journal.reference}">TRANSFER-1</div>
+                    </div>
+                    <div>
+                        <div class="stat-label" th:text="#{table.status}">Status</div>
+                        <div th:text="${#messages.msg('journal.status.' + transfer.journal.status.name())}">Posted</div>
+                    </div>
+                    <div>
+                        <div class="stat-label" th:text="#{transfers.postedAt}">Posted at</div>
+                        <div th:text="${transfer.journal.postedDate != null ? #temporals.format(transfer.journal.postedDate, 'yyyy-MM-dd HH:mm') : '—'}">
+                            2026-01-01 00:00
+                        </div>
+                    </div>
+                    <div>
+                        <div class="stat-label" th:text="#{transfers.postedBy}">Posted by</div>
+                        <div th:text="${transfer.journal.postedBy != null ? transfer.journal.postedBy : '—'}">portal</div>
+                    </div>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table-portal">
+                        <thead>
+                        <tr>
+                            <th th:text="#{table.number}">#</th>
+                            <th th:text="#{table.account}">Account</th>
+                            <th th:text="#{table.description}">Description</th>
+                            <th class="num" th:text="#{table.debit}">Debit</th>
+                            <th class="num" th:text="#{table.credit}">Credit</th>
+                            <th th:text="#{transfers.reconciliationStatus}">Reconciliation status</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr th:each="entry : ${transfer.journal.entries}">
+                            <td th:text="${entry.lineNumber}">1</td>
+                            <td th:text="${entry.account.accountNumber + ' — ' + entry.account.accountName}">1000 — Bank</td>
+                            <td th:text="${!#strings.isEmpty(entry.description) ? entry.description : transfer.journal.narrative}">
+                                Transfer details
+                            </td>
+                            <td class="num"
+                                th:text="${entry.debit != null and entry.debit.signum() != 0 ? #numbers.formatCurrency(entry.debit) : '—'}">
+                                —
+                            </td>
+                            <td class="num"
+                                th:text="${entry.credit != null and entry.credit.signum() != 0 ? #numbers.formatCurrency(entry.credit) : '—'}">
+                                —
+                            </td>
+                            <td th:text="${entry.cleared ? #messages.msg('transfers.reconciled') : #messages.msg('transfers.notReconciled')}">
+                                Not reconciled
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="portal-card text-muted" th:if="${transfer.journal == null}"
+                 th:text="#{transfers.noJournal}">
+                No journal entry has been created for this transfer.
+            </div>
+        </section>
+    </main>
+</div>
+</body>
+</html>

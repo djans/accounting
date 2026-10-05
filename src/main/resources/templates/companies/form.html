@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en" th:lang="${#locale.language}" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(#{company.new.title})}"></head>
+<body>
+<div class="portal-shell">
+    <div th:replace="~{fragments/layout :: sidebar('companies')}"></div>
+    <main class="portal-main">
+        <div th:replace="~{fragments/layout :: topbar(#{company.new.title})}"></div>
+        <section class="portal-content">
+            <div class="portal-card">
+                <h3 class="portal-card-title mb-4" th:text="#{company.new.heading}">Create a company</h3>
+                <div th:if="${companyError}" class="flash flash-error" th:text="#{${companyError}}"></div>
+                <form th:action="@{/companies}" th:object="${company}" method="post">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label" for="name" th:text="#{company.name}">Company name</label>
+                            <input class="form-control" id="name" th:field="*{name}" required maxlength="255"/>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="legalName" th:text="#{company.legalName}">Legal name</label>
+                            <input class="form-control" id="legalName" th:field="*{legalName}" required maxlength="255"/>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="email" th:text="#{company.email}">Unique company email</label>
+                            <input class="form-control" id="email" type="email" th:field="*{email}" required maxlength="255"/>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="phone" th:text="#{company.phone}">Phone</label>
+                            <input class="form-control" id="phone" th:field="*{phone}" required maxlength="255"/>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="address" th:text="#{company.address}">Address</label>
+                            <input class="form-control" id="address" th:field="*{address}" required maxlength="255"/>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="city" th:text="#{company.city}">City</label>
+                            <input class="form-control" id="city" th:field="*{city}" required maxlength="255"/>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label" for="province" th:text="#{company.province}">Province / state</label>
+                            <input class="form-control" id="province" th:field="*{province}" required maxlength="255"/>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label" for="postalCode" th:text="#{company.postalCode}">Postal code</label>
+                            <input class="form-control" id="postalCode" th:field="*{postalCode}" required maxlength="255"/>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label" for="country" th:text="#{company.country}">Country</label>
+                            <input class="form-control" id="country" th:field="*{country}" required maxlength="255"/>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="sourceCompanyId" th:text="#{company.cloneFrom}">Copy setup from</label>
+                            <select class="form-select" id="sourceCompanyId" name="sourceCompanyId">
+                                <option value="" th:text="#{company.cloneNone}">Start blank</option>
+                                <option th:each="source : ${sourceCompanies}" th:value="${source.id}"
+                                        th:text="${source.name}">Source company</option>
+                            </select>
+                            <div class="form-text" th:text="#{company.cloneScope}">
+                                Only company settings, chart of accounts, and tax configuration are copied.
+                            </div>
+                        </div>
+                    </div>
+                    <div class="d-flex gap-2 mt-4">
+                        <button type="submit" class="btn-portal" th:text="#{company.create}">Create company</button>
+                        <a th:href="@{/companies}" class="btn-portal btn-ghost" th:text="#{btn.cancel}">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </section>
+    </main>
+</div>
+</body>
+</html>

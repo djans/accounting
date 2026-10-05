@@ -1,0 +1,48 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 25
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '25'
+
+      - name: Cache Maven packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-m2-
+
+      - name: Build and test
+        run: mvn -B test
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports
+          path: target/surefire-reports
+
+      # Optional: SonarQube step (requires SONAR_TOKEN secret and sonar.host.url input)
+      # - name: SonarQube Scan
+      #   uses: SonarSource/sonarcloud-github-action@master
+      #   with:
+      #     args: >
+      #       -Dsonar.projectKey=your_project_key
+      #       -Dsonar.organization=your_org
+      #   env:
+      #     SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
