@@ -5,7 +5,7 @@ permissions:
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "develop" ]
 
 jobs:
   build:
@@ -44,7 +44,7 @@ jobs:
       # -----------------------------------------------------
       - name: Update deployment manifest
         run: |
-          sed -i "s|image: .*/accounting:.*|image: ${{ secrets.DOCKERHUB_USERNAME }}/accounting:${{ github.sha }}|" manifests/deployment.yaml
+          sed -i "s|image: .*|image: ${{ secrets.DOCKERHUB_USERNAME }}/accounting:${{ github.sha }}|" manifests/deployment.yaml
 
       # -----------------------------------------
       # Commit & push updated manifest to GitHub
@@ -54,5 +54,9 @@ jobs:
           git config user.name "github-actions"
           git config user.email "actions@github.com"
           git add manifests/deployment.yaml
+          if git diff --cached --quiet; then
+            echo "Deployment image is already up to date."
+            exit 0
+          fi
           git commit -m "Update image tag to ${{ github.sha }}"
           git push
