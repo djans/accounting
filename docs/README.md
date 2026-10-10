@@ -1,39 +1,43 @@
-# Canadian Billing System - Getting Started
+# Canadian Accounting System
 
-## Quick Start
+## Quick start
 
-### Prerequisites
-- Java 25 or higher
-- Maven 3.6 or higher
+### Requirements
+
+- Java 25
+- Maven
 - Docker (optional)
 
-### Clone and Build
+Build and run locally:
+
 ```bash
-# Navigate to project directory
-cd accounting
-
-# Build the project
-./build.sh          # On Linux/Mac
-build.bat          # On Windows
-
-# Or manually:
 mvn clean install
-```
-
-### Run Locally
-```bash
-# Development with auto-reload
 mvn spring-boot:run
-
-# Application will be available at:
-http://localhost:8080
 ```
+
+The application is available at `http://localhost:8080`.
+
+### First database setup
+
+When no local database configuration exists, the first launch opens the setup
+page at `http://localhost:8080/setup`. Select MySQL or SQLite, enter the
+connection details or SQLite file path, test the connection, and save. Restart
+the application to initialize the schema.
+
+MySQL setup requires credentials that can create the selected database. SQLite
+creates a new database file. The saved settings are stored outside the
+repository at `${user.home}/.accounting/database.properties`. Oracle and DB2
+are not supported. Switching database engines does not migrate existing data.
+
+The first-run setup server binds to `127.0.0.1` by default. To make it
+accessible remotely, configure both `APP_SETUP_BIND_ADDRESS` and a strong
+`APP_SETUP_TOKEN`. Persist `/root/.accounting` when running the Docker image so
+the database configuration and SQLite file survive container replacement.
 
 ### Optional invoice email
 
-PDF downloads are available from each invoice. Email delivery is disabled by
-default so a local installation never attempts an SMTP handoff unexpectedly.
-Set these environment variables to enable it:
+Invoice email is disabled by default. To enable it, provide runtime
+configuration through environment variables:
 
 ```text
 APP_INVOICE_MAIL_ENABLED=true
@@ -44,35 +48,56 @@ SMTP_PASSWORD=...
 INVOICE_MAIL_FROM=accounts@example.com
 ```
 
-Credentials are runtime configuration only; do not place them in source files.
-The email action attaches the generated PDF and only marks/posts a draft invoice
-after the SMTP sender accepts the message.
+Do not commit credentials to source control.
 
 ### Invoice and bill attachments
 
-Invoice and bill detail pages accept PDF, JPEG, and PNG files up to 10 MiB.
-Both the browser-reported content type and the binary signature must match.
-Attachment metadata and blob content are stored separately in the database; no
-uploads are published as static files. List, download, and delete operations
-are authenticated, company-scoped, and downloads use attachment disposition
-with `nosniff` and `no-store` headers. Attachments are included automatically
-by the existing JSON backup/restore format.
+Invoice and bill pages accept PDF, JPEG, and PNG attachments up to 10 MiB.
+Uploads are company-scoped and stored in the database; they are included in the
+application's JSON backup and restore.
 
-### Run with Docker
+### Docker
+
 ```bash
-# Build Docker image
 docker build -t accounting:1.0 .
-
-# Run container
-docker run -p 8080:8080 accounting:1.0
-
-# Or with Docker Compose
 docker-compose up
 ```
 
-## First Steps - Create Sample Data
+For direct `docker run` setup, configure the setup bind address and token and
+mount a persistent volume at `/root/.accounting`.
 
-### 1. Create a Customer
+## Application features
+
+- Company-scoped customer, invoice, payment, vendor, bill, and bill-payment workflows.
+- Double-entry journals, a general ledger, fiscal years, and accounting reports.
+- Tax agencies, codes, filing periods, calculations, and reconciliation.
+- Bank reconciliation, transfers, cheques, and credit-card charges.
+- Invoice and bill attachments, PDF generation, optional invoice email, and database backup/restore.
+- MySQL and SQLite persistence.
+
+## Documentation
+
+- [`API_DOCUMENTATION.md`](API_DOCUMENTATION.md) — current REST endpoint inventory.
+- [`GENERAL_JOURNAL_GUIDE.md`](GENERAL_JOURNAL_GUIDE.md) — journal workflows and examples.
+- [`ARCHITECTURE.md`](../ARCHITECTURE.md) — application layers, database setup, and schema lifecycle.
+- [`SCHEMA_VERSIONING.md`](SCHEMA_VERSIONING.md) — schema update and migration procedure.
+- [`INITIAL_DATA_MIGRATION_V1.md`](INITIAL_DATA_MIGRATION_V1.md) — initial-data import package contract.
+
+## Schema maintenance
+
+When a database structure changes, update both `src/main/resources/schema.sql`
+(MySQL) and `src/main/resources/schema-sqlite.sql` (SQLite), add and register a
+versioned migration for existing databases, and update the related tests.
+Follow [`SCHEMA_VERSIONING.md`](SCHEMA_VERSIONING.md) for the full procedure.
+
+## Sample API calls
+
+API access is subject to application authentication, authorization, and
+company-scoping rules. See [`API_DOCUMENTATION.md`](API_DOCUMENTATION.md) for
+the full route list.
+
+Create a customer:
+
 ```bash
 curl -X POST http://localhost:8080/api/customers \
   -H "Content-Type: application/json" \
@@ -84,13 +109,12 @@ curl -X POST http://localhost:8080/api/customers \
     "city": "Toronto",
     "province": "ON",
     "postalCode": "M5H 2N2",
-    "country": "Canada",
-    "businessNumber": "123456789",
-    "gstNumber": "123456789RT0001"
+    "country": "Canada"
   }'
 ```
 
-### 2. Get the Customer ID from response, then Create an Invoice
+Create an invoice using the returned customer ID:
+
 ```bash
 curl -X POST http://localhost:8080/api/invoices \
   -H "Content-Type: application/json" \
@@ -98,140 +122,16 @@ curl -X POST http://localhost:8080/api/invoices \
     "customerId": 1,
     "lineItems": [
       {
-        "description": "Consulting Services - 10 hours",
-        "quantity": 10,
+        "description": "Consulting services",
+        "quantity": 2,
         "unitPrice": 150.00
-      },
-      {
-        "description": "Software License",
-        "quantity": 1,
-        "unitPrice": 500.00
       }
-    ],
-    "notes": "Thank you for your business!"
+    ]
   }'
 ```
-
-### 3. Record a Payment
-```bash
-curl -X POST http://localhost:8080/api/payments \
-  -H "Content-Type: application/json" \
-  -d '{
-    "invoiceId": 1,
-    "amount": 1500.00,
-    "paymentMethod": "BANK_TRANSFER",
-    "transactionId": "TXN-001"
-  }'
-```
-
-### 4. View Reports
-```bash
-# Revenue Report
-curl "http://localhost:8080/api/reports/revenue?startDate=2024-05-01&endDate=2024-05-31"
-
-# Aging Analysis
-curl "http://localhost:8080/api/reports/aging"
-
-# Invoice Status Summary
-curl "http://localhost:8080/api/reports/invoice-status-summary"
-
-# Tax Summary
-curl "http://localhost:8080/api/reports/tax-summary?startDate=2024-05-01&endDate=2024-05-31"
-```
-
-## API Documentation
-
-See `API_DOCUMENTATION.md` for complete API reference with all endpoints and examples.
-
-## Implementation Details
-
-See `IMPLEMENTATION_SUMMARY.md` for detailed information about what was implemented.
-
-## Database schema versions
-
-See `SCHEMA_VERSIONING.md` for the installed schema version, update and backup flow, reset behavior, and instructions for adding future incremental migrations.
-
-## Project Structure
-
-- **entity/** - JPA entities (Customer, Invoice, LineItem, Payment)
-- **repository/** - Spring Data JPA repositories
-- **service/** - Business logic layer
-- **controller/** - REST API endpoints
-- **dto/** - Data Transfer Objects
-- **exception/** - Exception handling
-
-## Features Included
-
-✅ Customer Management
-✅ Invoice Creation & Tracking
-✅ Payment Processing
-✅ Automatic GST/HST Calculation (Canadian Tax System)
-✅ Business Reports & Analytics
-✅ Payment Status Tracking
-✅ Invoice Workflow Management
-✅ Docker Support
-✅ JPA Database Persistence
-✅ Exception Handling
-✅ Integration Tests
-
-## Database
-
-**Default**: H2 (in-memory, development/testing only)
-
-**To use PostgreSQL**:
-1. Update `src/main/resources/application.properties`:
-```properties
-spring.datasource.url=jdbc:postgresql://localhost:5432/accounting
-spring.datasource.username=postgres
-spring.datasource.password=your_password
-spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.PostgreSQLDialect
-```
-
-2. Create database:
-```sql
-CREATE DATABASE accounting;
-```
-
-## Common Endpoints
-
-| Method | Endpoint | Purpose |
-|--------|----------|---------|
-| POST | /api/customers | Create customer |
-| GET | /api/customers | List customers |
-| POST | /api/invoices | Create invoice |
-| GET | /api/invoices | List invoices |
-| GET | /api/invoices/overdue | Get overdue invoices |
-| POST | /api/payments | Record payment |
-| GET | /api/reports/revenue | Revenue report |
-| GET | /api/reports/aging | Aging analysis |
 
 ## Troubleshooting
 
-### Maven not found
-Install Maven from https://maven.apache.org/download.cgi
-
-### Port 8080 already in use
-Change port in `application.properties`:
-```properties
-server.port=8081
-```
-
-### H2 Database Console
-Access at: http://localhost:8080/h2-console
-- JDBC URL: jdbc:h2:mem:testdb
-- User Name: sa
-- Password: (leave blank)
-
-## Support
-
-For issues and questions, refer to `API_DOCUMENTATION.md` for detailed endpoint information.
-
-## Next Steps
-
-1. Add authentication/authorization
-2. Implement email notifications
-3. Add PDF invoice generation
-4. Integrate with payment gateways (Stripe, PayPal)
-5. Deploy to production environment
-
-Happy Billing! 🎉
+- **Port 8080 is already in use:** configure another `server.port`.
+- **Database setup cannot connect:** verify the MySQL URL and privileges, or that the SQLite path is writable.
+- **Database schema needs an update:** sign in as an administrator and use `/database/schema`; see the schema-versioning guide.

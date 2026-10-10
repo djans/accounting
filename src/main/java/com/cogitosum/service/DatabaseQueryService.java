@@ -37,8 +37,9 @@ public class DatabaseQueryService {
     public List<String> getApplicationTables() throws SQLException {
         try (Connection connection = dataSource.getConnection()) {
             DatabaseMetaData metadata = connection.getMetaData();
-            String catalog = connection.getCatalog();
-            String schema = connection.getSchema();
+            boolean sqlite = metadata.getDatabaseProductName().toLowerCase(Locale.ROOT).contains("sqlite");
+            String catalog = sqlite ? null : connection.getCatalog();
+            String schema = sqlite ? null : connection.getSchema();
             List<String> tables = new ArrayList<>();
             try (ResultSet results = metadata.getTables(catalog, schema, "%", new String[]{"TABLE"})) {
                 while (results.next()) {
@@ -142,7 +143,8 @@ public class DatabaseQueryService {
 
     private boolean isApplicationTable(String catalog, String schema, String tableCatalog,
                                        String tableSchema, String tableName) {
-        if (tableName == null || tableName.toLowerCase(Locale.ROOT).startsWith("flyway")) {
+        if (tableName == null || tableName.toLowerCase(Locale.ROOT).startsWith("flyway")
+                || tableName.toLowerCase(Locale.ROOT).startsWith("sqlite_")) {
             return false;
         }
         if (catalog != null && tableCatalog != null && !catalog.equalsIgnoreCase(tableCatalog)) {

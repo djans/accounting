@@ -18,6 +18,13 @@
 
 Before completing a change, verify that both language bundles still contain the keys used by modified templates.
 
+## Markdown documentation
+
+- Keep repository Markdown files (`*.md` and `*.MD`) accurate when a change affects application behavior, setup, APIs, architecture, database schemas, or developer workflows.
+- Review and update the relevant documentation in the same change; also update links and references when files move or are removed.
+- Remove Markdown documents that are obsolete or redundant instead of leaving stale instructions or implementation snapshots in the repository. Preserve historical material only when it is explicitly labeled as historical and remains useful.
+- Prefer one current reference per topic. Do not describe old implementation details, unsupported database engines, completed roadmap items, or endpoint lists as current.
+
 ## Initial-data migration packages
 
 - When changing `schema.sql`, an entity, or persistence rules for data handled by `InitialDataMigrationService`, review the package contract and its validation/import path in the same change.

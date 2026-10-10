@@ -1,7 +1,8 @@
 package com.cogitosum.web;
 
 import com.cogitosum.service.CompanyActivityResetService;
-import com.cogitosum.service.CompanyActivityResetService.ActivityCounts;
+import com.cogitosum.repository.CompanyActivityRepository.ActivityCounts;
+import com.cogitosum.repository.CompanyActivityRepository.BankReconciliationCounts;
 import com.cogitosum.service.CurrentCompanyContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -103,7 +104,7 @@ class CompanyActivityResetWebControllerTest {
     @Test
     void bankResetRunsForTheAdministratorAndReportsDeletedHistory() {
         when(resetService.resetBankReconciliationForCurrentCompany())
-                .thenReturn(new CompanyActivityResetService.BankReconciliationCounts(5, 2));
+                .thenReturn(new BankReconciliationCounts(5, 2));
         when(companyContext.requireCompanyId()).thenReturn(27L);
         when(messageSource.getMessage(
                 eq("admin.reset.bankSuccess"), any(Object[].class), any(Locale.class)))

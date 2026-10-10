@@ -14,6 +14,7 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
 
 @Service
 public class DatabaseSchemaVersionService {
@@ -125,7 +126,9 @@ public class DatabaseSchemaVersionService {
     }
 
     private boolean versionTableExists(Connection connection) throws SQLException {
-        String catalog = connection.getCatalog();
+        boolean sqlite = connection.getMetaData().getDatabaseProductName()
+                .toLowerCase(Locale.ROOT).contains("sqlite");
+        String catalog = sqlite ? null : connection.getCatalog();
         try (ResultSet tables = connection.getMetaData().getTables(catalog, null, "%",
                 new String[]{"TABLE"})) {
             while (tables.next()) {

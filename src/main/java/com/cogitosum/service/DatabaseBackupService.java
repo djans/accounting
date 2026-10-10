@@ -27,6 +27,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
@@ -123,10 +124,14 @@ public class DatabaseBackupService {
         Set<String> tables = new LinkedHashSet<>();
         try (Connection connection = dataSource.getConnection()) {
             DatabaseMetaData metadata = connection.getMetaData();
-            try (ResultSet result = metadata.getTables(connection.getCatalog(), connection.getSchema(), "%", new String[]{"TABLE"})) {
+            boolean sqlite = metadata.getDatabaseProductName().toLowerCase(Locale.ROOT).contains("sqlite");
+            String catalog = sqlite ? null : connection.getCatalog();
+            String schema = sqlite ? null : connection.getSchema();
+            try (ResultSet result = metadata.getTables(catalog, schema, "%", new String[]{"TABLE"})) {
                 while (result.next()) {
                     String name = result.getString("TABLE_NAME");
-                    if (name != null && !name.startsWith("flyway")) {
+                    if (name != null && !name.startsWith("flyway")
+                            && (!sqlite || !name.startsWith("sqlite_"))) {
                         tables.add(name);
                     }
                 }
@@ -141,7 +146,10 @@ public class DatabaseBackupService {
         Map<String, Integer> columnTypes = new java.util.HashMap<>();
         try (Connection connection = dataSource.getConnection()) {
             DatabaseMetaData metadata = connection.getMetaData();
-            try (ResultSet result = metadata.getColumns(connection.getCatalog(), connection.getSchema(), tableName, "%")) {
+            boolean sqlite = metadata.getDatabaseProductName().toLowerCase(Locale.ROOT).contains("sqlite");
+            String catalog = sqlite ? null : connection.getCatalog();
+            String schema = sqlite ? null : connection.getSchema();
+            try (ResultSet result = metadata.getColumns(catalog, schema, tableName, "%")) {
                 while (result.next()) {
                     columnTypes.put(result.getString("COLUMN_NAME"), result.getInt("DATA_TYPE"));
                 }
@@ -213,6 +221,10 @@ public class DatabaseBackupService {
             jdbcTemplate.execute("SET FOREIGN_KEY_CHECKS = " + (enabled ? "1" : "0"));
         } else if (product.contains("h2")) {
             jdbcTemplate.execute("SET REFERENTIAL_INTEGRITY " + (enabled ? "TRUE" : "FALSE"));
+        } else if (product.contains("sqlite")) {
+            if (!enabled) {
+                jdbcTemplate.execute("PRAGMA defer_foreign_keys = ON");
+            }
         } else {
             throw new IllegalStateException("Database backup is not supported for " + product);
         }

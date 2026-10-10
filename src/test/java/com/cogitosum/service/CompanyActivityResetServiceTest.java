@@ -3,6 +3,9 @@ package com.cogitosum.service;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import com.cogitosum.repository.CompanyActivityRepository.ActivityCounts;
+import com.cogitosum.repository.CompanyActivityRepository.BankReconciliationCounts;
+import com.cogitosum.repository.mysql.MysqlCompanyActivityRepository;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.mockito.Mock;
 import org.mockito.InOrder;
@@ -24,7 +27,7 @@ class CompanyActivityResetServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new CompanyActivityResetService(jdbcTemplate, companyContext);
+        service = new CompanyActivityResetService(new MysqlCompanyActivityRepository(jdbcTemplate), companyContext);
         when(companyContext.requireCompanyId()).thenReturn(27L);
         when(jdbcTemplate.queryForObject(anyString(), eq(Long.class), eq(27L))).thenReturn(0L);
         when(jdbcTemplate.update(anyString(), eq(27L))).thenReturn(0);
@@ -32,7 +35,7 @@ class CompanyActivityResetServiceTest {
 
     @Test
     void deletesOnlyCurrentCompanyActivityAndClearsAggregateLedger() {
-        CompanyActivityResetService.ActivityCounts counts = service.resetCurrentCompany();
+        ActivityCounts counts = service.resetCurrentCompany();
 
         assertEquals(0, counts.total());
         InOrder order = inOrder(jdbcTemplate);
@@ -75,8 +78,7 @@ class CompanyActivityResetServiceTest {
 
     @Test
     void resetsExistingBankReconciliationsAndCarriesForwardTheLatestBalance() {
-        CompanyActivityResetService.BankReconciliationCounts counts =
-                service.resetBankReconciliationForCurrentCompany();
+        BankReconciliationCounts counts = service.resetBankReconciliationForCurrentCompany();
 
         assertEquals(0, counts.importedBankTransactions() + counts.reconciliationSessions());
         InOrder order = inOrder(jdbcTemplate);

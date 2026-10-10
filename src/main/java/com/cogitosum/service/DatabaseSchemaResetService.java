@@ -30,8 +30,14 @@ public class DatabaseSchemaResetService {
     public int dropAndRecreate() {
         int droppedTables;
         try (Connection connection = dataSource.getConnection()) {
+            String product = connection.getMetaData().getDatabaseProductName().toLowerCase();
+            boolean mysql = product.contains("mysql");
+            boolean sqlite = product.contains("sqlite");
+            if (!mysql && !sqlite) {
+                throw new IllegalStateException("Schema reset is not supported for " + product);
+            }
             String catalog = connection.getCatalog();
-            if (!StringUtils.hasText(catalog)) {
+            if (mysql && !StringUtils.hasText(catalog)) {
                 throw new IllegalStateException("The active database catalog could not be determined.");
             }
 
@@ -39,12 +45,10 @@ public class DatabaseSchemaResetService {
             connection.setAutoCommit(true);
             boolean foreignKeysDisabled = false;
             try {
-                try (Statement statement = connection.createStatement()) {
-                    statement.execute("SET FOREIGN_KEY_CHECKS = 0");
-                    foreignKeysDisabled = true;
-                }
+                setForeignKeyChecks(connection, mysql, false);
+                foreignKeysDisabled = true;
 
-                List<String> tables = listTables(connection, catalog);
+                List<String> tables = listTables(connection, mysql ? catalog : null, sqlite);
                 String quote = connection.getMetaData().getIdentifierQuoteString().trim();
                 for (String table : tables) {
                     String quotedTable = quote.isEmpty()
@@ -56,15 +60,13 @@ public class DatabaseSchemaResetService {
                 }
 
                 ResourceDatabasePopulator schema = new ResourceDatabasePopulator(
-                        new ClassPathResource("schema.sql"));
+                        new ClassPathResource(sqlite ? "schema-sqlite.sql" : "schema.sql"));
                 schema.populate(connection);
                 droppedTables = tables.size();
             } finally {
                 try {
                     if (foreignKeysDisabled) {
-                        try (Statement statement = connection.createStatement()) {
-                            statement.execute("SET FOREIGN_KEY_CHECKS = 1");
-                        }
+                        setForeignKeyChecks(connection, mysql, true);
                     }
                 } finally {
                     connection.setAutoCommit(originalAutoCommit);
@@ -78,12 +80,24 @@ public class DatabaseSchemaResetService {
         return droppedTables;
     }
 
-    private List<String> listTables(Connection connection, String catalog) throws SQLException {
+    private void setForeignKeyChecks(Connection connection, boolean mysql, boolean enabled)
+            throws SQLException {
+        try (Statement statement = connection.createStatement()) {
+            statement.execute(mysql
+                    ? "SET FOREIGN_KEY_CHECKS = " + (enabled ? "1" : "0")
+                    : "PRAGMA foreign_keys = " + (enabled ? "ON" : "OFF"));
+        }
+    }
+
+    private List<String> listTables(Connection connection, String catalog, boolean sqlite) throws SQLException {
         List<String> tables = new ArrayList<>();
         try (ResultSet results = connection.getMetaData()
                 .getTables(catalog, null, "%", new String[]{"TABLE"})) {
             while (results.next()) {
-                tables.add(results.getString("TABLE_NAME"));
+                String tableName = results.getString("TABLE_NAME");
+                if (tableName != null && (!sqlite || !tableName.startsWith("sqlite_"))) {
+                    tables.add(tableName);
+                }
             }
         }
         return tables;

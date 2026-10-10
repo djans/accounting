@@ -190,7 +190,7 @@
                 const whitespace = /^\s*/.exec(remainder)[0];
                 const separator = whitespace || ' ';
                 const source = remainder.slice(whitespace.length);
-                const tableExpression = /^(?:"[^"]+"|`[^`]+`|\[[^\]]+\]|[A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)*)/.exec(source);
+                const tableExpression = /^(?:"[^"]+"|`[^`]+`|\x5B[^\x5D]+\x5D|[A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)*)/.exec(source);
 
                 if (tableExpression) {
                     sql.value = statement.slice(0, expressionStart)

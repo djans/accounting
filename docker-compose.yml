@@ -6,10 +6,15 @@ services:
       - "8080:8080"
     environment:
       - SPRING_PROFILES_ACTIVE=docker
+      - APP_SETUP_BIND_ADDRESS=${APP_SETUP_BIND_ADDRESS:-0.0.0.0}
+      - APP_SETUP_TOKEN=${APP_SETUP_TOKEN:-}
+    volumes:
+      - accounting-data:/root/.accounting
 #    container_name: accounting
     networks:
       - accounting-network
 networks:
   accounting-network:
     external: true
-
+volumes:
+  accounting-data:

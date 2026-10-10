@@ -1,7 +1,8 @@
 package com.cogitosum.web;
 
 import com.cogitosum.service.CompanyActivityResetService;
-import com.cogitosum.service.CompanyActivityResetService.ActivityCounts;
+import com.cogitosum.repository.CompanyActivityRepository.ActivityCounts;
+import com.cogitosum.repository.CompanyActivityRepository.BankReconciliationCounts;
 import com.cogitosum.service.CurrentCompanyContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -86,7 +87,7 @@ public class CompanyActivityResetWebController {
             return "redirect:/admin/reset";
         }
 
-        CompanyActivityResetService.BankReconciliationCounts counts =
+        BankReconciliationCounts counts =
                 resetService.resetBankReconciliationForCurrentCompany();
         log.warn("Company bank reconciliation reset: actor={} company={} deleted={}",
                 authentication.getName(), companyContext.requireCompanyId(), counts);

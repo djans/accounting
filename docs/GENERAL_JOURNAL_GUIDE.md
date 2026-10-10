@@ -1,4 +1,7 @@
-# General Journal System Documentation
+# General Journal User Guide
+
+This guide covers journal workflows and examples. For the full current REST
+endpoint inventory, see [`API_DOCUMENTATION.md`](API_DOCUMENTATION.md).
 
 ## Overview
 
@@ -28,10 +31,13 @@ A master list of all accounts your company uses for recording transactions.
 The main journal for recording all accounting transactions.
 
 **Journal Statuses:**
-- **DRAFT** - Journal is being prepared (can be edited/deleted)
-- **POSTED** - Journal is finalized and affects GL (cannot be edited)
-- **REVERSED** - Journal has been reversed with offsetting entry
-- **CANCELLED** - Journal has been cancelled
+- **DRAFT** - Journal is being prepared and can be edited or deleted.
+- **POSTED** - Journal affects the general ledger. Editing posted journals is
+  controlled by the company's posted-journal editing setting.
+- **REVERSED** - The posted journal has been reversed; the system also creates
+  and posts an offsetting journal.
+- **CANCELLED** - A retained status value; the REST API does not expose a
+  journal-cancellation action.
 
 ### Journal Entries
 Individual debit/credit lines within a journal.
@@ -39,7 +45,6 @@ Individual debit/credit lines within a journal.
 **Requirements:**
 - Each journal must balance (Total Debits = Total Credits)
 - Each entry must reference an account from the Chart of Accounts
-- Minimum 2 entries per journal (at least one debit, one credit)
 
 ### General Ledger
 Maintains running balances for each account automatically updated when journals are posted.
@@ -311,16 +316,23 @@ Response:
 GET /api/accounting-reports/account-detail/{accountId}
 ```
 
+#### Account Transactions
+```
+GET /api/accounting-reports/account-transactions/{accountId}
+```
+
 ## Integration with Billing System
 
-### Auto-Generated Journal Entries
+### Journal Entries from Billing Workflows
 
-When integrated with your billing system, the following auto-entries can be generated:
+Supported invoice, bill, and payment posting workflows create and post journal
+entries. Typical invoice entries include:
 
 #### When Invoice is Created
 ```
-Entry 1: Debit Accounts Receivable, Credit Sales Revenue
-Entry 2: Debit GST/HST Expense, Credit GST/HST Payable
+Debit: Accounts Receivable
+Credit: Sales Revenue
+Credit: GST/HST/QST Payable, when applicable
 ```
 
 #### When Payment is Received
@@ -434,9 +446,11 @@ GET /api/accounting-reports/income-statement
 
 1. **Journal Balance:** Total Debits must equal Total Credits
 2. **Account Validation:** All accounts must exist in Chart of Accounts
-3. **Status Workflow:** DRAFT → POSTED → REVERSED (optional) → CANCELLED (optional)
-4. **Edit Restrictions:** Only DRAFT journals can be edited or deleted
-5. **Minimum Entries:** Minimum 2 entries per journal (1 debit + 1 credit)
+3. **Status Workflow:** DRAFT journals can be posted; a POSTED journal can be
+   reversed, which posts an offsetting journal and marks the original REVERSED.
+4. **Edit Restrictions:** Only DRAFT journals can be deleted. Editing a POSTED
+   journal is allowed only when enabled for the company; fiscal-year locks
+   still apply.
 
 ## Error Handling
 
@@ -467,4 +481,3 @@ All journals maintain:
 - Complete entry details
 
 This ensures full compliance and traceability for accounting and tax purposes.
-
