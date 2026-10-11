@@ -57,6 +57,7 @@
         }
 
         function initSidebar() {
+            const sidebar = document.querySelector('.portal-sidebar');
             document.querySelectorAll('.section-toggle').forEach(btn => {
                 const name = btn.getAttribute('data-section');
                 btn.addEventListener('click', function(){ toggleSection(name, btn); });
@@ -78,6 +79,30 @@
                     localStorage.setItem('sidebar-section-' + section.dataset.section, 'expanded');
                 }
             });
+
+            if (sidebar) {
+                const savedScrollTop = Number(sessionStorage.getItem('portal-sidebar-scroll-top'));
+                if (Number.isFinite(savedScrollTop)) {
+                    sidebar.scrollTop = savedScrollTop;
+                }
+
+                const activeLink = sidebar.querySelector('.nav-link.active');
+                if (activeLink) {
+                    const sidebarBounds = sidebar.getBoundingClientRect();
+                    const linkBounds = activeLink.getBoundingClientRect();
+                    if (linkBounds.top < sidebarBounds.top) {
+                        sidebar.scrollTop -= sidebarBounds.top - linkBounds.top;
+                    } else if (linkBounds.bottom > sidebarBounds.bottom) {
+                        sidebar.scrollTop += linkBounds.bottom - sidebarBounds.bottom;
+                    }
+                }
+
+                const saveSidebarScroll = function () {
+                    sessionStorage.setItem('portal-sidebar-scroll-top', String(sidebar.scrollTop));
+                };
+                sidebar.addEventListener('scroll', saveSidebarScroll, {passive: true});
+                window.addEventListener('pagehide', saveSidebarScroll);
+            }
         }
 
         if (document.readyState === 'loading') {
@@ -206,10 +231,6 @@
             <span class="lang-separator">|</span>
             <a th:href="@{${requestURI}(lang=fr)}" class="btn-lang" th:classappend="${#locale.language == 'fr'} ? 'active'">FR</a>
         </div>
-        <span class="text-muted small">
-            <i class="bi bi-database"></i>
-            H2 dev DB
-        </span>
         <a th:if="${currentUser == null}" th:href="@{/login}" class="btn-portal btn-ghost btn-sm">
             <i class="bi bi-box-arrow-in-right"></i> <span th:text="#{auth.login.link}">Connexion</span>
         </a>
@@ -221,9 +242,6 @@
                 <i class="bi bi-box-arrow-right"></i> <span th:text="#{auth.logout}">Déconnexion</span>
             </button>
         </form>
-        <a th:href="@{/h2-console}" target="_blank" class="btn-portal btn-ghost btn-sm">
-            <i class="bi bi-terminal"></i> H2 Console
-        </a>
     </div>
 </header>
 

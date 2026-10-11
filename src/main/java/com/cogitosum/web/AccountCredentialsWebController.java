@@ -7,7 +7,9 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseCookie;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.web.authentication.logout.SecurityContextLogoutHandler;
 import org.springframework.stereotype.Controller;
@@ -18,6 +20,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+
+import java.time.Duration;
 
 @Controller
 @RequestMapping("/account/credentials")
@@ -76,15 +80,43 @@ public class AccountCredentialsWebController {
         }
 
         new SecurityContextLogoutHandler().logout(request, response, authentication);
+        clearPromptDismissalCookie(request, response);
         return "redirect:/login?credentialsUpdated";
     }
 
-    @GetMapping("/continue")
-    public String continueAfterPrompt(Authentication authentication) {
+    @PostMapping("/continue")
+    public String continueAfterPrompt(Authentication authentication,
+                                      HttpServletRequest request,
+                                      HttpServletResponse response) {
         requireAuthenticated(authentication);
+        ResponseCookie cookie = ResponseCookie.from(AccountCredentialsService.PROMPT_DISMISSED_COOKIE,
+                        credentialsService.promptDismissalToken(authentication.getName()))
+                .httpOnly(true)
+                .secure(request.isSecure())
+                .sameSite("Lax")
+                .path(cookiePath(request))
+                .maxAge(Duration.ofDays(3650))
+                .build();
+        response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
         return schemaVersionService.getStatus().upToDate()
                 ? "redirect:/"
                 : "redirect:/database/schema";
+    }
+
+    private void clearPromptDismissalCookie(HttpServletRequest request, HttpServletResponse response) {
+        ResponseCookie cookie = ResponseCookie.from(AccountCredentialsService.PROMPT_DISMISSED_COOKIE, "")
+                .httpOnly(true)
+                .secure(request.isSecure())
+                .sameSite("Lax")
+                .path(cookiePath(request))
+                .maxAge(Duration.ZERO)
+                .build();
+        response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
+    }
+
+    private String cookiePath(HttpServletRequest request) {
+        String contextPath = request.getContextPath();
+        return contextPath == null || contextPath.isEmpty() ? "/" : contextPath + "/";
     }
 
     private String message(String key) {

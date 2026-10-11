@@ -2,6 +2,7 @@ package com.cogitosum.config;
 
 import com.cogitosum.service.AccountCredentialsService;
 import com.cogitosum.service.DatabaseSchemaVersionService;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -30,7 +31,8 @@ public class DatabaseSchemaLoginSuccessHandler extends SavedRequestAwareAuthenti
             HttpServletRequest request,
             HttpServletResponse response,
             Authentication authentication) throws IOException, ServletException {
-        if (credentialsService.usesDefaultCredentials(authentication.getName())) {
+        if (credentialsService.usesDefaultCredentials(authentication.getName())
+                && !hasPromptDismissal(request, authentication.getName())) {
             response.sendRedirect(request.getContextPath() + "/account/credentials");
             return;
         }
@@ -40,5 +42,20 @@ public class DatabaseSchemaLoginSuccessHandler extends SavedRequestAwareAuthenti
             return;
         }
         super.onAuthenticationSuccess(request, response, authentication);
+    }
+
+    private boolean hasPromptDismissal(HttpServletRequest request, String email) {
+        Cookie[] cookies = request.getCookies();
+        if (cookies == null) {
+            return false;
+        }
+        String expectedToken = credentialsService.promptDismissalToken(email);
+        for (Cookie cookie : cookies) {
+            if (AccountCredentialsService.PROMPT_DISMISSED_COOKIE.equals(cookie.getName())
+                    && expectedToken.equals(cookie.getValue())) {
+                return true;
+            }
+        }
+        return false;
     }
 }

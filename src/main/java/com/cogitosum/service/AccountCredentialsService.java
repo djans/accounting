@@ -6,6 +6,10 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.nio.charset.StandardCharsets;
+import java.util.HexFormat;
 import java.util.Locale;
 import java.util.regex.Pattern;
 
@@ -14,6 +18,7 @@ public class AccountCredentialsService {
 
     public static final String DEFAULT_EMAIL = "root@example.com";
     public static final String DEFAULT_PASSWORD = "password";
+    public static final String PROMPT_DISMISSED_COOKIE = "credentialPromptDismissed";
     private static final Pattern EMAIL_PATTERN = Pattern.compile("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$");
     private static final int MINIMUM_PASSWORD_LENGTH = 12;
 
@@ -34,6 +39,16 @@ public class AccountCredentialsService {
         return userAccountRepository.findByEmail(email)
                 .map(user -> passwordEncoder.matches(DEFAULT_PASSWORD, user.getPasswordHash()))
                 .orElse(false);
+    }
+
+    public String promptDismissalToken(String email) {
+        try {
+            byte[] digest = MessageDigest.getInstance("SHA-256")
+                    .digest(email.toLowerCase(Locale.ROOT).getBytes(StandardCharsets.UTF_8));
+            return HexFormat.of().formatHex(digest);
+        } catch (NoSuchAlgorithmException exception) {
+            throw new IllegalStateException("SHA-256 is unavailable.", exception);
+        }
     }
 
     @Transactional

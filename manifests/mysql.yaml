@@ -31,9 +31,19 @@ spec:
       labels:
         app: mysql
     spec:
+      securityContext:
+        fsGroup: 999
       containers:
         - name: mysql
-          image: mysql:8
+          image: mysql:8.4
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 999
+            runAsGroup: 999
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
           env:
             - name: MYSQL_ROOT_PASSWORD
               valueFrom:
@@ -54,6 +64,42 @@ spec:
                   key: password
           ports:
             - containerPort: 3306
+          startupProbe:
+            exec:
+              command:
+                - mysqladmin
+                - ping
+                - -h
+                - 127.0.0.1
+            periodSeconds: 10
+            failureThreshold: 30
+          readinessProbe:
+            exec:
+              command:
+                - mysqladmin
+                - ping
+                - -h
+                - 127.0.0.1
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          livenessProbe:
+            exec:
+              command:
+                - mysqladmin
+                - ping
+                - -h
+                - 127.0.0.1
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 250m
+              memory: 512Mi
+            limits:
+              cpu: "1"
+              memory: 1Gi
           volumeMounts:
             - name: mysql-storage
               mountPath: /var/lib/mysql

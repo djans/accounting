@@ -11,7 +11,7 @@
             if(r.ok){ 
                 const periods = await r.json(); 
                 if(tbody){ 
-                    tbody.innerHTML = periods.map(p=>`<tr><td>${escapeHtml(p.agency.code)}</td><td>${escapeHtml(p.periodStart)}</td><td><a href='/tax/periods/${p.id}'>${escapeHtml(p.periodEnd)}</a></td><td><span class='badge-pill'>${escapeHtml(p.status)}</span></td><td class='num'>${p.taxCollected? p.taxCollected : '$0'}</td><td class='num'>${p.taxItc? p.taxItc : '$0'}</td><td class='num'>${p.netOwing? p.netOwing : '$0'}</td><td>${p.filedDate? p.filedDate : '—'}</td><td>${p.paidDate? p.paidDate : '—'}</td></tr>`).join(''); 
+                    tbody.innerHTML = periods.map(p=>`<tr data-table-filter-row><td>${escapeHtml(p.agency.code)}</td><td>${escapeHtml(p.periodStart)}</td><td><a href='/tax/periods/${p.id}'>${escapeHtml(p.periodEnd)}</a></td><td><span class='badge-pill'>${escapeHtml(p.status)}</span></td><td class='num'>${p.taxCollected? p.taxCollected : '$0'}</td><td class='num'>${p.taxItc? p.taxItc : '$0'}</td><td class='num'>${p.netOwing? p.netOwing : '$0'}</td><td>${p.filedDate? p.filedDate : '—'}</td><td>${p.paidDate? p.paidDate : '—'}</td><td></td></tr>`).join('');
                 } 
             } 
         }catch(e){ console.error('periods refresh failed', e); } finally{ setLoading(false);} 

@@ -14,8 +14,18 @@
                     Tous les clients
                     <a th:href="@{/customers/new}" class="btn-portal"><i class="bi bi-plus-lg"></i> Nouveau client</a>
                 </h3>
+                <div th:if="${not #lists.isEmpty(customers)}" class="mb-3">
+                    <label class="form-label mb-1" for="customersFilter" th:text="#{listFilter.textLabel}">Filter this list</label>
+                    <input id="customersFilter" type="search" class="form-control form-control-sm"
+                           data-table-search data-rows-selector="#customerRows tr[data-table-filter-row]"
+                           data-no-matches-id="customersNoMatches"
+                           th:attr="placeholder=#{listFilter.textPlaceholder}"/>
+                </div>
                 <div th:if="${#lists.isEmpty(customers)}" class="empty-state">
                     Aucun client pour le moment. <a th:href="@{/customers/new}">Ajouter le premier</a>.
+                </div>
+                <div id="customersNoMatches" class="empty-state" hidden th:text="#{listFilter.noMatches}">
+                    No records match these filters.
                 </div>
                 <table th:if="${not #lists.isEmpty(customers)}" class="table-portal">
                     <thead>
@@ -29,8 +39,9 @@
                         <th></th>
                     </tr>
                     </thead>
-                    <tbody>
-                    <tr th:each="c : ${customers}" th:classappend="${c.inactive} ? 'text-muted' : ''">
+                    <tbody id="customerRows">
+                    <tr th:each="c : ${customers}" data-table-filter-row
+                        th:classappend="${c.inactive} ? 'text-muted' : ''">
                         <td th:text="${c.businessName}">Business</td>
                         <td th:text="${c.name}">Name</td>
                         <td th:text="${c.mainPhone ?: '—'}">—</td>
@@ -58,5 +69,6 @@
         </section>
     </main>
 </div>
+<script th:src="@{/js/table-search.js}" defer></script>
 </body>
 </html>

@@ -17,8 +17,19 @@
                         <span id="periods-spinner" class="spinner-border spinner-border-sm ms-2" style="display:none"></span>
                     </div>
                 </div>
+                <div th:if="${not #lists.isEmpty(periods)}" class="mb-3">
+                    <label class="form-label mb-1" for="taxPeriodsFilter"
+                           th:text="#{listFilter.textLabel}">Filter this list</label>
+                    <input id="taxPeriodsFilter" type="search" class="form-control form-control-sm"
+                           data-table-search data-rows-selector="#taxPeriodRows tr[data-table-filter-row]"
+                           data-no-matches-id="taxPeriodsNoMatches"
+                           th:attr="placeholder=#{listFilter.textPlaceholder}"/>
+                </div>
                 <div th:if="${#lists.isEmpty(periods)}" class="empty-state" th:text="#{tax.periods.noPeriods}">
                     No periods yet. Create one below.
+                </div>
+                <div id="taxPeriodsNoMatches" class="empty-state" hidden th:text="#{listFilter.noMatches}">
+                    No records match these filters.
                 </div>
                 <table th:if="${not #lists.isEmpty(periods)}" class="table-portal">
                     <thead>
@@ -35,8 +46,8 @@
                         <th th:text="#{table.actions}">Actions</th>
                     </tr>
                     </thead>
-                    <tbody>
-                    <tr th:each="p : ${periods}">
+                    <tbody id="taxPeriodRows">
+                    <tr th:each="p : ${periods}" data-table-filter-row>
                         <td th:text="${p.agency.code}">CRA</td>
                         <td th:text="${p.periodStart}">2026-01-01</td>
                         <td>
@@ -87,6 +98,7 @@
         </section>
     </main>
 </div>
+<script th:src="@{/js/table-search.js}" defer></script>
 <script th:src="@{/js/tax-periods-refresh.js}"></script>
 </body>
 </html>

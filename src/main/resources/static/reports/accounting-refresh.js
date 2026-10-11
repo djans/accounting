@@ -27,7 +27,7 @@
                     noTrans.style.display = 'block';
                 } else {
                     tbody.innerHTML = data.map(t => `
-                        <tr>
+                        <tr class="accounting-report-row">
                             <td>${t.date}</td>
                             <td><a href="/journals/${t.journalId}">${t.journalNumber}</a></td>
                             <td>${t.description || ''}</td>
@@ -123,19 +123,19 @@
                 const jb = await b.json();
                 const as = document.getElementById('bs-assets'); 
                 if(as){ 
-                    let html = (jb.assets||[]).map(r=>`<tr><td>${r.accountNumber}</td><td>${createAccountLink(r)}</td><td class='num'>${formatCurrency(r.balance)}</td></tr>`).join('');
+                    let html = (jb.assets||[]).map(r=>`<tr class="accounting-report-row"><td>${r.accountNumber}</td><td>${createAccountLink(r)}</td><td class='num'>${formatCurrency(r.balance)}</td></tr>`).join('');
                     html += `<tr style="font-weight:600"><td colspan="2" style="text-align:right">Total Assets</td><td class="num">${formatCurrency(jb.totalAssets)}</td></tr>`;
                     as.innerHTML = html;
                 }
                 const ls = document.getElementById('bs-liabilities'); 
                 if(ls){ 
-                    let html = (jb.liabilities||[]).map(r=>`<tr><td>${r.accountNumber}</td><td>${createAccountLink(r)}</td><td class='num'>${formatCurrency(r.balance)}</td></tr>`).join('');
+                    let html = (jb.liabilities||[]).map(r=>`<tr class="accounting-report-row"><td>${r.accountNumber}</td><td>${createAccountLink(r)}</td><td class='num'>${formatCurrency(r.balance)}</td></tr>`).join('');
                     html += `<tr style="font-weight:600"><td colspan="2" style="text-align:right">Total Liabilities</td><td class="num">${formatCurrency(jb.totalLiabilities)}</td></tr>`;
                     ls.innerHTML = html;
                 }
                 const es = document.getElementById('bs-equity'); 
                 if(es){ 
-                    let html = (jb.equity||[]).map(r=>`<tr><td>${r.accountNumber}</td><td>${createAccountLink(r)}</td><td class='num'>${formatCurrency(r.balance)}</td></tr>`).join('');
+                    let html = (jb.equity||[]).map(r=>`<tr class="accounting-report-row"><td>${r.accountNumber}</td><td>${createAccountLink(r)}</td><td class='num'>${formatCurrency(r.balance)}</td></tr>`).join('');
                     html += `<tr style="font-weight:600"><td colspan="2" style="text-align:right">Total Equity</td><td class="num">${formatCurrency(jb.totalEquity)}</td></tr>`;
                     html += `<tr><td colspan="2" style="text-align:right;font-style:italic">Net Income (Current Year)</td><td class="num">${formatCurrency(jb.netIncome)}</td></tr>`;
                     html += `<tr style="font-weight:600"><td colspan="2" style="text-align:right">Total Equity & Net Income</td><td class="num">${formatCurrency(jb.totalEquityPlusNetIncome)}</td></tr>`;
@@ -155,13 +155,13 @@
                 const ji = await i.json();
                 const rev = document.getElementById('is-revenue'); 
                 if(rev){ 
-                    let html = (ji.revenue||[]).map(r=>`<tr><td>${r.accountNumber}</td><td>${createAccountLink(r)}</td><td class='num'>${formatCurrency(r.balance)}</td></tr>`).join('');
+                    let html = (ji.revenue||[]).map(r=>`<tr class="accounting-report-row"><td>${r.accountNumber}</td><td>${createAccountLink(r)}</td><td class='num'>${formatCurrency(r.balance)}</td></tr>`).join('');
                     html += `<tr style="font-weight:600"><td colspan="2" style="text-align:right">Total Revenue</td><td class="num">${formatCurrency(ji.totalRevenue)}</td></tr>`;
                     rev.innerHTML = html;
                 }
                 const exp = document.getElementById('is-expenses'); 
                 if(exp){ 
-                    let html = (ji.expenses||[]).map(r=>`<tr><td>${r.accountNumber}</td><td>${createAccountLink(r)}</td><td class='num'>${formatCurrency(r.balance)}</td></tr>`).join('');
+                    let html = (ji.expenses||[]).map(r=>`<tr class="accounting-report-row"><td>${r.accountNumber}</td><td>${createAccountLink(r)}</td><td class='num'>${formatCurrency(r.balance)}</td></tr>`).join('');
                     html += `<tr style="font-weight:600"><td colspan="2" style="text-align:right">Total Expenses</td><td class="num">${formatCurrency(ji.totalExpenses)}</td></tr>`;
                     html += `<tr style="font-weight:700;background:#f0fdf4"><td colspan="2" style="text-align:right">Net Income</td><td class="num">${formatCurrency(ji.netIncome)}</td></tr>`;
                     exp.innerHTML = html;

@@ -12,6 +12,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -68,5 +69,13 @@ class AccountCredentialsServiceTest {
         assertEquals(AccountCredentialsService.UpdateResult.DEFAULT_CREDENTIALS_MUST_CHANGE, result);
         verify(userAccountRepository, never()).save(user);
         verify(passwordEncoder, never()).encode(anyString());
+    }
+
+    @Test
+    void createsAStableCaseInsensitivePromptDismissalToken() {
+        String token = service.promptDismissalToken("Owner@example.test");
+
+        assertEquals(token, service.promptDismissalToken("owner@example.test"));
+        assertNotEquals("owner@example.test", token);
     }
 }

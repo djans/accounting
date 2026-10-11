@@ -15,6 +15,16 @@
                    th:title="#{transfers.newDraft}" th:attr="aria-label=#{transfers.newDraft}">
                     <i class="bi bi-plus-lg" aria-hidden="true"></i>
                 </a>
+                <div th:if="${not #lists.isEmpty(transfers)}" class="mb-3">
+                    <label class="form-label mb-1" for="transfersFilter" th:text="#{listFilter.textLabel}">Filter this list</label>
+                    <input id="transfersFilter" type="search" class="form-control form-control-sm"
+                           data-table-search data-rows-selector="#transferRows tr[data-table-filter-row]"
+                           data-no-matches-id="transfersNoMatches"
+                           th:attr="placeholder=#{listFilter.textPlaceholder}"/>
+                </div>
+                <div id="transfersNoMatches" class="empty-state" hidden th:text="#{listFilter.noMatches}">
+                    No records match these filters.
+                </div>
                 <table class="table-portal" th:if="${not #lists.isEmpty(transfers)}">
                     <thead>
                     <tr>
@@ -27,8 +37,8 @@
                         <th th:text="#{table.actions}">Actions</th>
                     </tr>
                     </thead>
-                    <tbody>
-                    <tr th:each="transfer : ${transfers}">
+                    <tbody id="transferRows">
+                    <tr th:each="transfer : ${transfers}" data-table-filter-row>
                         <td th:text="${transfer.transferDate}">2026-01-01</td>
                         <td th:text="${transfer.fromAccount.accountNumber + ' — ' + transfer.fromAccount.accountName}">1000 — Bank</td>
                         <td th:text="${transfer.toAccount.accountNumber + ' — ' + transfer.toAccount.accountName}">1010 — Savings</td>
@@ -108,6 +118,7 @@
         </section>
     </main>
 </div>
+<script th:src="@{/js/table-search.js}" defer></script>
 <style>
     .transfer-new-action { margin-bottom: 1rem; }
     .transfer-actions { white-space: nowrap; }

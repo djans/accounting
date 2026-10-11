@@ -15,6 +15,12 @@ spec:
       containers:
         - name: accounting
           image: djans/accounting:e51fbfd784e127a34c71ce22d291070908aeb6eb
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            capabilities:
+              drop:
+                - ALL
           ports:
             - containerPort: 80
           env:

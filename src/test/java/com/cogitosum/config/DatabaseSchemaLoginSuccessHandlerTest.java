@@ -12,6 +12,7 @@ import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.core.Authentication;
 
+import jakarta.servlet.http.Cookie;
 import java.io.IOException;
 import java.util.List;
 
@@ -47,6 +48,18 @@ class DatabaseSchemaLoginSuccessHandlerTest {
 
         assertEquals("/account/credentials", response.getRedirectedUrl());
         verify(schemaVersionService, never()).getStatus();
+    }
+
+    @Test
+    void remembersWhenTheUserDismissedTheInitialCredentialPrompt() throws IOException, ServletException {
+        when(credentialsService.usesDefaultCredentials("admin@example.test")).thenReturn(true);
+        when(credentialsService.promptDismissalToken("admin@example.test")).thenReturn("dismissed-token");
+        request.setCookies(new Cookie(AccountCredentialsService.PROMPT_DISMISSED_COOKIE, "dismissed-token"));
+        when(schemaVersionService.getStatus()).thenReturn(status(true));
+
+        handler.onAuthenticationSuccess(request, response, authentication);
+
+        assertEquals("/", response.getRedirectedUrl());
     }
 
     @Test

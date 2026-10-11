@@ -15,6 +15,13 @@
                    th:title="#{creditCardCharges.newDraft}" th:attr="aria-label=#{creditCardCharges.newDraft}">
                     <i class="bi bi-plus-lg" aria-hidden="true"></i>
                 </a>
+                <div th:if="${not #lists.isEmpty(charges)}" class="mb-3">
+                    <label class="form-label mb-1" for="chargesFilter" th:text="#{listFilter.textLabel}">Filter this list</label>
+                    <input id="chargesFilter" type="search" class="form-control form-control-sm"
+                           data-table-search data-rows-selector="#chargeRows tr[data-table-filter-row]"
+                           data-no-matches-id="chargesNoMatches"
+                           th:attr="placeholder=#{listFilter.textPlaceholder}"/>
+                </div>
                 <form id="charge-bulk-form" th:if="${not #lists.isEmpty(charges)}"
                       th:action="@{/credit-card-charges/bulk-post}" method="post" class="charge-bulk-actions"
                       th:attr="data-no-selection=#{creditCardCharges.bulkSelectRequired}">
@@ -44,8 +51,8 @@
                         <th th:text="#{creditCardCharges.status}">Status</th>
                         <th th:text="#{table.actions}">Actions</th>
                     </tr></thead>
-                    <tbody>
-                    <tr th:each="charge : ${charges}">
+                    <tbody id="chargeRows">
+                    <tr th:each="charge : ${charges}" data-table-filter-row>
                         <td>
                             <input type="checkbox" name="chargeIds" form="charge-bulk-form"
                                    th:value="${charge.id}"
@@ -138,10 +145,14 @@
                 <div th:if="${#lists.isEmpty(charges)}" class="empty-state" th:text="#{creditCardCharges.empty}">
                     No credit card charges recorded yet.
                 </div>
+                <div id="chargesNoMatches" class="empty-state" hidden th:text="#{listFilter.noMatches}">
+                    No records match these filters.
+                </div>
             </div>
         </section>
     </main>
 </div>
+<script th:src="@{/js/table-search.js}" defer></script>
 <style>
     .charge-new-action { margin-bottom: 1rem; }
     .charge-bulk-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1rem; }
@@ -155,7 +166,7 @@
     if (selectAllCharges) {
         selectAllCharges.addEventListener('change', function () {
             document.querySelectorAll('input[name="chargeIds"]:not(:disabled)').forEach(function (checkbox) {
-                checkbox.checked = selectAllCharges.checked;
+                checkbox.checked = selectAllCharges.checked && !checkbox.closest('tr').hidden;
             });
         });
     }

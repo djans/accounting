@@ -13,6 +13,17 @@
         </div>
 
         <section class="portal-content">
+            <div class="mb-3">
+                <label class="form-label mb-1" for="accountingFilter"
+                       th:text="#{accounting.filter.accounts}">Filter accounts by number or name</label>
+                <input id="accountingFilter" type="search" class="form-control form-control-sm"
+                       data-table-search data-rows-selector=".accounting-report-row"
+                       data-no-matches-id="accountingNoMatches"
+                       th:attr="placeholder=#{listFilter.textPlaceholder}"/>
+            </div>
+            <div id="accountingNoMatches" class="empty-state" hidden th:text="#{listFilter.noMatches}">
+                No accounts match this filter.
+            </div>
 
             <div class="portal-card">
                 <div class="d-flex align-items-center justify-content-between">
@@ -39,7 +50,7 @@
                     </tr>
                     </thead>
                     <tbody id="tb-tbody">
-                    <tr th:each="entry : ${trialBalance['accounts']}">
+                    <tr th:each="entry : ${trialBalance['accounts']}" class="accounting-report-row">
                         <td th:text="${entry.value['accountNumber']}">1010</td>
                         <td>
                             <a href="#"
@@ -94,7 +105,7 @@
                 <h4 style="margin-top:0.5rem;font-size:.95rem;color:var(--portal-muted)">Assets</h4>
                 <table class="table-portal">
                     <tbody id="bs-assets">
-                    <tr th:each="row : ${balanceSheet['assets']}">
+                    <tr th:each="row : ${balanceSheet['assets']}" class="accounting-report-row">
                         <td th:text="${row['accountNumber']}">1010</td>
                         <td>
                             <a href="#"
@@ -117,7 +128,7 @@
                 <h4 style="margin-top:1.5rem;font-size:.95rem;color:var(--portal-muted)">Liabilities</h4>
                 <table class="table-portal">
                     <tbody id="bs-liabilities">
-                    <tr th:each="row : ${balanceSheet['liabilities']}">
+                    <tr th:each="row : ${balanceSheet['liabilities']}" class="accounting-report-row">
                         <td th:text="${row['accountNumber']}">2010</td>
                         <td>
                             <a href="#"
@@ -140,7 +151,7 @@
                 <h4 style="margin-top:1.5rem;font-size:.95rem;color:var(--portal-muted)">Equity</h4>
                 <table class="table-portal">
                     <tbody id="bs-equity">
-                    <tr th:each="row : ${balanceSheet['equity']}">
+                    <tr th:each="row : ${balanceSheet['equity']}" class="accounting-report-row">
                         <td th:text="${row['accountNumber']}">3010</td>
                         <td>
                             <a href="#"
@@ -184,7 +195,7 @@
                 <h4 style="margin-top:0.5rem;font-size:.95rem;color:var(--portal-muted)">Revenue</h4>
                 <table class="table-portal">
                     <tbody id="is-revenue">
-                    <tr th:each="row : ${incomeStatement['revenue']}">
+                    <tr th:each="row : ${incomeStatement['revenue']}" class="accounting-report-row">
                         <td th:text="${row['accountNumber']}">4010</td>
                         <td>
                             <a href="#"
@@ -207,7 +218,7 @@
                 <h4 style="margin-top:1.5rem;font-size:.95rem;color:var(--portal-muted)">Expenses</h4>
                 <table class="table-portal">
                     <tbody id="is-expenses">
-                    <tr th:each="row : ${incomeStatement['expenses']}">
+                    <tr th:each="row : ${incomeStatement['expenses']}" class="accounting-report-row">
                         <td th:text="${row['accountNumber']}">5010</td>
                         <td>
                             <a href="#"
@@ -273,5 +284,6 @@
 </div>
 
 <script th:src="@{/reports/accounting-refresh.js}"></script>
+<script th:src="@{/js/table-search.js}" defer></script>
 </body>
 </html>

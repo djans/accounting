@@ -15,6 +15,16 @@
                    th:title="#{cheques.newDraft}" th:attr="aria-label=#{cheques.newDraft}">
                     <i class="bi bi-plus-lg" aria-hidden="true"></i>
                 </a>
+                <div th:if="${not #lists.isEmpty(cheques)}" class="mb-3">
+                    <label class="form-label mb-1" for="chequesFilter" th:text="#{listFilter.textLabel}">Filter this list</label>
+                    <input id="chequesFilter" type="search" class="form-control form-control-sm"
+                           data-table-search data-rows-selector="#chequeRows tr[data-table-filter-row]"
+                           data-no-matches-id="chequesNoMatches"
+                           th:attr="placeholder=#{listFilter.textPlaceholder}"/>
+                </div>
+                <div id="chequesNoMatches" class="empty-state" hidden th:text="#{listFilter.noMatches}">
+                    No records match these filters.
+                </div>
                 <table class="table-portal" th:if="${not #lists.isEmpty(cheques)}">
                     <thead>
                     <tr>
@@ -26,8 +36,8 @@
                         <th th:text="#{table.actions}">Actions</th>
                     </tr>
                     </thead>
-                    <tbody>
-                    <tr th:each="p : ${cheques}">
+                    <tbody id="chequeRows">
+                    <tr th:each="p : ${cheques}" data-table-filter-row>
                         <td th:text="${p.chequeNumber}">1</td>
                         <td th:text="${p.vendor.businessName}">Vendor</td>
                         <td th:text="${p.chequeDate}">2026-01-01</td>
@@ -111,6 +121,7 @@
         </section>
     </main>
 </div>
+<script th:src="@{/js/table-search.js}" defer></script>
 <style>
     .cheque-new-action { margin-bottom: 1rem; }
     .cheque-actions { white-space: nowrap; }

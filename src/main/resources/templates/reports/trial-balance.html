@@ -21,6 +21,17 @@
                     <span id="tb-spinner" class="spinner-border spinner-border-sm ms-2" role="status" aria-hidden="true" style="display:none"></span>
                 </div>
             </div>
+            <div class="mb-3">
+                <label class="form-label mb-1" for="trialBalanceFilter"
+                       th:text="#{accounting.filter.accounts}">Filter accounts by number or name</label>
+                <input id="trialBalanceFilter" type="search" class="form-control form-control-sm"
+                       data-table-search data-rows-selector="#trialBalanceRows tr[data-table-filter-row]"
+                       data-no-matches-id="trialBalanceNoMatches"
+                       th:attr="placeholder=#{listFilter.textPlaceholder}"/>
+            </div>
+            <div id="trialBalanceNoMatches" class="empty-state" hidden th:text="#{listFilter.noMatches}">
+                No accounts match this filter.
+            </div>
             <table class="table-portal table">
                 <thead>
                 <tr>
@@ -31,8 +42,8 @@
                     <th class="num" th:text="#{table.balance}">Balance</th>
                 </tr>
                 </thead>
-                <tbody>
-                <tr th:each="acct : ${accountRows}">
+                <tbody id="trialBalanceRows">
+                <tr th:each="acct : ${accountRows}" data-table-filter-row>
                     <td>
                         <a th:href="@{/accounts/{id}/edit(id=${acct['accountId']})}"
                            th:text="${acct['accountNumber']}">1001</a>
@@ -59,6 +70,7 @@
         </section>
     </main>
 </div>
+    <script th:src="@{/js/table-search.js}" defer></script>
     <script>
         (function(){
             const refreshBtn = document.getElementById('tb-refresh');
@@ -85,7 +97,7 @@
                     const dr = acct['debitBalance'] || 0;
                     const cr = acct['creditBalance'] || 0;
                     const bal = acct['balance'] || 0;
-                    return `<tr>`+
+                    return `<tr data-table-filter-row>`+
                         `<td>${num}</td>`+
                         `<td>${name}</td>`+
                         `<td class="num">${formatCurrency(dr)}</td>`+
