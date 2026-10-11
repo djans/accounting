@@ -54,6 +54,7 @@ class CompanyServiceTest {
         UserAccount user = new UserAccount();
         user.setId(4L);
         when(context.currentUser()).thenReturn(user);
+        when(context.requireCurrentRole()).thenReturn(UserRole.ADMIN);
         when(context.canAccessCompany(10L)).thenReturn(true);
         when(companies.findByEmailIgnoreCase("destination@example.test")).thenReturn(Optional.empty());
         when(companies.findById(10L)).thenReturn(Optional.of(source));
@@ -139,7 +140,7 @@ class CompanyServiceTest {
         verify(codes).save(copiedCode.capture());
         assertEquals(150L, copiedCode.getValue().getSalesTaxGroup().getId());
         assertEquals(150L, copiedCode.getValue().getPurchaseTaxGroup().getId());
-        verify(memberships).grant(4L, 20L);
+        verify(memberships).grant(4L, 20L, UserRole.ADMIN);
         verify(context).selectCompany(20L);
     }
 
@@ -147,9 +148,7 @@ class CompanyServiceTest {
     void refusesCloneSourcesOutsideTheCurrentUsersAccessibleCompanies() {
         Company target = company(null, "New");
         target.setEmail("new@example.test");
-        UserAccount user = new UserAccount();
-        user.setId(4L);
-        when(context.currentUser()).thenReturn(user);
+        when(context.requireCurrentRole()).thenReturn(UserRole.ADMIN);
         when(context.canAccessCompany(77L)).thenReturn(false);
         when(companies.findByEmailIgnoreCase("new@example.test")).thenReturn(Optional.empty());
 
@@ -161,9 +160,7 @@ class CompanyServiceTest {
     @Test
     void administratorCanEnablePostedJournalEditingForAnAccessibleCompany() {
         Company company = company(10L, "Company");
-        UserAccount admin = new UserAccount();
-        admin.setRole(UserRole.ADMIN);
-        when(context.currentUser()).thenReturn(admin);
+        when(context.requireCurrentRole()).thenReturn(UserRole.ADMIN);
         when(context.canAccessCompany(10L)).thenReturn(true);
         when(companies.findById(10L)).thenReturn(Optional.of(company));
         when(companies.save(company)).thenReturn(company);
@@ -177,9 +174,7 @@ class CompanyServiceTest {
     @Test
     void refusesPostedJournalEditingChangesForNonAdministrators() {
         Company company = company(10L, "Company");
-        UserAccount accountant = new UserAccount();
-        accountant.setRole(UserRole.ACCOUNTANT);
-        when(context.currentUser()).thenReturn(accountant);
+        when(context.requireCurrentRole()).thenReturn(UserRole.ACCOUNTANT);
 
         assertThrows(org.springframework.security.access.AccessDeniedException.class,
             () -> service().setPostedJournalEditingEnabled(10L, true));

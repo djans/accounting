@@ -30,7 +30,16 @@
                             </select>
                         </form>
                     </div>
-                    <a th:href="@{/invoices/new}" class="btn-portal"><i class="bi bi-plus-lg"></i> <span th:text="#{invoices.newInvoice}">New Invoice</span></a>
+                    <div class="d-flex gap-2 flex-wrap">
+                        <a th:href="@{/invoices/statements}" class="btn-portal btn-ghost">
+                            <i class="bi bi-person-lines-fill"></i>
+                            <span th:text="#{invoices.statement.open}">Customer statement</span>
+                        </a>
+                        <a th:href="@{/invoices/new}" class="btn-portal">
+                            <i class="bi bi-plus-lg"></i>
+                            <span th:text="#{invoices.newInvoice}">New Invoice</span>
+                        </a>
+                    </div>
                 </div>
                 <div class="d-flex align-items-end gap-2 flex-wrap mb-3"
                      data-list-filter
@@ -97,9 +106,21 @@
                 </div>
                 <div id="invoiceFilterNoMatches" class="empty-state" hidden
                      th:text="#{listFilter.noMatches}">No invoices match these filters.</div>
+                <div class="d-flex justify-content-end mb-2">
+                    <form id="invoicePdfDownloadForm" th:action="@{/invoices/pdf-download}" method="post"></form>
+                    <button id="invoicePdfDownloadButton" type="submit" form="invoicePdfDownloadForm"
+                            class="btn-portal btn-ghost btn-sm" disabled>
+                        <i class="bi bi-file-earmark-zip"></i>
+                        <span th:text="#{invoices.pdf.downloadSelected}">Download selected PDFs</span>
+                    </button>
+                </div>
                 <table th:if="${not #lists.isEmpty(invoices)}" class="table-portal" data-table-totals>
                     <thead>
                     <tr>
+                        <th>
+                            <input id="invoicePdfSelectAll" type="checkbox" class="form-check-input"
+                                   th:attr="aria-label=#{invoices.pdf.selectAll}"/>
+                        </th>
                         <th th:text="#{table.invoiceNum}">Invoice #</th>
                         <th th:text="#{table.customer}">Customer</th>
                         <th th:text="#{table.invoiceDate}">Invoice Date</th>
@@ -115,6 +136,11 @@
                     <tr th:each="inv : ${invoices}"
                         th:attr="data-list-date=${inv.invoiceDate},
                                  data-list-customer-id=${inv.customer != null ? inv.customer.id : ''}">
+                        <td>
+                            <input class="form-check-input invoice-pdf-checkbox" type="checkbox"
+                                   name="invoiceIds" form="invoicePdfDownloadForm" th:value="${inv.id}"
+                                   th:attr="aria-label=#{invoices.pdf.selectInvoice(${inv.invoiceNumber})}"/>
+                        </td>
                         <td><a th:href="@{/invoices/{id}(id=${inv.id})}" th:text="${inv.invoiceNumber}">INV-1</a></td>
                         <td th:text="${inv.customer != null ? inv.customer.businessName : '—'}">Acme</td>
                         <td th:text="${inv.invoiceDate}">2026-01-01</td>
@@ -138,7 +164,7 @@
                     </tbody>
                     <tfoot>
                     <tr>
-                        <td colspan="5" th:text="#{table.totals}">Totals</td>
+                        <td colspan="6" th:text="#{table.totals}">Totals</td>
                         <td class="num" data-total-cell="subtotal">$0.00</td>
                         <td class="num" data-total-cell="tax">$0.00</td>
                         <td class="num" data-total-cell="total">$0.00</td>
@@ -152,5 +178,28 @@
 </div>
 <script th:src="@{/js/table-totals.js}"></script>
 <script th:src="@{/js/list-filters.js}"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const all = document.getElementById('invoicePdfSelectAll');
+        const button = document.getElementById('invoicePdfDownloadButton');
+        const boxes = Array.from(document.querySelectorAll('.invoice-pdf-checkbox'));
+        function updateSelection() {
+            const checked = boxes.filter(box => box.checked).length;
+            button.disabled = checked === 0;
+            if (all) {
+                all.checked = boxes.length > 0 && checked === boxes.length;
+                all.indeterminate = checked > 0 && checked < boxes.length;
+            }
+        }
+        boxes.forEach(box => box.addEventListener('change', updateSelection));
+        if (all) {
+            all.addEventListener('change', function () {
+                boxes.forEach(box => { box.checked = all.checked; });
+                updateSelection();
+            });
+        }
+        updateSelection();
+    });
+</script>
 </body>
 </html>

@@ -72,6 +72,7 @@ public class AccountCredentialsWebController {
                 case INVALID_EMAIL -> "account.credentials.invalidEmail";
                 case EMAIL_IN_USE -> "account.credentials.emailInUse";
                 case PASSWORD_TOO_SHORT -> "account.credentials.passwordTooShort";
+                case PASSWORD_REQUIREMENTS -> "account.credentials.passwordRequirements";
                 case DEFAULT_CREDENTIALS_MUST_CHANGE -> "account.credentials.defaultMustChange";
                 case SUCCESS -> throw new IllegalStateException("Unexpected successful update result.");
             }));

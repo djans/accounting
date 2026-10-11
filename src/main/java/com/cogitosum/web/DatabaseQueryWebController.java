@@ -4,6 +4,7 @@ import com.cogitosum.config.LoggingCategory;
 import com.cogitosum.service.DatabaseQueryService;
 import com.cogitosum.service.DatabaseQueryService.ConfirmationRequiredException;
 import com.cogitosum.service.DatabaseQueryService.QueryResult;
+import com.cogitosum.service.UserShortIdService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.MessageSource;
@@ -31,10 +32,15 @@ public class DatabaseQueryWebController {
 
     private final DatabaseQueryService queryService;
     private final MessageSource messageSource;
+    private final UserShortIdService shortIdService;
 
-    public DatabaseQueryWebController(DatabaseQueryService queryService, MessageSource messageSource) {
+    public DatabaseQueryWebController(
+            DatabaseQueryService queryService,
+            MessageSource messageSource,
+            UserShortIdService shortIdService) {
         this.queryService = queryService;
         this.messageSource = messageSource;
+        this.shortIdService = shortIdService;
     }
 
     @GetMapping
@@ -60,7 +66,7 @@ public class DatabaseQueryWebController {
         populatePage(model, tables, table, sql);
         model.addAttribute("requiresConfirmation", queryService.requiresConfirmation(sql));
         long startedAt = System.nanoTime();
-        String actor = authentication.getName();
+        String actor = shortIdService.getOrCreate(authentication.getName());
         String command = queryService.statementType(sql);
 
         try {

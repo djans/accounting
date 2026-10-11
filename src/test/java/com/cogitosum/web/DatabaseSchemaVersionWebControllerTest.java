@@ -5,6 +5,7 @@ import com.cogitosum.service.DatabaseSchemaVersionService.SchemaMigration;
 import com.cogitosum.service.DatabaseSchemaVersionService.Status;
 import com.cogitosum.service.DatabaseSchemaVersionService.VersionEntry;
 import com.cogitosum.service.SchemaVersion;
+import com.cogitosum.service.UserShortIdService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -32,13 +33,14 @@ class DatabaseSchemaVersionWebControllerTest {
 
     @Mock private DatabaseSchemaVersionService schemaVersionService;
     @Mock private MessageSource messageSource;
+    @Mock private UserShortIdService shortIdService;
     @Mock private Authentication authentication;
 
     private DatabaseSchemaVersionWebController controller;
 
     @BeforeEach
     void setUp() {
-        controller = new DatabaseSchemaVersionWebController(schemaVersionService, messageSource);
+        controller = new DatabaseSchemaVersionWebController(schemaVersionService, messageSource, shortIdService);
         when(authentication.isAuthenticated()).thenReturn(true);
         doReturn(List.of(new SimpleGrantedAuthority("ROLE_ADMIN")))
                 .when(authentication).getAuthorities();
@@ -88,6 +90,7 @@ class DatabaseSchemaVersionWebControllerTest {
         assertEquals("redirect:/database/schema", view);
         assertEquals("Database schema updated", attributes.getFlashAttributes().get("flashSuccess"));
         verify(schemaVersionService).applyPendingMigrations();
+        verify(shortIdService).assignMissingShortIds();
     }
 
     private Status status(boolean requiresBackup, boolean upToDate) {

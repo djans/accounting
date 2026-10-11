@@ -4,6 +4,7 @@ import com.cogitosum.entity.*;
 import com.cogitosum.repository.BankReconciliationSessionRepository;
 import com.cogitosum.repository.BankReconciliationLineRepository;
 import com.cogitosum.repository.BankTransactionRepository;
+import com.cogitosum.repository.BankCategorizationRuleRepository;
 import com.cogitosum.repository.ChartOfAccountRepository;
 import com.cogitosum.repository.GeneralLedgerRepository;
 import com.cogitosum.repository.JournalEntryRepository;
@@ -35,6 +36,7 @@ public class BankReconciliationService {
             DateTimeFormatter.ofPattern("M-d-uuuu").withResolverStyle(ResolverStyle.STRICT));
 
     private final BankTransactionRepository bankTransactionRepository;
+    private final BankCategorizationRuleRepository categorizationRuleRepository;
     private final BankReconciliationSessionRepository sessionRepository;
     private final BankReconciliationLineRepository reconciliationLineRepository;
     private final ChartOfAccountRepository accountRepository;
@@ -44,6 +46,7 @@ public class BankReconciliationService {
     private final CurrentCompanyContext companyContext;
 
     public BankReconciliationService(BankTransactionRepository bankTransactionRepository,
+                                     BankCategorizationRuleRepository categorizationRuleRepository,
                                      BankReconciliationSessionRepository sessionRepository,
                                      BankReconciliationLineRepository reconciliationLineRepository,
                                      ChartOfAccountRepository accountRepository,
@@ -52,6 +55,7 @@ public class BankReconciliationService {
                                      ChequeService chequeService,
                                      CurrentCompanyContext companyContext) {
         this.bankTransactionRepository = bankTransactionRepository;
+        this.categorizationRuleRepository = categorizationRuleRepository;
         this.sessionRepository = sessionRepository;
         this.reconciliationLineRepository = reconciliationLineRepository;
         this.accountRepository = accountRepository;
@@ -84,6 +88,75 @@ public class BankReconciliationService {
         findBankAccount(accountId);
         return bankTransactionRepository
                 .findByCompanyIdAndBankAccountIdAndReconciledFalseOrderByTransactionDateAscIdAsc(companyId, accountId);
+    }
+
+    @Transactional(readOnly = true)
+    public List<BankTransaction> getImportedTransactions(Long accountId) {
+        Long companyId = companyContext.requireCompanyId();
+        findBankAccount(accountId);
+        return bankTransactionRepository
+                .findByCompanyIdAndBankAccountIdOrderByTransactionDateDescIdDesc(companyId, accountId);
+    }
+
+    @Transactional
+    public void reviewSuggestedCategory(Long transactionId) {
+        Long companyId = companyContext.requireCompanyId();
+        BankTransaction transaction = bankTransactionRepository.findByIdAndCompanyId(transactionId, companyId)
+                .orElseThrow(() -> new IllegalArgumentException("Bank transaction not found"));
+        if (transaction.getSuggestedCategory() == null) {
+            throw new IllegalArgumentException("This transaction has no suggested category to review");
+        }
+        transaction.setCategoryReviewed(true);
+        bankTransactionRepository.save(transaction);
+    }
+
+    @Transactional(readOnly = true)
+    public List<BankCategorizationRule> getCategorizationRules() {
+        return categorizationRuleRepository.findByCompanyIdOrderByPriorityAscIdAsc(companyContext.requireCompanyId());
+    }
+
+    @Transactional(readOnly = true)
+    public List<ChartOfAccount> getCategorizationAccounts() {
+        Long companyId = companyContext.requireCompanyId();
+        return accountRepository.findAllByCompanyIdOrderByAccountNumberAsc(companyId).stream()
+                .filter(account -> Boolean.TRUE.equals(account.getActive()))
+                .filter(account -> account.getCategory() != AccountCategory.BANK)
+                .toList();
+    }
+
+    @Transactional
+    public BankCategorizationRule createCategorizationRule(String name, String matchText, int priority,
+                                                            Long targetAccountId) {
+        Long companyId = companyContext.requireCompanyId();
+        String cleanName = requiredRuleText(name, "Rule name", 120);
+        String cleanMatch = requiredRuleText(matchText, "Match text", 255);
+        ChartOfAccount target = accountRepository.findByIdAndCompanyId(targetAccountId, companyId)
+                .filter(account -> account.getCategory() != AccountCategory.BANK)
+                .orElseThrow(() -> new IllegalArgumentException("Choose a non-bank account in your company"));
+        BankCategorizationRule rule = new BankCategorizationRule();
+        rule.setCompany(companyContext.requireCompany());
+        rule.setName(cleanName);
+        rule.setMatchText(cleanMatch);
+        rule.setPriority(priority);
+        rule.setTargetAccount(target);
+        rule.setActive(true);
+        return categorizationRuleRepository.save(rule);
+    }
+
+    @Transactional
+    public void deactivateCategorizationRule(Long ruleId) {
+        Long companyId = companyContext.requireCompanyId();
+        BankCategorizationRule rule = categorizationRuleRepository.findByIdAndCompanyId(ruleId, companyId)
+                .orElseThrow(() -> new IllegalArgumentException("Categorization rule not found"));
+        rule.setActive(false);
+        categorizationRuleRepository.save(rule);
+    }
+
+    private String requiredRuleText(String value, String label, int maxLength) {
+        if (value == null || value.isBlank() || value.trim().length() > maxLength) {
+            throw new IllegalArgumentException(label + " is required and must be at most " + maxLength + " characters");
+        }
+        return value.trim();
     }
 
     @Transactional(readOnly = true)
@@ -173,28 +246,48 @@ public class BankReconciliationService {
         }
 
         List<ImportedRow> rows = parseCsv(sourceBytes);
+        return persistImport(accountId, sourceBytes, rows, "CSV");
+    }
+
+    @Transactional
+    public ImportResult importOfx(Long accountId, byte[] sourceBytes) {
+        List<ImportedRow> rows = new OfxStatementParser().parse(sourceBytes);
+        return persistImport(accountId, sourceBytes, rows, "OFX/QFX");
+    }
+
+    private ImportResult persistImport(Long accountId, byte[] sourceBytes, List<ImportedRow> rows, String format) {
         Long companyId = companyContext.requireCompanyId();
         ChartOfAccount account = findBankAccount(accountId);
         String sourceHash = sha256(sourceBytes);
 
         if (bankTransactionRepository.existsByCompanyIdAndBankAccountIdAndSourceHash(
                 companyId, accountId, sourceHash)) {
-            throw new IllegalArgumentException("This CSV file was already imported for this bank account");
+            throw new IllegalArgumentException("This " + format + " file was already imported for this bank account");
         }
 
-        Set<String> rowHashes = rows.stream().map(ImportedRow::rowHash).collect(Collectors.toSet());
+        List<ImportedRow> normalizedRows = rows.stream().map(row -> new ImportedRow(
+                row.transactionDate(), row.description(), row.amount(), row.reference(), row.fitId(),
+                row.fitId() != null
+                        ? sha256(("FITID:" + row.fitId()).getBytes(StandardCharsets.UTF_8))
+                        : row.rowHash() != null ? row.rowHash()
+                        : sha256(canonicalRow(row.transactionDate(), row.description(), row.amount(), row.reference())
+                        .getBytes(StandardCharsets.UTF_8))))
+                .toList();
+        Set<String> rowHashes = normalizedRows.stream().map(ImportedRow::rowHash).collect(Collectors.toSet());
         if (rowHashes.size() != rows.size()) {
-            throw new IllegalArgumentException("The CSV contains duplicate transaction rows");
+            throw new IllegalArgumentException("The " + format + " file contains duplicate transaction rows or FITIDs");
         }
 
         if (!bankTransactionRepository
                 .findByCompanyIdAndBankAccountIdAndSourceRowHashIn(companyId, accountId, rowHashes)
                 .isEmpty()) {
-            throw new IllegalArgumentException("One or more CSV rows were already imported for this bank account");
+            throw new IllegalArgumentException("One or more " + format + " transactions were already imported for this bank account");
         }
 
-        List<BankTransaction> transactions = new ArrayList<>(rows.size());
-        for (ImportedRow row : rows) {
+        List<BankCategorizationRule> rules = categorizationRuleRepository
+                .findByCompanyIdAndActiveTrueOrderByPriorityAscIdAsc(companyId);
+        List<BankTransaction> transactions = new ArrayList<>(normalizedRows.size());
+        for (ImportedRow row : normalizedRows) {
             BankTransaction transaction = new BankTransaction();
             transaction.setCompany(companyContext.requireCompany());
             transaction.setBankAccount(account);
@@ -202,9 +295,20 @@ public class BankReconciliationService {
             transaction.setDescription(row.description());
             transaction.setAmount(row.amount());
             transaction.setReference(row.reference());
+            transaction.setFitId(row.fitId());
             transaction.setSourceHash(sourceHash);
             transaction.setSourceRowHash(row.rowHash());
             transaction.setReconciled(false);
+            rules.stream()
+                    .filter(rule -> row.description().toLowerCase(Locale.ROOT)
+                            .contains(rule.getMatchText().toLowerCase(Locale.ROOT))
+                            || row.reference() != null && row.reference().toLowerCase(Locale.ROOT)
+                            .contains(rule.getMatchText().toLowerCase(Locale.ROOT)))
+                    .findFirst()
+                    .ifPresent(rule -> {
+                        transaction.setSuggestedCategory(rule.getTargetAccount());
+                        transaction.setCategorizationRule(rule);
+                    });
             transactions.add(transaction);
         }
         bankTransactionRepository.saveAll(transactions);
@@ -454,7 +558,7 @@ public class BankReconciliationService {
             String reference = headers.containsKey("reference")
                     ? optionalText(value(record, headers, "reference"), "Reference", csvRow, 500)
                     : null;
-            rows.add(new ImportedRow(date, description, amount, reference,
+            rows.add(new ImportedRow(date, description, amount, reference, null,
                     sha256(canonicalRow(date, description, amount, reference).getBytes(StandardCharsets.UTF_8))));
         }
         return rows;
@@ -677,7 +781,7 @@ public class BankReconciliationService {
     public record ImportResult(int importedCount, String sourceHash) {
     }
 
-    private record ImportedRow(LocalDate transactionDate, String description, BigDecimal amount,
-                               String reference, String rowHash) {
+    record ImportedRow(LocalDate transactionDate, String description, BigDecimal amount,
+                       String reference, String fitId, String rowHash) {
     }
 }

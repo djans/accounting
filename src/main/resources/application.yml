@@ -2,7 +2,7 @@ spring:
   application:
     name: accounting
   config:
-    import: "optional:file:${APP_DATABASE_CONFIG_PATH:${user.home}/.accounting/database.properties}"
+    import: "c:/accounting/database/database.properties"
   profiles:
     default: local
   sql:
@@ -36,6 +36,8 @@ server:
   port: 8080
 
 app:
+  logging:
+    path: "${APP_LOG_PATH:logs}"
   attachments:
     max-size: 10485760
   invoice-mail:

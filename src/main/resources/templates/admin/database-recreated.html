@@ -12,6 +12,9 @@
             <p th:text="#{admin.schemaReset.restart}">
                 Restart and sign in with root@example.com and password, then change those initial credentials.
             </p>
+            <p th:text="#{admin.schemaReset.afterRestartImport}">
+                After signing in again, use Administration / Reset to optionally import an initial data package.
+            </p>
             <a class="btn-portal" th:href="@{/login}" th:text="#{auth.login.link}">Sign in</a>
         </div>
     </section>

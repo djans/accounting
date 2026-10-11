@@ -35,12 +35,14 @@ CREATE TABLE IF NOT EXISTS app_users (
     full_name     VARCHAR(255) NOT NULL,
     email         VARCHAR(255) NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
+    short_id      VARCHAR(7)   NULL,
     role          VARCHAR(32)  NOT NULL,
     enabled       BIT(1)       NOT NULL DEFAULT 1,
     created_at    DATETIME(6)  NOT NULL,
     updated_at    DATETIME(6)  NOT NULL,
     PRIMARY KEY (id),
     UNIQUE KEY uk_app_users_email (email),
+    UNIQUE KEY uk_app_users_short_id (short_id),
     KEY idx_app_users_company (company_id),
     CONSTRAINT fk_app_users_company FOREIGN KEY (company_id) REFERENCES companies (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -49,6 +51,7 @@ CREATE TABLE IF NOT EXISTS app_users (
 CREATE TABLE IF NOT EXISTS user_company_memberships (
     user_id    BIGINT NOT NULL,
     company_id BIGINT NOT NULL,
+    role       VARCHAR(32) NOT NULL DEFAULT 'AUDITOR',
     PRIMARY KEY (user_id, company_id),
     KEY idx_user_company_memberships_company (company_id),
     CONSTRAINT fk_user_company_memberships_user FOREIGN KEY (user_id) REFERENCES app_users (id) ON DELETE CASCADE,
@@ -121,6 +124,7 @@ CREATE TABLE IF NOT EXISTS invoices (
     invoice_date   DATE           NOT NULL,
     due_date       DATE           NOT NULL,
     status         VARCHAR(32)    NOT NULL,
+    tax_regime     VARCHAR(30)    NULL,
     subtotal       DECIMAL(19, 2) NOT NULL,
     gst_amount     DECIMAL(19, 2) NOT NULL,
     hst_amount     DECIMAL(19, 2) NOT NULL,
@@ -511,6 +515,21 @@ CREATE TABLE IF NOT EXISTS bank_reconciliation_report_lines (
         REFERENCES bank_reconciliation_sessions (id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS bank_categorization_rules (
+    id                 BIGINT       NOT NULL AUTO_INCREMENT,
+    company_id         BIGINT       NOT NULL,
+    name               VARCHAR(120) NOT NULL,
+    match_text         VARCHAR(255) NOT NULL,
+    priority           INTEGER      NOT NULL,
+    target_account_id  BIGINT       NOT NULL,
+    active             BOOLEAN      NOT NULL DEFAULT TRUE,
+    created_at         DATETIME(6)  NOT NULL,
+    PRIMARY KEY (id),
+    KEY idx_bank_categorization_rules_company_priority (company_id, priority, id),
+    CONSTRAINT fk_bank_categorization_rules_company FOREIGN KEY (company_id) REFERENCES companies (id),
+    CONSTRAINT fk_bank_categorization_rules_account FOREIGN KEY (target_account_id) REFERENCES chart_of_accounts (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS bank_transactions (
     id                        BIGINT         NOT NULL AUTO_INCREMENT,
     company_id                BIGINT         NOT NULL,
@@ -519,8 +538,12 @@ CREATE TABLE IF NOT EXISTS bank_transactions (
     description               VARCHAR(1000)  NOT NULL,
     amount                    DECIMAL(19, 2) NOT NULL,
     reference                 VARCHAR(500)   NULL,
+    fit_id                    VARCHAR(255)   NULL,
     source_hash               VARCHAR(64)    NOT NULL,
     source_row_hash           VARCHAR(64)    NOT NULL,
+    suggested_category_id     BIGINT         NULL,
+    categorization_rule_id    BIGINT         NULL,
+    category_reviewed         BOOLEAN        NOT NULL DEFAULT FALSE,
     reconciled                BOOLEAN        NOT NULL DEFAULT FALSE,
     reconciliation_session_id BIGINT         NULL,
     created_at                DATETIME(6)    NOT NULL,
@@ -529,8 +552,11 @@ CREATE TABLE IF NOT EXISTS bank_transactions (
     KEY idx_bank_transactions_company_account_status (company_id, bank_account_id, reconciled),
     KEY idx_bank_transactions_source_hash (company_id, bank_account_id, source_hash),
     KEY idx_bank_transactions_session (reconciliation_session_id),
+    KEY idx_bank_transactions_suggested_category (company_id, suggested_category_id),
     CONSTRAINT fk_bank_transactions_company FOREIGN KEY (company_id) REFERENCES companies (id),
     CONSTRAINT fk_bank_transactions_account FOREIGN KEY (bank_account_id) REFERENCES chart_of_accounts (id),
+    CONSTRAINT fk_bank_transactions_suggested_category FOREIGN KEY (suggested_category_id) REFERENCES chart_of_accounts (id),
+    CONSTRAINT fk_bank_transactions_categorization_rule FOREIGN KEY (categorization_rule_id) REFERENCES bank_categorization_rules (id),
     CONSTRAINT fk_bank_transactions_session FOREIGN KEY (reconciliation_session_id)
         REFERENCES bank_reconciliation_sessions (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

@@ -41,9 +41,11 @@ class CurrentCompanyContextTest {
     void resolvesTheCompanyFromTheAuthenticatedUser() {
         Company company = company(10L);
         UserAccount user = new UserAccount();
+        user.setId(1L);
         user.setCompany(company);
         user.setEnabled(true);
         when(users.findByEmail("bookkeeper@example.test")).thenReturn(Optional.of(user));
+        when(memberships.findCompaniesByUserId(1L)).thenReturn(List.of(company));
         SecurityContextHolder.getContext().setAuthentication(
                 new UsernamePasswordAuthenticationToken("bookkeeper@example.test", "ignored", List.of()));
 
@@ -56,9 +58,11 @@ class CurrentCompanyContextTest {
     void rejectsRecordsOwnedByAnotherCompany() {
         Company currentCompany = company(10L);
         UserAccount user = new UserAccount();
+        user.setId(1L);
         user.setCompany(currentCompany);
         user.setEnabled(true);
         when(users.findByEmail("viewer@example.test")).thenReturn(Optional.of(user));
+        when(memberships.findCompaniesByUserId(1L)).thenReturn(List.of(currentCompany));
         SecurityContextHolder.getContext().setAuthentication(
                 new UsernamePasswordAuthenticationToken("viewer@example.test", "ignored", List.of()));
 
@@ -87,7 +91,7 @@ class CurrentCompanyContextTest {
     }
 
     @Test
-    void listsOnlyMembershipCompaniesAndTheLegacyDefaultCompany() {
+    void listsOnlyMembershipCompanies() {
         UserAccount user = new UserAccount();
         user.setId(7L);
         user.setCompany(company(10L));
@@ -101,8 +105,41 @@ class CurrentCompanyContextTest {
 
         CurrentCompanyContext context = new CurrentCompanyContext(users, memberships, companies);
 
-        assertEquals(List.of(10L, 20L),
+        assertEquals(List.of(20L),
             context.getAccessibleCompanies().stream().map(Company::getId).sorted().toList());
+    }
+
+    @Test
+    void fallsBackToAnotherMembershipWhenThePrimaryCompanyAccessWasRevoked() {
+        UserAccount user = new UserAccount();
+        user.setId(7L);
+        user.setCompany(company(10L));
+        user.setEnabled(true);
+        Company remaining = company(20L);
+        when(users.findByEmail("bookkeeper@example.test")).thenReturn(Optional.of(user));
+        when(memberships.findCompaniesByUserId(7L)).thenReturn(List.of(remaining));
+        SecurityContextHolder.getContext().setAuthentication(
+            new UsernamePasswordAuthenticationToken("bookkeeper@example.test", "ignored", List.of()));
+
+        CurrentCompanyContext context = new CurrentCompanyContext(users, memberships, companies);
+
+        assertEquals(20L, context.requireCompanyId());
+    }
+
+    @Test
+    void deniesAccessWhenAllCompanyMembershipsHaveBeenRevoked() {
+        UserAccount user = new UserAccount();
+        user.setId(7L);
+        user.setCompany(company(10L));
+        user.setEnabled(true);
+        when(users.findByEmail("bookkeeper@example.test")).thenReturn(Optional.of(user));
+        when(memberships.findCompaniesByUserId(7L)).thenReturn(List.of());
+        SecurityContextHolder.getContext().setAuthentication(
+            new UsernamePasswordAuthenticationToken("bookkeeper@example.test", "ignored", List.of()));
+
+        CurrentCompanyContext context = new CurrentCompanyContext(users, memberships, companies);
+
+        assertThrows(AccessDeniedException.class, context::requireCompany);
     }
 
     private Company company(Long id) {

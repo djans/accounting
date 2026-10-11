@@ -47,6 +47,9 @@ public class CompanyService {
     public Company createCompany(Company company, Long sourceCompanyId) {
         validateCompany(company);
         UserAccount user = companyContext.currentUser();
+        if (companyContext.requireCurrentRole() != UserRole.ADMIN) {
+            throw new AccessDeniedException("Only administrators can create companies");
+        }
         company.setPostedJournalEditingEnabled(false);
         if (companyRepository.findByEmailIgnoreCase(company.getEmail()).isPresent()) {
             throw new IllegalArgumentException("A company with this email already exists");
@@ -74,7 +77,7 @@ public class CompanyService {
             cloneChartOfAccounts(source, created);
             cloneTaxConfiguration(source, created);
         }
-        membershipRepository.grant(user.getId(), created.getId());
+        membershipRepository.grant(user.getId(), created.getId(), UserRole.ADMIN);
         companyContext.selectCompany(created.getId());
         return created;
     }
@@ -121,8 +124,7 @@ public class CompanyService {
 
     @Transactional
     public Company setPostedJournalEditingEnabled(Long id, boolean enabled) {
-        UserAccount user = companyContext.currentUser();
-        if (user.getRole() != UserRole.ADMIN) {
+        if (companyContext.requireCurrentRole() != UserRole.ADMIN) {
             throw new AccessDeniedException("Only administrators can change company settings");
         }
         if (!companyContext.canAccessCompany(id)) {

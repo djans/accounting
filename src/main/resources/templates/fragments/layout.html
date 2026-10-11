@@ -190,7 +190,6 @@
         <a th:href="@{/journals/new}" class="nav-link"><i class="bi bi-journal-plus nav-icon"></i> <span th:text="#{nav.makeJournalEntries}">Make General Journal Entries...</span></a>
         <a th:href="@{/ledger}" class="nav-link" th:classappend="${active=='ledger'} ? ' active'"><i class="bi bi-collection nav-icon"></i> <span th:text="#{nav.generalLedger}">General Ledger</span></a>
         <a th:href="@{/reports/accounting}" class="nav-link" th:classappend="${active=='financial-statements'} ? ' active'"><i class="bi bi-pie-chart-fill nav-icon"></i> <span th:text="#{nav.financialStatements}">Financial Statements</span></a>
-        <a th:href="@{/accounting/trial-balance}" class="nav-link" th:classappend="${active=='trial-balance'} ? ' active'"><i class="bi bi-check2-square nav-icon"></i> <span th:text="#{nav.trialBalance}">Trial Balance</span></a>
         <a th:href="@{/fiscal}" class="nav-link" th:classappend="${active=='fiscal'} ? ' active'"><i class="bi bi-calendar-check nav-icon"></i> <span th:text="#{nav.fiscalClose}">Fiscal Years / Closing</span></a>
         <a th:href="@{/reconcile}" class="nav-link" th:classappend="${active=='reconcile'} ? ' active'"><i class="bi bi-ui-checks-grid nav-icon"></i> <span th:text="#{nav.reconcile}">Reconcile</span></a>
         <a th:href="@{/reconcile/reports}" class="nav-link" th:classappend="${active=='reconciliation-reports'} ? ' active'"><i class="bi bi-file-earmark-pdf nav-icon"></i> <span th:text="#{nav.reconciliationReports}">Reconciliation Reports</span></a>
@@ -217,8 +216,7 @@
         <a th:href="@{/admin/database/migrate}" class="nav-link" th:classappend="${active=='database-engine-migration'} ? ' active'"><i class="bi bi-arrow-left-right nav-icon"></i> <span th:text="#{nav.databaseEngineMigration}">Database engine migration</span></a>
         <a th:href="@{/database/schema}" class="nav-link" th:classappend="${active=='schema-version'} ? ' active'"><i class="bi bi-database-gear nav-icon"></i> <span th:text="#{nav.databaseSchema}">Database schema</span></a>
         <a th:href="@{/admin/reset}" class="nav-link" th:classappend="${active=='admin-reset'} ? ' active'"><i class="bi bi-arrow-counterclockwise nav-icon"></i> <span th:text="#{nav.resetData}">Reset activities</span></a>
-        <a th:href="@{/admin/database/recreate}" class="nav-link" th:classappend="${active=='schema-reset'} ? ' active'"><i class="bi bi-database-x nav-icon"></i> <span th:text="#{nav.recreateDatabase}">Recreate database</span></a>
-        <a th:href="@{/database/migration}" class="nav-link" th:classappend="${active=='migration'} ? ' active'"><i class="bi bi-database-up nav-icon"></i> <span th:text="#{nav.databaseMigration}">Initial data migration</span></a>
+        <a th:href="@{/admin/users}" class="nav-link" th:classappend="${active=='company-users'} ? ' active'"><i class="bi bi-person-gear nav-icon"></i> <span th:text="#{nav.companyUsers}">Company users</span></a>
         <a th:href="@{/database/query}" class="nav-link" th:classappend="${active=='database-query'} ? ' active'"><i class="bi bi-database-gear nav-icon"></i> <span th:text="#{nav.databaseQuery}">Database SQL</span></a>
         <a th:href="@{/admin/monitoring}" class="nav-link" th:classappend="${active=='admin-monitoring'} ? ' active'"><i class="bi bi-activity nav-icon"></i> <span th:text="#{nav.monitoring}">Health and metrics</span></a>
     </div>

@@ -238,7 +238,11 @@ Response:
 #### Trial Balance
 ```
 GET /api/accounting-reports/trial-balance
+GET /api/accounting-reports/trial-balance?asOf=2026-03-31&beforeClose=true
 ```
+
+`asOf` is optional (defaults to today); `beforeClose=true` returns the
+pre-closing view. The default includes posted closing journals.
 
 Response:
 ```json
@@ -268,7 +272,10 @@ Response:
 #### Balance Sheet
 ```
 GET /api/accounting-reports/balance-sheet
+GET /api/accounting-reports/balance-sheet?asOf=2026-03-31
 ```
+
+`asOf` is optional (defaults to today).
 
 Response:
 ```json
@@ -284,7 +291,12 @@ Response:
 #### Income Statement
 ```
 GET /api/accounting-reports/income-statement
+GET /api/accounting-reports/income-statement?startDate=2026-01-01&endDate=2026-03-31
 ```
+
+`startDate` and `endDate` select the income period; omitted dates default to
+year-to-date through `asOf` (or today). Closing journals are excluded so
+closed periods retain their original revenue, expenses, and profit.
 
 Response:
 ```json
@@ -294,6 +306,16 @@ Response:
   "netIncome": 10000.00
 }
 ```
+
+The consolidated web report is available at `/reports/accounting`. It supports
+an as-of date for the balance sheet and both trial balances, plus a separate
+start/end period for the income statement. Its after-closing trial balance and
+balance sheet include posted fiscal-year closing journals; the before-closing
+trial balance removes those closing journals and their reversals. Period income
+statements likewise exclude closing journals so a closed period continues to
+show its revenue, expenses, and profit. PDF and CSV downloads use the selected
+dates and the authenticated company's data. The legacy `/accounting/trial-balance`
+web path redirects to this consolidated report.
 
 #### Account Type Balances
 ```

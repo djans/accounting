@@ -105,8 +105,8 @@
                 </p>
                 <a th:href="@{/database/backup/export}" class="btn-portal btn-ghost"
                    th:if="${isAdmin}" th:text="#{database.schema.backupLink}">Download a database backup</a>
-                <a th:href="@{/admin/database/recreate}" class="btn-portal btn-danger"
-                   th:if="${isAdmin}" th:text="#{database.schema.resetLink}">Reset database</a>
+                <a th:href="@{/admin/reset}" class="btn-portal btn-danger"
+                   th:if="${isAdmin}" th:text="#{database.schema.resetLink}">Open reset options</a>
             </div>
         </section>
     </main>

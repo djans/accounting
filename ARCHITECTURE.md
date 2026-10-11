@@ -7,14 +7,14 @@ This is a modular monolith: one Spring Boot application serves the browser UI an
 The business capabilities are organized as Spring services in one deployable application, not as separate services or Maven modules:
 
 - **Identity and companies**: users, roles, company profiles, company memberships, company selection, and company-scoped access.
-- **Sales and receivables**: customers, invoices and line items, payments, invoice delivery, and billing reports.
+- **Sales and receivables**: customers, invoices and line items, payments, invoice delivery, customer account statements, and billing reports.
 - **Purchases and payables**: vendors, bills and line items, bill payments, and payable reports.
 - **Accounting**: chart of accounts, general journals and entries, general ledger balances, fiscal years and closing, transfers, and financial reports.
 - **Canadian tax**: tax agencies, items, groups and codes, GST/HST/QST calculations, filing periods, return snapshots, and tax reports.
 - **Cash operations**: bank transactions, statement reconciliation, written cheques, and credit-card charges.
 - **Documents and administration**: invoice PDFs and email, protected invoice/bill attachments, backup and restore, schema management, and initial-data migration.
 
-Invoice, bill, and payment workflows can create and post corresponding journal entries through the posting services. Journal reversals are used when supported transactions are changed or cancelled. Reconciliation imports identify duplicate source rows and associate statement activity with company bank accounts and posted journal entries.
+Invoice, bill, and payment workflows can create and post corresponding journal entries through the posting services. Journal reversals are used when supported transactions are changed or cancelled. Reconciliation imports identify duplicate source rows and associate statement activity with company bank accounts and posted journal entries. Invoice-list downloads bundle generated invoice PDFs and attached PDFs; customer statements summarize invoice charges and payment credits for a selected period.
 
 ## Request and business flow
 
@@ -112,9 +112,10 @@ Hibernate does not create or update the application schema (`spring.jpa.hibernat
 - `src/main/resources/schema.sql` is the MySQL DDL.
 - `src/main/resources/schema-sqlite.sql` is the SQLite DDL.
 
-These files initialize new databases and are used by a full schema reset; their SQL is not interchangeable. Schema-version migrations for populated databases are registered in `DatabaseSchemaVersionService` and stored under `src/main/resources/db/migration/`. The administrator reviews and applies pending migrations through `/database/schema`. A full reset is destructive and recreates the schema for the active engine.
+These files initialize new databases and are used by a full schema reset; their SQL is not interchangeable. Schema-version migrations for populated databases are registered in `DatabaseSchemaVersionService` and stored under `src/main/resources/db/migration/`. The administrator reviews and applies pending migrations through `/database/schema`. The Administration **Reset** page offers an independent current-company activity reset and a destructive full-database restart that recreates the active engine's schema. After a full restart, the administrator must restart the application and sign in again before optionally importing a supported initial-data package from the same Reset workflow. That import is not a backup/restore and only applies to an empty accounting dataset.
 
 An administrator can copy the complete database between MySQL and SQLite in either direction through `/admin/database/migrate`. The source is the active connection; the destination requires its engine-specific settings. The destination schema is recreated and its data is replaced, then the runtime database configuration is saved for the next start. This operation requires a backup and a maintenance window; the application must be restarted immediately after migration.
+When MySQL is the active source, the administrator migration page displays its current JDBC URL, username, and masked password to help retain the connection details for a future return to MySQL.
 
 When a change affects entities, columns, relationships, constraints, or indexes, update **both** engine schema files, add a versioned migration for existing databases, and update the related tests and any dialect-specific adapter. Follow [docs/SCHEMA_VERSIONING.md](docs/SCHEMA_VERSIONING.md) for the release procedure. Adding another database engine also requires its driver, dialect, schema, configuration path, and validation coverage.
 
@@ -138,6 +139,11 @@ Spring Security protects the application routes and role-restricted operations. 
 `accounting-<CATEGORY>.log` files. Logs are written under `logs/` by default;
 `APP_LOG_PATH` changes the directory. Daily compressed archives are kept under
 `archive/`.
+Rejected database migrations are logged in the `ERROR` category with the
+administrator, destination engine, and rejection reason key, without passwords
+or submitted connection details.
+Technical migration failures include a stack trace with configured passwords
+and URL password parameters redacted.
 
 Spring Actuator exposes only health, info, and metrics over HTTP. Both those
 endpoints and `/admin/monitoring` require the administrator role. The

@@ -3,6 +3,7 @@ package com.cogitosum.web;
 import com.cogitosum.config.LoggingCategory;
 import com.cogitosum.service.DatabaseSchemaVersionService;
 import com.cogitosum.service.DatabaseSchemaVersionService.Status;
+import com.cogitosum.service.UserShortIdService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataAccessException;
@@ -28,12 +29,15 @@ public class DatabaseSchemaVersionWebController {
 
     private final DatabaseSchemaVersionService schemaVersionService;
     private final MessageSource messageSource;
+    private final UserShortIdService shortIdService;
 
     public DatabaseSchemaVersionWebController(
             DatabaseSchemaVersionService schemaVersionService,
-            MessageSource messageSource) {
+            MessageSource messageSource,
+            UserShortIdService shortIdService) {
         this.schemaVersionService = schemaVersionService;
         this.messageSource = messageSource;
+        this.shortIdService = shortIdService;
     }
 
     @GetMapping
@@ -74,12 +78,13 @@ public class DatabaseSchemaVersionWebController {
 
         try {
             Status updated = schemaVersionService.applyPendingMigrations();
+            shortIdService.assignMissingShortIds();
             attributes.addFlashAttribute("flashSuccess",
                     message("database.schema.updated", updated.currentVersion()));
         } catch (DataAccessException | IllegalStateException exception) {
             try (LoggingCategory.Scope ignored = LoggingCategory.open(LoggingCategory.ERROR)) {
                 log.error("Database schema migration failed for actor={} at version={}",
-                        authentication.getName(), status.currentVersion(), exception);
+                        shortIdService.getOrCreate(authentication.getName()), status.currentVersion(), exception);
             }
             attributes.addFlashAttribute("flashError",
                     message("database.schema.migrationFailed"));

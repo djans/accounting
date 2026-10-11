@@ -4,6 +4,7 @@ import com.cogitosum.service.CompanyActivityResetService;
 import com.cogitosum.repository.CompanyActivityRepository.ActivityCounts;
 import com.cogitosum.repository.CompanyActivityRepository.BankReconciliationCounts;
 import com.cogitosum.service.CurrentCompanyContext;
+import com.cogitosum.service.UserShortIdService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -34,13 +35,15 @@ class CompanyActivityResetWebControllerTest {
     @Mock private CompanyActivityResetService resetService;
     @Mock private CurrentCompanyContext companyContext;
     @Mock private MessageSource messageSource;
+    @Mock private UserShortIdService shortIdService;
     @Mock private Authentication authentication;
 
     private CompanyActivityResetWebController controller;
 
     @BeforeEach
     void setUp() {
-        controller = new CompanyActivityResetWebController(resetService, companyContext, messageSource);
+        controller = new CompanyActivityResetWebController(
+            resetService, companyContext, messageSource, shortIdService);
         when(authentication.isAuthenticated()).thenReturn(true);
         lenient().doReturn(List.of(new SimpleGrantedAuthority("ROLE_ADMIN")))
                 .when(authentication).getAuthorities();

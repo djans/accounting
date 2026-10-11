@@ -40,11 +40,11 @@ class AccountCredentialsServiceTest {
         when(userAccountRepository.findByEmail(AccountCredentialsService.DEFAULT_EMAIL))
                 .thenReturn(Optional.of(user));
         when(userAccountRepository.findByEmailIgnoreCase("owner@example.test")).thenReturn(Optional.empty());
-        when(passwordEncoder.encode("CorrectHorseBattery12")).thenReturn("new-hash");
+        when(passwordEncoder.encode("CorrectHorseBattery12!")).thenReturn("new-hash");
 
         AccountCredentialsService.UpdateResult result =
                 service.update(AccountCredentialsService.DEFAULT_EMAIL, "owner@example.test",
-                        "CorrectHorseBattery12");
+                        "CorrectHorseBattery12!");
 
         assertEquals(AccountCredentialsService.UpdateResult.SUCCESS, result);
         assertEquals("owner@example.test", user.getEmail());
@@ -77,5 +77,17 @@ class AccountCredentialsServiceTest {
 
         assertEquals(token, service.promptDismissalToken("owner@example.test"));
         assertNotEquals("owner@example.test", token);
+    }
+
+    @Test
+    void requiresPasswordLettersNumbersAndSpecialCharacters() {
+        org.junit.jupiter.api.Assertions.assertTrue(
+            AccountCredentialsService.isValidPassword("CorrectHorseBattery12!"));
+        org.junit.jupiter.api.Assertions.assertFalse(
+            AccountCredentialsService.isValidPassword("CorrectHorseBattery123"));
+        org.junit.jupiter.api.Assertions.assertFalse(
+            AccountCredentialsService.isValidPassword("correct-horse-battery"));
+        org.junit.jupiter.api.Assertions.assertFalse(
+            AccountCredentialsService.isValidPassword("123456789012!"));
     }
 }

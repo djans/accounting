@@ -4,6 +4,7 @@ import com.cogitosum.entity.ChartOfAccount;
 import com.cogitosum.entity.JournalEntry;
 import com.cogitosum.service.BankReconciliationService;
 import com.cogitosum.service.BankReconciliationReportPdfService;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -65,6 +66,8 @@ public class ReconcileWebController {
             List<JournalEntry> entries = reconciliationService.getEligibleJournalEntries(id);
             model.addAttribute("account", account);
             model.addAttribute("journalEntries", entries);
+            model.addAttribute("bankTransactions", reconciliationService.getImportedTransactions(id));
+            model.addAttribute("categorizationAccounts", reconciliationService.getCategorizationAccounts());
             model.addAttribute("openingBalance", reconciliationService.getOpeningBalance(id));
             model.addAttribute("statementDate", LocalDate.now());
             model.addAttribute("active", "reconcile");
@@ -73,6 +76,75 @@ public class ReconcileWebController {
             redirectAttributes.addFlashAttribute("flashError", ex.getMessage());
             return "redirect:/reconcile";
         }
+    }
+
+    @PostMapping("/reconcile/account/{id}/import")
+    public String importStatement(@PathVariable Long id, @RequestParam("file") MultipartFile file,
+                                  RedirectAttributes redirectAttributes) {
+        try {
+            if (file == null || file.isEmpty()) {
+                throw new IllegalArgumentException("Choose a bank statement file");
+            }
+            String filename = file.getOriginalFilename();
+            if (filename == null) {
+                throw new IllegalArgumentException("The bank statement filename is missing");
+            }
+            String extension = filename.substring(filename.lastIndexOf('.') + 1).toLowerCase(java.util.Locale.ROOT);
+            var result = switch (extension) {
+                case "csv" -> reconciliationService.importCsv(id, file.getBytes());
+                case "ofx", "qfx" -> reconciliationService.importOfx(id, file.getBytes());
+                default -> throw new IllegalArgumentException("Choose a CSV, OFX, or QFX file");
+            };
+            redirectAttributes.addFlashAttribute("flashSuccess",
+                    "Imported " + result.importedCount() + " bank transactions");
+        } catch (Exception exception) {
+            redirectAttributes.addFlashAttribute("flashError", "Bank import failed: " + exception.getMessage());
+        }
+        return "redirect:/reconcile/account/" + id;
+    }
+
+    @PostMapping("/reconcile/transactions/{id}/review-category")
+    public String reviewSuggestedCategory(@PathVariable Long id, @RequestParam Long accountId,
+                                          RedirectAttributes redirectAttributes) {
+        try {
+            reconciliationService.reviewSuggestedCategory(id);
+            redirectAttributes.addFlashAttribute("flashSuccess", "Suggested category reviewed");
+        } catch (IllegalArgumentException exception) {
+            redirectAttributes.addFlashAttribute("flashError", exception.getMessage());
+        }
+        return "redirect:/reconcile/account/" + accountId;
+    }
+
+    @GetMapping("/reconcile/rules")
+    public String categorizationRules(Model model) {
+        model.addAttribute("rules", reconciliationService.getCategorizationRules());
+        model.addAttribute("accounts", reconciliationService.getCategorizationAccounts());
+        model.addAttribute("active", "reconcile");
+        return "reconcile_rules";
+    }
+
+    @PostMapping("/reconcile/rules")
+    public String createCategorizationRule(@RequestParam String name, @RequestParam String matchText,
+                                          @RequestParam int priority, @RequestParam Long targetAccountId,
+                                          RedirectAttributes redirectAttributes) {
+        try {
+            reconciliationService.createCategorizationRule(name, matchText, priority, targetAccountId);
+            redirectAttributes.addFlashAttribute("flashSuccess", "Categorization rule saved");
+        } catch (IllegalArgumentException exception) {
+            redirectAttributes.addFlashAttribute("flashError", exception.getMessage());
+        }
+        return "redirect:/reconcile/rules";
+    }
+
+    @PostMapping("/reconcile/rules/{id}/deactivate")
+    public String deactivateCategorizationRule(@PathVariable Long id, RedirectAttributes redirectAttributes) {
+        try {
+            reconciliationService.deactivateCategorizationRule(id);
+            redirectAttributes.addFlashAttribute("flashSuccess", "Categorization rule disabled");
+        } catch (IllegalArgumentException exception) {
+            redirectAttributes.addFlashAttribute("flashError", exception.getMessage());
+        }
+        return "redirect:/reconcile/rules";
     }
 
     @PostMapping("/reconcile/finish")

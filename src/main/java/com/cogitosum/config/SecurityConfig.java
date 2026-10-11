@@ -1,6 +1,7 @@
 package com.cogitosum.config;
 
 import com.cogitosum.service.AppUserDetailsService;
+import com.cogitosum.service.CurrentCompanyContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -14,6 +15,8 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.access.intercept.AuthorizationFilter;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
 
 @Configuration
 @EnableWebSecurity
@@ -37,15 +40,33 @@ public class SecurityConfig {
     }
 
     @Bean
+    public CompanyRoleAuthorizationFilter companyRoleAuthorizationFilter(
+            CurrentCompanyContext companyContext) {
+        return new CompanyRoleAuthorizationFilter(companyContext);
+    }
+
+    @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
         return config.getAuthenticationManager();
     }
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    public FilterRegistrationBean<CompanyRoleAuthorizationFilter> companyRoleFilterRegistration(
+            CompanyRoleAuthorizationFilter companyRoleAuthorizationFilter) {
+        FilterRegistrationBean<CompanyRoleAuthorizationFilter> registration =
+            new FilterRegistrationBean<>(companyRoleAuthorizationFilter);
+        registration.setEnabled(false);
+        return registration;
+    }
+
+    @Bean
+    public SecurityFilterChain securityFilterChain(
+            HttpSecurity http,
+            CompanyRoleAuthorizationFilter companyRoleAuthorizationFilter) throws Exception {
         http
             .csrf(csrf -> csrf.csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse()))
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
+            .addFilterBefore(companyRoleAuthorizationFilter, AuthorizationFilter.class)
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/auth/me").authenticated()
@@ -60,9 +81,14 @@ public class SecurityConfig {
                 .requestMatchers("/admin/database/**").hasRole("ADMIN")
                 .requestMatchers("/database/query", "/database/query/**").hasRole("ADMIN")
                 .requestMatchers("/database/migration/**").hasRole("ADMIN")
+                .requestMatchers("/admin/users/**").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.GET, "/companies").authenticated()
                 .requestMatchers(HttpMethod.POST, "/companies/*/select").authenticated()
                 .requestMatchers("/companies/**", "/users/**", "/api/companies/**", "/api/users/**").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.POST,
+                    "/payments/**", "/bills/*/pay", "/cheques/*/issue", "/cheques/*/void",
+                    "/tax/periods/*/pay")
+                    .hasAnyRole("ADMIN", "ACCOUNTANT", "BOOKKEEPER", "PAYMENT_OPERATOR")
                 .requestMatchers("/reconcile/**").hasAnyRole("ADMIN", "ACCOUNTANT", "BOOKKEEPER")
                 .requestMatchers(HttpMethod.POST, "/**").hasAnyRole("ADMIN", "ACCOUNTANT", "BOOKKEEPER")
                 .requestMatchers(HttpMethod.PUT, "/**").hasAnyRole("ADMIN", "ACCOUNTANT", "BOOKKEEPER")

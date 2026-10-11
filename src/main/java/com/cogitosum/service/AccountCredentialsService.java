@@ -20,7 +20,7 @@ public class AccountCredentialsService {
     public static final String DEFAULT_PASSWORD = "password";
     public static final String PROMPT_DISMISSED_COOKIE = "credentialPromptDismissed";
     private static final Pattern EMAIL_PATTERN = Pattern.compile("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$");
-    private static final int MINIMUM_PASSWORD_LENGTH = 12;
+    public static final int MINIMUM_PASSWORD_LENGTH = 12;
 
     private final UserAccountRepository userAccountRepository;
     private final PasswordEncoder passwordEncoder;
@@ -59,7 +59,7 @@ public class AccountCredentialsService {
         }
 
         String newEmail = requestedEmail == null ? "" : requestedEmail.trim();
-        if (!EMAIL_PATTERN.matcher(newEmail).matches()) {
+        if (!isValidEmailAddress(newEmail)) {
             return UpdateResult.INVALID_EMAIL;
         }
         newEmail = newEmail.toLowerCase(Locale.ROOT);
@@ -78,6 +78,9 @@ public class AccountCredentialsService {
         if (!newPassword.isBlank() && newPassword.length() < MINIMUM_PASSWORD_LENGTH) {
             return UpdateResult.PASSWORD_TOO_SHORT;
         }
+        if (!newPassword.isBlank() && !isValidPassword(newPassword)) {
+            return UpdateResult.PASSWORD_REQUIREMENTS;
+        }
 
         user.setEmail(newEmail);
         if (!newPassword.isBlank()) {
@@ -87,12 +90,38 @@ public class AccountCredentialsService {
         return UpdateResult.SUCCESS;
     }
 
+    public static boolean isValidEmailAddress(String email) {
+        return email != null && EMAIL_PATTERN.matcher(email).matches();
+    }
+
+    public static boolean isValidPassword(String password) {
+        if (password == null || password.length() < MINIMUM_PASSWORD_LENGTH) {
+            return false;
+        }
+        boolean hasLetter = false;
+        boolean hasDigit = false;
+        boolean hasSpecial = false;
+        for (int offset = 0; offset < password.length();) {
+            int codePoint = password.codePointAt(offset);
+            offset += Character.charCount(codePoint);
+            if (Character.isLetter(codePoint)) {
+                hasLetter = true;
+            } else if (Character.isDigit(codePoint)) {
+                hasDigit = true;
+            } else if (!Character.isWhitespace(codePoint)) {
+                hasSpecial = true;
+            }
+        }
+        return hasLetter && hasDigit && hasSpecial;
+    }
+
     public enum UpdateResult {
         SUCCESS,
         ACCOUNT_NOT_FOUND,
         INVALID_EMAIL,
         EMAIL_IN_USE,
         PASSWORD_TOO_SHORT,
+        PASSWORD_REQUIREMENTS,
         DEFAULT_CREDENTIALS_MUST_CHANGE
     }
 }

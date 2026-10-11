@@ -14,6 +14,7 @@ import com.cogitosum.service.TaxAgencyService;
 import com.cogitosum.service.TaxCodeService;
 import com.cogitosum.service.VendorService;
 import com.cogitosum.service.TaxFilingService;
+import com.cogitosum.service.UserShortIdService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -48,6 +49,7 @@ public class JournalWebController {
     @Autowired private TaxAgencyService taxAgencyService;
     @Autowired private TaxCodeService taxCodeService;
     @Autowired private TaxFilingService taxFilingService;
+    @Autowired private UserShortIdService shortIdService;
 
     @GetMapping
     public String list(@RequestParam(required = false) JournalStatus status, Model model) {
@@ -176,7 +178,8 @@ public class JournalWebController {
             if (updated.getStatus() == JournalStatus.POSTED) {
                 try (LoggingCategory.Scope ignored = LoggingCategory.open(LoggingCategory.USER_ACTIVITY)) {
                     log.warn("Posted journal edited: journal={} actor={} reference={} date={} lines={}",
-                            id, authentication.getName(), updated.getReference(), updated.getJournalDate(),
+                            id, shortIdService.getOrCreate(authentication.getName()),
+                            updated.getReference(), updated.getJournalDate(),
                             updated.getEntries().size());
                 }
                 ra.addFlashAttribute("flashSuccess", message("journal.postedUpdated"));
@@ -201,7 +204,8 @@ public class JournalWebController {
                     journalService.updatePostedJournalDate(id, journalDate);
             try (LoggingCategory.Scope ignored = LoggingCategory.open(LoggingCategory.USER_ACTIVITY)) {
                 log.warn("Posted journal date changed: journal={} actor={} oldDate={} newDate={}",
-                        id, authentication.getName(), change.previousDate(), change.newDate());
+                        id, shortIdService.getOrCreate(authentication.getName()),
+                        change.previousDate(), change.newDate());
             }
             ra.addFlashAttribute("flashSuccess", message(
                     "journal.postedDateUpdated", change.previousDate(), change.newDate()));

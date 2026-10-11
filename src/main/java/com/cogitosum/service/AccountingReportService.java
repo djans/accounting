@@ -4,13 +4,16 @@ import com.cogitosum.entity.GeneralLedger;
 import com.cogitosum.entity.JournalEntry;
 import com.cogitosum.entity.ChartOfAccount;
 import com.cogitosum.entity.AccountType;
+import com.cogitosum.entity.JournalStatus;
 import com.cogitosum.repository.GeneralLedgerRepository;
 import com.cogitosum.repository.ChartOfAccountRepository;
 import com.cogitosum.repository.JournalEntryRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -139,6 +142,183 @@ public class AccountingReportService {
         return incomeStatement;
     }
 
+    /**
+     * Builds date-bounded reports from posted journal entries rather than the
+     * current ledger snapshot. Closing journals are included in the post-close
+     * trial balance and balance sheet, but excluded from the before-close
+     * trial balance and period income statement.
+     */
+    @Transactional(readOnly = true)
+    public Map<String, Object> getFinancialReports(LocalDate periodStart, LocalDate periodEnd, LocalDate asOf) {
+        if (periodStart == null || periodEnd == null || asOf == null) {
+            throw new IllegalArgumentException("Report dates are required");
+        }
+        if (periodStart.isAfter(periodEnd)) {
+            throw new IllegalArgumentException("The income statement start date must not be after its end date");
+        }
+        Long companyId = companyContext.requireCompanyId();
+        List<ChartOfAccount> accounts =
+                chartOfAccountRepository.findAllByCompanyIdOrderByAccountNumberAsc(companyId);
+        List<JournalEntry> throughDate = journalEntryRepository.findReportEntriesThroughDate(
+                companyId, List.of(JournalStatus.POSTED, JournalStatus.REVERSED), asOf);
+        List<JournalEntry> inPeriod = journalEntryRepository.findReportEntriesBetweenDates(
+                companyId, List.of(JournalStatus.POSTED, JournalStatus.REVERSED), periodStart, periodEnd);
+
+        Map<Long, String> closingJournalNumbers = closingJournalNumbers(throughDate);
+        Map<Long, AccountMovements> postCloseMovements = aggregateMovements(throughDate);
+        Map<Long, AccountMovements> preCloseMovements =
+                aggregateMovements(withoutClosingJournals(throughDate, closingJournalNumbers));
+        Map<Long, AccountMovements> incomeMovements =
+                aggregateMovements(withoutClosingJournals(inPeriod, closingJournalNumbers));
+
+        Map<String, Object> reports = new LinkedHashMap<>();
+        reports.put("trialBalance", datedTrialBalance(accounts, throughDate, postCloseMovements));
+        reports.put("trialBalanceBeforeClose",
+                datedTrialBalance(accounts, withoutClosingJournals(throughDate, closingJournalNumbers),
+                        preCloseMovements));
+        reports.put("balanceSheet", datedBalanceSheet(accounts, postCloseMovements));
+        reports.put("incomeStatement", datedIncomeStatement(accounts, incomeMovements));
+        return reports;
+    }
+
+    private Map<String, Object> datedTrialBalance(List<ChartOfAccount> accounts, List<JournalEntry> entries,
+                                                   Map<Long, AccountMovements> movements) {
+        Map<String, Object> result = new LinkedHashMap<>();
+        Map<String, Map<String, Object>> rows = new LinkedHashMap<>();
+        Map<AccountType, BigDecimal> categoryTotals = new LinkedHashMap<>();
+        for (AccountType type : AccountType.values()) {
+            categoryTotals.put(type, BigDecimal.ZERO);
+        }
+        BigDecimal totalDebits = BigDecimal.ZERO;
+        BigDecimal totalCredits = BigDecimal.ZERO;
+        for (JournalEntry entry : entries) {
+            totalDebits = totalDebits.add(zero(entry.getDebit()));
+            totalCredits = totalCredits.add(zero(entry.getCredit()));
+        }
+        for (ChartOfAccount account : accounts) {
+            AccountMovements amount = movements.getOrDefault(account.getId(), new AccountMovements());
+            BigDecimal balance = calculateBalance(account.getAccountType(), amount.debit, amount.credit);
+            Map<String, Object> row = new LinkedHashMap<>();
+            row.put("accountId", account.getId());
+            row.put("accountNumber", account.getAccountNumber());
+            row.put("accountName", account.getAccountName());
+            row.put("accountType", account.getAccountType());
+            row.put("debitBalance", amount.debit);
+            row.put("creditBalance", amount.credit);
+            row.put("balance", balance);
+            rows.put(account.getAccountNumber(), row);
+            if (account.getAccountType() != null) {
+                categoryTotals.merge(account.getAccountType(), balance, BigDecimal::add);
+            }
+        }
+        result.put("accounts", rows);
+        result.put("categoryTotals", categoryTotals);
+        result.put("totalDebits", totalDebits);
+        result.put("totalCredits", totalCredits);
+        result.put("balanced", totalDebits.compareTo(totalCredits) == 0);
+        return result;
+    }
+
+    private Map<String, Object> datedBalanceSheet(List<ChartOfAccount> accounts,
+                                                   Map<Long, AccountMovements> movements) {
+        Map<String, Object> result = new LinkedHashMap<>();
+        AccountSection assets = datedSection(accounts, movements, AccountType.ASSET, AccountType.CONTRA_ASSET);
+        AccountSection liabilities = datedSection(accounts, movements, AccountType.LIABILITY, AccountType.CONTRA_LIABILITY);
+        AccountSection equity = datedSection(accounts, movements, AccountType.EQUITY);
+        AccountSection revenue = datedSection(accounts, movements, AccountType.REVENUE);
+        AccountSection expenses = datedSection(accounts, movements, AccountType.EXPENSE);
+        BigDecimal netIncome = revenue.total.subtract(expenses.total);
+        BigDecimal equityAndIncome = equity.total.add(netIncome);
+        BigDecimal liabilitiesAndEquity = liabilities.total.add(equityAndIncome);
+        result.put("assets", assets.rows);
+        result.put("totalAssets", assets.total);
+        result.put("liabilities", liabilities.rows);
+        result.put("totalLiabilities", liabilities.total);
+        result.put("equity", equity.rows);
+        result.put("totalEquity", equity.total);
+        result.put("netIncome", netIncome);
+        result.put("totalEquityPlusNetIncome", equityAndIncome);
+        result.put("totalLiabilitiesAndEquity", liabilitiesAndEquity);
+        result.put("balanced", assets.total.compareTo(liabilitiesAndEquity) == 0);
+        return result;
+    }
+
+    private Map<String, Object> datedIncomeStatement(List<ChartOfAccount> accounts,
+                                                      Map<Long, AccountMovements> movements) {
+        AccountSection revenue = datedSection(accounts, movements, AccountType.REVENUE);
+        AccountSection expenses = datedSection(accounts, movements, AccountType.EXPENSE);
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("revenue", revenue.rows);
+        result.put("totalRevenue", revenue.total);
+        result.put("expenses", expenses.rows);
+        result.put("totalExpenses", expenses.total);
+        result.put("netIncome", revenue.total.subtract(expenses.total));
+        return result;
+    }
+
+    private AccountSection datedSection(List<ChartOfAccount> accounts, Map<Long, AccountMovements> movements,
+                                        AccountType... types) {
+        AccountSection section = new AccountSection();
+        AccountType primaryType = types.length == 0 ? null : types[0];
+        for (AccountType type : types) {
+            for (ChartOfAccount account : accounts) {
+                if (account.getAccountType() != type) continue;
+                AccountMovements amount = movements.get(account.getId());
+                if (amount == null) continue;
+                BigDecimal balance = calculateBalance(type, amount.debit, amount.credit);
+                Map<String, Object> row = new LinkedHashMap<>();
+                row.put("accountId", account.getId());
+                row.put("accountNumber", account.getAccountNumber());
+                row.put("accountName", account.getAccountName());
+                row.put("balance", balance);
+                section.rows.add(row);
+                section.total = type == primaryType
+                        ? section.total.add(balance) : section.total.subtract(balance);
+            }
+        }
+        return section;
+    }
+
+    private Map<Long, AccountMovements> aggregateMovements(List<JournalEntry> entries) {
+        Map<Long, AccountMovements> result = new HashMap<>();
+        for (JournalEntry entry : entries) {
+            if (entry.getAccount() == null) continue;
+            AccountMovements amount = result.computeIfAbsent(entry.getAccount().getId(), ignored -> new AccountMovements());
+            amount.debit = amount.debit.add(zero(entry.getDebit()));
+            amount.credit = amount.credit.add(zero(entry.getCredit()));
+        }
+        return result;
+    }
+
+    private Map<Long, String> closingJournalNumbers(List<JournalEntry> entries) {
+        Map<Long, String> closingJournalNumbers = new HashMap<>();
+        for (JournalEntry entry : entries) {
+            String reference = entry.getJournal().getReference();
+            if (reference != null && reference.startsWith("FY-CLOSE-")) {
+                closingJournalNumbers.put(entry.getJournal().getId(), entry.getJournal().getJournalNumber());
+            }
+        }
+        return closingJournalNumbers;
+    }
+
+    private List<JournalEntry> withoutClosingJournals(List<JournalEntry> entries,
+                                                       Map<Long, String> closingJournalNumbers) {
+        return entries.stream().filter(entry -> {
+            String reference = entry.getJournal().getReference();
+            if (reference != null && reference.startsWith("FY-CLOSE-")) return false;
+            if (reference != null) {
+                for (String journalNumber : closingJournalNumbers.values()) {
+                    if (reference.equals("Reversal of " + journalNumber)) return false;
+                }
+            }
+            return true;
+        }).toList();
+    }
+
+    private BigDecimal zero(BigDecimal amount) {
+        return amount == null ? BigDecimal.ZERO : amount;
+    }
+
     public Map<String, Object> getAccountDetail(Long accountId) {
         Map<String, Object> detail = new HashMap<>();
 
@@ -238,7 +418,10 @@ public class AccountingReportService {
     }
 
     public String generateTrialBalanceCsv() {
-        Map<String, Object> trialBalance = getTrialBalance();
+        return generateTrialBalanceCsv(getTrialBalance());
+    }
+
+    public String generateTrialBalanceCsv(Map<String, Object> trialBalance) {
         Map<String, Map<String, Object>> accounts = (Map<String, Map<String, Object>>) trialBalance.get("accounts");
         
         StringBuilder csv = new StringBuilder();
@@ -269,7 +452,10 @@ public class AccountingReportService {
     }
 
     public String generateBalanceSheetCsv() {
-        Map<String, Object> bs = getBalanceSheet();
+        return generateBalanceSheetCsv(getBalanceSheet());
+    }
+
+    public String generateBalanceSheetCsv(Map<String, Object> bs) {
         StringBuilder csv = new StringBuilder();
         csv.append("Section,Account Number,Account Name,Amount\n");
         
@@ -296,7 +482,10 @@ public class AccountingReportService {
     }
 
     public String generateIncomeStatementCsv() {
-        Map<String, Object> is = getIncomeStatement();
+        return generateIncomeStatementCsv(getIncomeStatement());
+    }
+
+    public String generateIncomeStatementCsv(Map<String, Object> is) {
         StringBuilder csv = new StringBuilder();
         csv.append("Section,Account Number,Account Name,Amount\n");
         
@@ -412,6 +601,66 @@ public class AccountingReportService {
         return txt.toString();
     }
 
+    public String generateFinancialStatementsTxt(Map<String, Object> reports,
+                                                  LocalDate periodStart, LocalDate periodEnd, LocalDate asOf) {
+        StringBuilder txt = new StringBuilder();
+        txt.append("FINANCIAL STATEMENTS\n")
+                .append("As of: ").append(asOf).append('\n')
+                .append("Income statement period: ").append(periodStart).append(" to ").append(periodEnd)
+                .append("\n\n");
+        appendDatedTrialBalanceTxt(txt, castReportMap(reports.get("trialBalanceBeforeClose")),
+                "TRIAL BALANCE — BEFORE CLOSING");
+        appendDatedTrialBalanceTxt(txt, castReportMap(reports.get("trialBalance")),
+                "TRIAL BALANCE — AFTER CLOSING");
+        Map<String, Object> balanceSheet = castReportMap(reports.get("balanceSheet"));
+        txt.append("BALANCE SHEET\n");
+        appendDatedSectionTxt(txt, "ASSETS", balanceSheet.get("assets"), balanceSheet.get("totalAssets"));
+        appendDatedSectionTxt(txt, "LIABILITIES", balanceSheet.get("liabilities"), balanceSheet.get("totalLiabilities"));
+        appendDatedSectionTxt(txt, "EQUITY", balanceSheet.get("equity"), balanceSheet.get("totalEquity"));
+        txt.append("Net income (unclosed): ").append(balanceSheet.get("netIncome")).append("\n")
+                .append("Total liabilities and equity: ")
+                .append(balanceSheet.get("totalLiabilitiesAndEquity")).append("\n\n");
+        Map<String, Object> income = castReportMap(reports.get("incomeStatement"));
+        txt.append("INCOME STATEMENT\n");
+        appendDatedSectionTxt(txt, "REVENUE", income.get("revenue"), income.get("totalRevenue"));
+        appendDatedSectionTxt(txt, "EXPENSES", income.get("expenses"), income.get("totalExpenses"));
+        txt.append("Net income: ").append(income.get("netIncome")).append('\n');
+        return txt.toString();
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> castReportMap(Object value) {
+        return (Map<String, Object>) value;
+    }
+
+    private void appendDatedTrialBalanceTxt(StringBuilder txt, Map<String, Object> trialBalance, String title) {
+        txt.append(title).append('\n');
+        Map<String, Map<String, Object>> rows =
+                (Map<String, Map<String, Object>>) trialBalance.get("accounts");
+        if (rows != null) {
+            for (Map<String, Object> row : rows.values()) {
+                txt.append(row.get("accountNumber")).append(" | ").append(row.get("accountName")).append(" | ")
+                        .append(row.get("accountType")).append(" | Dr ").append(row.get("debitBalance"))
+                        .append(" | Cr ").append(row.get("creditBalance")).append('\n');
+            }
+        }
+        txt.append("Debits: ").append(trialBalance.get("totalDebits"))
+                .append(" | Credits: ").append(trialBalance.get("totalCredits")).append("\n\n");
+    }
+
+    @SuppressWarnings("unchecked")
+    private void appendDatedSectionTxt(StringBuilder txt, String name, Object rawRows, Object total) {
+        txt.append(name).append('\n');
+        List<Map<String, Object>> rows = (List<Map<String, Object>>) rawRows;
+        if (rows != null) {
+            for (Map<String, Object> row : rows) {
+                txt.append(row.get("accountNumber")).append(" | ").append(row.get("accountName"))
+                        .append(" | ").append(row.get("balance")).append('\n');
+            }
+        }
+        txt.append("Total ").append(name).append(": ").append(total).append('\n');
+    }
+
     private String truncate(String text, int length) {
         if (text == null) return "";
         return text.length() > length ? text.substring(0, length) : text;
@@ -420,5 +669,10 @@ public class AccountingReportService {
     private static class AccountSection {
         List<Map<String, Object>> rows = new ArrayList<>();
         BigDecimal total = BigDecimal.ZERO;
+    }
+
+    private static class AccountMovements {
+        private BigDecimal debit = BigDecimal.ZERO;
+        private BigDecimal credit = BigDecimal.ZERO;
     }
 }

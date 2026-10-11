@@ -5,12 +5,14 @@ import com.cogitosum.service.AccountingReportService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.Map;
+import java.time.LocalDate;
 
 @RestController
 @RequestMapping("/api/accounting-reports")
@@ -22,9 +24,13 @@ public class AccountingReportController {
     private AccountingReportService accountingReportService;
 
     @GetMapping("/trial-balance")
-    public ResponseEntity<Map<String, Object>> getTrialBalance() {
+    public ResponseEntity<Map<String, Object>> getTrialBalance(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate asOf,
+            @RequestParam(defaultValue = "false") boolean beforeClose) {
         try {
-            Map<String, Object> trialBalance = accountingReportService.getTrialBalance();
+            Map<String, Object> reports = getFinancialReports(asOf, null, null);
+            Map<String, Object> trialBalance = castMap(reports.get(
+                    beforeClose ? "trialBalanceBeforeClose" : "trialBalance"));
             return new ResponseEntity<>(trialBalance, HttpStatus.OK);
         } catch (Exception e) {
             logError("Could not generate trial balance", e);
@@ -33,9 +39,10 @@ public class AccountingReportController {
     }
 
     @GetMapping("/balance-sheet")
-    public ResponseEntity<Map<String, Object>> getBalanceSheet() {
+    public ResponseEntity<Map<String, Object>> getBalanceSheet(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate asOf) {
         try {
-            Map<String, Object> balanceSheet = accountingReportService.getBalanceSheet();
+            Map<String, Object> balanceSheet = castMap(getFinancialReports(asOf, null, null).get("balanceSheet"));
             return new ResponseEntity<>(balanceSheet, HttpStatus.OK);
         } catch (Exception e) {
             logError("Could not generate balance sheet", e);
@@ -44,9 +51,13 @@ public class AccountingReportController {
     }
 
     @GetMapping("/income-statement")
-    public ResponseEntity<Map<String, Object>> getIncomeStatement() {
+    public ResponseEntity<Map<String, Object>> getIncomeStatement(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate asOf) {
         try {
-            Map<String, Object> incomeStatement = accountingReportService.getIncomeStatement();
+            Map<String, Object> incomeStatement =
+                    castMap(getFinancialReports(asOf, startDate, endDate).get("incomeStatement"));
             return new ResponseEntity<>(incomeStatement, HttpStatus.OK);
         } catch (Exception e) {
             logError("Could not generate income statement", e);
@@ -95,5 +106,17 @@ public class AccountingReportController {
         try (LoggingCategory.Scope ignored = LoggingCategory.open(LoggingCategory.ERROR)) {
             log.error(message, exception);
         }
+    }
+
+    private Map<String, Object> getFinancialReports(LocalDate asOf, LocalDate startDate, LocalDate endDate) {
+        LocalDate reportDate = asOf != null ? asOf : (endDate != null ? endDate : LocalDate.now());
+        LocalDate periodEnd = endDate != null ? endDate : reportDate;
+        LocalDate periodStart = startDate != null ? startDate : periodEnd.withDayOfYear(1);
+        return accountingReportService.getFinancialReports(periodStart, periodEnd, reportDate);
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> castMap(Object value) {
+        return (Map<String, Object>) value;
     }
 }

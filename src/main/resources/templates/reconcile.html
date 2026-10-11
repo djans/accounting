@@ -11,6 +11,8 @@
             <div class="portal-card">
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <h3 class="mb-0" th:text="#{nav.reconcile}">Rapprochement</h3>
+                    <a class="btn btn-sm btn-outline-secondary" th:href="@{/reconcile/rules}"
+                       th:text="#{reconcile.rules.manage}">Manage categorization rules</a>
                 </div>
                 <table class="table-portal table">
                     <thead>

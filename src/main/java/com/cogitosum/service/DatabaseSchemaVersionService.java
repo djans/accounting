@@ -28,6 +28,28 @@ public class DatabaseSchemaVersionService {
                     "database.schema.version.1.1.0.title",
                     "database.schema.version.1.1.0.description",
                     "db/migration/V1_1_0__schema_version_ledger.sql",
+                    false),
+            new SchemaMigration(
+                    new SchemaVersion(1, 2, 0),
+                    "database.schema.version.1.2.0.title",
+                    "database.schema.version.1.2.0.description",
+                    "db/migration/V1_2_0__invoice_tax_regime.sql",
+                    false,
+                    "invoices",
+                    "tax_regime"),
+            new SchemaMigration(
+                    new SchemaVersion(1, 3, 0),
+                    "database.schema.version.1.3.0.title",
+                    "database.schema.version.1.3.0.description",
+                    "db/migration/V1_3_0__company_scoped_roles_and_short_ids.sql",
+                    false,
+                    "user_company_memberships",
+                    "role"),
+            new SchemaMigration(
+                    new SchemaVersion(1, 4, 0),
+                    "database.schema.version.1.4.0.title",
+                    "database.schema.version.1.4.0.description",
+                    "db/migration/V1_4_0__bank_import_categorization.sql",
                     false));
 
     private final DataSource dataSource;
@@ -65,8 +87,15 @@ public class DatabaseSchemaVersionService {
                 }
 
                 for (SchemaMigration migration : before.pendingMigrations()) {
-                    ClassPathResource script = new ClassPathResource(migration.resource());
-                    new ResourceDatabasePopulator(script).populate(connection);
+                    if (migration.version().equals(new SchemaVersion(1, 3, 0))) {
+                        applyCompanyRolesAndShortIds(connection);
+                    } else if (migration.version().equals(new SchemaVersion(1, 4, 0))) {
+                        applyBankImportCategorization(connection);
+                    } else if (!migration.columnAlreadyExists() || !columnExists(
+                            connection, migration.idempotencyTable(), migration.idempotencyColumn())) {
+                        ClassPathResource script = new ClassPathResource(migration.resource());
+                        new ResourceDatabasePopulator(script).populate(connection);
+                    }
                     updateVersion(connection, migration.version());
                 }
                 return getStatus(connection);
@@ -161,6 +190,171 @@ public class DatabaseSchemaVersionService {
         }
     }
 
+    private boolean columnExists(Connection connection, String table, String column) throws SQLException {
+        try (ResultSet columns = connection.getMetaData().getColumns(
+                connection.getCatalog(), null, "%", "%")) {
+            while (columns.next()) {
+                if (table.equalsIgnoreCase(columns.getString("TABLE_NAME"))
+                        && column.equalsIgnoreCase(columns.getString("COLUMN_NAME"))) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private void applyCompanyRolesAndShortIds(Connection connection) throws SQLException {
+        boolean hasMembershipRole = columnExists(connection, "user_company_memberships", "role");
+        boolean hasShortId = columnExists(connection, "app_users", "short_id");
+        boolean hasShortIdIndex = hasShortIdIndex(connection);
+        if (!hasMembershipRole) {
+            execute(connection, "ALTER TABLE user_company_memberships "
+                    + "ADD COLUMN role VARCHAR(32) NOT NULL DEFAULT 'AUDITOR'");
+        }
+        if (!hasMembershipRole || !hasShortId || !hasShortIdIndex) {
+            execute(connection, "UPDATE user_company_memberships SET role = COALESCE(("
+                    + "SELECT CASE WHEN app_users.role = 'VIEWER' THEN 'AUDITOR' ELSE app_users.role END "
+                    + "FROM app_users WHERE app_users.id = user_company_memberships.user_id), 'AUDITOR')");
+        }
+        if (!hasShortId) {
+            execute(connection, "ALTER TABLE app_users ADD COLUMN short_id VARCHAR(7)");
+        }
+        if (!hasShortIdIndex) {
+            execute(connection, "CREATE UNIQUE INDEX uk_app_users_short_id ON app_users (short_id)");
+        }
+    }
+
+    private void applyBankImportCategorization(Connection connection) throws SQLException {
+        if (tableExists(connection, "bank_transactions")) {
+            addColumnIfMissing(connection, "bank_transactions", "fit_id", "VARCHAR(255) NULL");
+            addColumnIfMissing(connection, "bank_transactions", "suggested_category_id", "BIGINT NULL");
+            addColumnIfMissing(connection, "bank_transactions", "categorization_rule_id", "BIGINT NULL");
+            addColumnIfMissing(connection, "bank_transactions", "category_reviewed", "BOOLEAN NOT NULL DEFAULT FALSE");
+        }
+        boolean sqlite = connection.getMetaData().getDatabaseProductName()
+                .toLowerCase(Locale.ROOT).contains("sqlite");
+        if (!tableExists(connection, "bank_categorization_rules")) {
+            String id = sqlite ? "id INTEGER PRIMARY KEY AUTOINCREMENT"
+                    : "id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY";
+            execute(connection, "CREATE TABLE bank_categorization_rules ("
+                    + id + ", company_id BIGINT NOT NULL, name VARCHAR(120) NOT NULL, "
+                    + "match_text VARCHAR(255) NOT NULL, priority INTEGER NOT NULL, "
+                    + "target_account_id BIGINT NOT NULL, active BOOLEAN NOT NULL DEFAULT TRUE, "
+                    + "created_at " + (sqlite ? "DATETIME" : "DATETIME(6)") + " NOT NULL, "
+                    + "CONSTRAINT fk_bank_categorization_rules_company FOREIGN KEY (company_id) REFERENCES companies (id), "
+                    + "CONSTRAINT fk_bank_categorization_rules_account FOREIGN KEY (target_account_id) "
+                    + "REFERENCES chart_of_accounts (id))");
+        }
+        createIndexIfMissing(connection, "idx_bank_categorization_rules_company_priority",
+                "bank_categorization_rules", "company_id, priority, id");
+        if (tableExists(connection, "bank_transactions")) {
+            createIndexIfMissing(connection, "idx_bank_transactions_suggested_category",
+                    "bank_transactions", "company_id, suggested_category_id");
+            if (!sqlite) {
+                ensureForeignKey(connection, "bank_transactions", "suggested_category_id",
+                        "chart_of_accounts", "fk_bank_transactions_suggested_category");
+                ensureForeignKey(connection, "bank_transactions", "categorization_rule_id",
+                        "bank_categorization_rules", "fk_bank_transactions_categorization_rule");
+            }
+        }
+    }
+
+    private boolean tableExists(Connection connection, String table) throws SQLException {
+        try (ResultSet tables = connection.getMetaData().getTables(connection.getCatalog(), null, "%",
+                new String[]{"TABLE"})) {
+            while (tables.next()) {
+                if (table.equalsIgnoreCase(tables.getString("TABLE_NAME"))) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private void addColumnIfMissing(Connection connection, String table, String column, String definition)
+            throws SQLException {
+        if (!columnExists(connection, table, column)) {
+            execute(connection, "ALTER TABLE " + table + " ADD COLUMN " + column + " " + definition);
+        }
+    }
+
+    private void createIndexIfMissing(Connection connection, String index, String table, String columns)
+            throws SQLException {
+        String actualTable = findTableName(connection, table);
+        if (actualTable == null) {
+            return;
+        }
+        try (ResultSet indexes = connection.getMetaData().getIndexInfo(
+                connection.getCatalog(), null, actualTable, false, false)) {
+            while (indexes.next()) {
+                if (index.equalsIgnoreCase(indexes.getString("INDEX_NAME"))) {
+                    return;
+                }
+            }
+        }
+        execute(connection, "CREATE INDEX " + index + " ON " + table + " (" + columns + ")");
+    }
+
+    private void ensureForeignKey(Connection connection, String table, String column, String targetTable,
+                                  String constraint) throws SQLException {
+        String actualTable = findTableName(connection, table);
+        if (actualTable == null) {
+            return;
+        }
+        try (ResultSet keys = connection.getMetaData().getImportedKeys(
+                connection.getCatalog(), null, actualTable)) {
+            while (keys.next()) {
+                if (column.equalsIgnoreCase(keys.getString("FKCOLUMN_NAME"))
+                        && targetTable.equalsIgnoreCase(keys.getString("PKTABLE_NAME"))) {
+                    return;
+                }
+            }
+        }
+        execute(connection, "ALTER TABLE " + table + " ADD CONSTRAINT " + constraint
+                + " FOREIGN KEY (" + column + ") REFERENCES " + targetTable + " (id)");
+    }
+
+    private String findTableName(Connection connection, String table) throws SQLException {
+        try (ResultSet tables = connection.getMetaData().getTables(connection.getCatalog(), null, "%",
+                new String[]{"TABLE"})) {
+            while (tables.next()) {
+                String actualName = tables.getString("TABLE_NAME");
+                if (table.equalsIgnoreCase(actualName)) {
+                    return actualName;
+                }
+            }
+        }
+        return null;
+    }
+
+    private boolean hasShortIdIndex(Connection connection) throws SQLException {
+        var metadata = connection.getMetaData();
+        try (ResultSet tables = metadata.getTables(connection.getCatalog(), null, "%", new String[]{"TABLE"})) {
+            while (tables.next()) {
+                if ("app_users".equalsIgnoreCase(tables.getString("TABLE_NAME"))) {
+                    try (ResultSet indexes = metadata.getIndexInfo(
+                            connection.getCatalog(), tables.getString("TABLE_SCHEM"),
+                            tables.getString("TABLE_NAME"), false, false)) {
+                        while (indexes.next()) {
+                            if ("uk_app_users_short_id".equalsIgnoreCase(indexes.getString("INDEX_NAME"))
+                                    && "short_id".equalsIgnoreCase(indexes.getString("COLUMN_NAME"))
+                                    && !indexes.getBoolean("NON_UNIQUE")) {
+                                return true;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    private void execute(Connection connection, String sql) throws SQLException {
+        try (Statement statement = connection.createStatement()) {
+            statement.execute(sql);
+        }
+    }
+
     private List<VersionEntry> versionHistory(String currentVersion, SchemaVersion parsedCurrent) {
         List<VersionEntry> versions = new ArrayList<>();
         versions.add(new VersionEntry(
@@ -203,7 +397,17 @@ public class DatabaseSchemaVersionService {
             String titleKey,
             String descriptionKey,
             String resource,
-            boolean requiresBackup) {
+            boolean requiresBackup,
+            String idempotencyTable,
+            String idempotencyColumn) {
+        public SchemaMigration(SchemaVersion version, String titleKey, String descriptionKey, String resource,
+                              boolean requiresBackup) {
+            this(version, titleKey, descriptionKey, resource, requiresBackup, null, null);
+        }
+
+        private boolean columnAlreadyExists() {
+            return idempotencyTable != null && idempotencyColumn != null;
+        }
     }
 
     public record VersionEntry(

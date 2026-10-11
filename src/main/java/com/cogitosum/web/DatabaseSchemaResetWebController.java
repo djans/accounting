@@ -2,6 +2,7 @@ package com.cogitosum.web;
 
 import com.cogitosum.config.LoggingCategory;
 import com.cogitosum.service.DatabaseSchemaResetService;
+import com.cogitosum.service.UserShortIdService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.MessageSource;
@@ -10,7 +11,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.stereotype.Controller;
-import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -27,19 +27,21 @@ public class DatabaseSchemaResetWebController {
 
     private final DatabaseSchemaResetService resetService;
     private final MessageSource messageSource;
+    private final UserShortIdService shortIdService;
 
     public DatabaseSchemaResetWebController(
             DatabaseSchemaResetService resetService,
-            MessageSource messageSource) {
+            MessageSource messageSource,
+            UserShortIdService shortIdService) {
         this.resetService = resetService;
         this.messageSource = messageSource;
+        this.shortIdService = shortIdService;
     }
 
     @GetMapping
-    public String page(Authentication authentication, Model model) {
+    public String page(Authentication authentication) {
         requireAdmin(authentication);
-        model.addAttribute("active", "schema-reset");
-        return "admin/database-recreate";
+        return "redirect:/admin/reset";
     }
 
     @PostMapping
@@ -52,13 +54,13 @@ public class DatabaseSchemaResetWebController {
             attributes.addFlashAttribute("flashError",
                     messageSource.getMessage("admin.schemaReset.confirmationRequired",
                             null, LocaleContextHolder.getLocale()));
-            return "redirect:/admin/database/recreate";
+            return "redirect:/admin/reset";
         }
 
         int droppedTables = resetService.dropAndRecreate();
         try (LoggingCategory.Scope ignored = LoggingCategory.open(LoggingCategory.USER_ACTIVITY)) {
             log.warn("Application database schema recreated: actor={} droppedTables={}",
-                    authentication.getName(), droppedTables);
+                    shortIdService.getOrCreate(authentication.getName()), droppedTables);
         }
         return "admin/database-recreated";
     }

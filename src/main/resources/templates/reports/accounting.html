@@ -1,18 +1,50 @@
 <!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments/layout :: head('Financial Statements')}"></head>
+<html lang="en" th:lang="${#locale.language}" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(#{nav.financialStatements})}"></head>
 <body>
+<style>
+    @media print {
+        .portal-sidebar, .portal-topbar, .report-actions, .report-filters, .no-print,
+        #transactionModal, #accountingFilter, #accountingNoMatches { display: none !important; }
+        .portal-shell, .portal-main, .portal-content { display: block !important; width: 100% !important; margin: 0 !important; padding: 0 !important; }
+        .portal-card { break-inside: avoid; box-shadow: none !important; border: 1px solid #bbb !important; margin-bottom: 12px !important; }
+        table { font-size: 10px !important; }
+        a { color: inherit !important; text-decoration: none !important; }
+    }
+</style>
 <div class="portal-shell">
     <div th:replace="~{fragments/layout :: sidebar('financial-statements')}"></div>
     <main class="portal-main">
-        <div th:replace="~{fragments/layout :: topbar('Financial Statements')}"></div>
+        <div th:replace="~{fragments/layout :: topbar(#{nav.financialStatements})}"></div>
         
-        <div class="d-flex justify-content-end mb-3 px-4">
-            <button onclick="window.print()" class="btn-portal btn-sm me-2"><i class="bi bi-printer"></i> Print</button>
-            <a th:href="@{/reports/accounting/txt}" class="btn-portal btn-sm"><i class="bi bi-file-earmark-text"></i> Export TXT</a>
+        <div class="d-flex justify-content-end mb-3 px-4 report-actions">
+            <button onclick="window.print()" class="btn-portal btn-sm me-2" th:text="#{accounting.print}">Print</button>
+            <a th:href="@{/reports/accounting/pdf(asOf=${asOf},startDate=${startDate},endDate=${endDate})}"
+               class="btn-portal btn-sm me-2" th:text="#{accounting.downloadPdf}">Download PDF</a>
+            <a th:href="@{/reports/accounting/txt(asOf=${asOf},startDate=${startDate},endDate=${endDate})}"
+               class="btn-portal btn-sm" th:text="#{accounting.downloadTxt}">Export TXT</a>
         </div>
 
         <section class="portal-content">
+            <form method="get" th:action="@{/reports/accounting}" class="portal-card report-filters">
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-4">
+                        <label class="form-label" for="asOf" th:text="#{accounting.asOf}">Balance sheet as of</label>
+                        <input class="form-control" type="date" id="asOf" name="asOf" th:value="${asOf}" required>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label" for="startDate" th:text="#{accounting.periodStart}">Income period from</label>
+                        <input class="form-control" type="date" id="startDate" name="startDate" th:value="${startDate}" required>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label" for="endDate" th:text="#{accounting.periodEnd}">Income period through</label>
+                        <input class="form-control" type="date" id="endDate" name="endDate" th:value="${endDate}" required>
+                    </div>
+                    <div class="col-md-2">
+                        <button class="btn-portal btn-sm" type="submit" th:text="#{accounting.applyFilters}">Apply</button>
+                    </div>
+                </div>
+            </form>
             <div class="mb-3">
                 <label class="form-label mb-1" for="accountingFilter"
                        th:text="#{accounting.filter.accounts}">Filter accounts by number or name</label>
@@ -28,14 +60,12 @@
             <div class="portal-card">
                 <div class="d-flex align-items-center justify-content-between">
                     <h3 class="portal-card-title">
-                        Trial Balance
-                        <span th:if="${trialBalance['balanced']}" class="badge-pill paid">Balanced</span>
-                        <span th:unless="${trialBalance['balanced']}" class="badge-pill overdue">Out of balance</span>
+                        <span th:text="#{accounting.trialBalanceAfterClose}">Trial Balance — After Closing</span>
+                        <span th:if="${trialBalance['balanced']}" class="badge-pill paid" th:text="#{accounting.balanced}">Balanced</span>
+                        <span th:unless="${trialBalance['balanced']}" class="badge-pill overdue" th:text="#{accounting.outOfBalance}">Out of balance</span>
                     </h3>
                     <div>
-                        <a th:href="@{/reports/accounting/csv/trial-balance}" class="btn-portal btn-sm me-2"><i class="bi bi-file-earmark-spreadsheet"></i> CSV</a>
-                        <button id="acct-refresh" class="btn-portal btn-sm"><i class="bi bi-arrow-clockwise"></i> Refresh</button>
-                        <span id="acct-spinner" class="spinner-border spinner-border-sm ms-2" style="display:none"></span>
+                        <a th:href="@{/reports/accounting/csv/trial-balance(asOf=${asOf},startDate=${startDate},endDate=${endDate})}" class="btn-portal btn-sm me-2">CSV</a>
                     </div>
                 </div>
                 <table class="table-portal">
@@ -92,17 +122,46 @@
 
             <div class="portal-card">
                 <div class="d-flex align-items-center justify-content-between">
+                    <h3 class="portal-card-title" th:text="#{accounting.trialBalanceBeforeClose}">Trial Balance — Before Closing</h3>
+                </div>
+                <table class="table-portal">
+                    <thead><tr>
+                        <th th:text="#{table.number}">#</th><th th:text="#{table.account}">Account</th>
+                        <th th:text="#{table.type}">Type</th><th class="num" th:text="#{table.debit}">Debit</th>
+                        <th class="num" th:text="#{table.credit}">Credit</th><th class="num" th:text="#{table.balance}">Balance</th>
+                    </tr></thead>
+                    <tbody>
+                    <tr th:each="entry : ${trialBalanceBeforeClose['accounts']}" class="accounting-report-row">
+                        <td th:text="${entry.value['accountNumber']}">1010</td>
+                        <td th:text="${entry.value['accountName']}">Cash</td>
+                        <td th:text="${entry.value['accountType']}">ASSET</td>
+                        <td class="num" th:text="${#numbers.formatCurrency(entry.value['debitBalance'])}">$0</td>
+                        <td class="num" th:text="${#numbers.formatCurrency(entry.value['creditBalance'])}">$0</td>
+                        <td class="num" th:text="${#numbers.formatCurrency(entry.value['balance'])}">$0</td>
+                    </tr>
+                    </tbody>
+                    <tfoot><tr>
+                        <td colspan="3" class="text-end" th:text="#{table.totals}">Totals</td>
+                        <td class="num" th:text="${#numbers.formatCurrency(trialBalanceBeforeClose['totalDebits'])}">$0</td>
+                        <td class="num" th:text="${#numbers.formatCurrency(trialBalanceBeforeClose['totalCredits'])}">$0</td>
+                        <td></td>
+                    </tr></tfoot>
+                </table>
+            </div>
+
+            <div class="portal-card">
+                <div class="d-flex align-items-center justify-content-between">
                     <h3 class="portal-card-title">
-                        Balance Sheet
-                        <span th:if="${balanceSheet['balanced']}" class="badge-pill paid">Balanced</span>
-                        <span th:unless="${balanceSheet['balanced']}" class="badge-pill overdue">Out of balance</span>
+                        <span th:text="#{accounting.balanceSheet}">Balance Sheet</span>
+                        <span th:if="${balanceSheet['balanced']}" class="badge-pill paid" th:text="#{accounting.balanced}">Balanced</span>
+                        <span th:unless="${balanceSheet['balanced']}" class="badge-pill overdue" th:text="#{accounting.outOfBalance}">Out of balance</span>
                     </h3>
                     <div>
-                        <a th:href="@{/reports/accounting/csv/balance-sheet}" class="btn-portal btn-sm"><i class="bi bi-file-earmark-spreadsheet"></i> CSV</a>
+                        <a th:href="@{/reports/accounting/csv/balance-sheet(asOf=${asOf},startDate=${startDate},endDate=${endDate})}" class="btn-portal btn-sm">CSV</a>
                     </div>
                 </div>
 
-                <h4 style="margin-top:0.5rem;font-size:.95rem;color:var(--portal-muted)">Assets</h4>
+                <h4 style="margin-top:0.5rem;font-size:.95rem;color:var(--portal-muted)" th:text="#{accounting.assets}">Assets</h4>
                 <table class="table-portal">
                     <tbody id="bs-assets">
                     <tr th:each="row : ${balanceSheet['assets']}" class="accounting-report-row">
@@ -125,7 +184,7 @@
                     </tbody>
                 </table>
 
-                <h4 style="margin-top:1.5rem;font-size:.95rem;color:var(--portal-muted)">Liabilities</h4>
+                <h4 style="margin-top:1.5rem;font-size:.95rem;color:var(--portal-muted)" th:text="#{accounting.liabilities}">Liabilities</h4>
                 <table class="table-portal">
                     <tbody id="bs-liabilities">
                     <tr th:each="row : ${balanceSheet['liabilities']}" class="accounting-report-row">
@@ -148,7 +207,7 @@
                     </tbody>
                 </table>
 
-                <h4 style="margin-top:1.5rem;font-size:.95rem;color:var(--portal-muted)">Equity</h4>
+                <h4 style="margin-top:1.5rem;font-size:.95rem;color:var(--portal-muted)" th:text="#{accounting.equity}">Equity</h4>
                 <table class="table-portal">
                     <tbody id="bs-equity">
                     <tr th:each="row : ${balanceSheet['equity']}" class="accounting-report-row">
@@ -186,13 +245,13 @@
 
             <div class="portal-card">
                 <div class="d-flex align-items-center justify-content-between">
-                    <h3 class="portal-card-title">Income Statement</h3>
+                    <h3 class="portal-card-title" th:text="#{accounting.incomeStatement}">Income Statement</h3>
                     <div>
-                        <a th:href="@{/reports/accounting/csv/income-statement}" class="btn-portal btn-sm"><i class="bi bi-file-earmark-spreadsheet"></i> CSV</a>
+                        <a th:href="@{/reports/accounting/csv/income-statement(asOf=${asOf},startDate=${startDate},endDate=${endDate})}" class="btn-portal btn-sm">CSV</a>
                     </div>
                 </div>
 
-                <h4 style="margin-top:0.5rem;font-size:.95rem;color:var(--portal-muted)">Revenue</h4>
+                <h4 style="margin-top:0.5rem;font-size:.95rem;color:var(--portal-muted)" th:text="#{accounting.revenue}">Revenue</h4>
                 <table class="table-portal">
                     <tbody id="is-revenue">
                     <tr th:each="row : ${incomeStatement['revenue']}" class="accounting-report-row">
@@ -215,7 +274,7 @@
                     </tbody>
                 </table>
 
-                <h4 style="margin-top:1.5rem;font-size:.95rem;color:var(--portal-muted)">Expenses</h4>
+                <h4 style="margin-top:1.5rem;font-size:.95rem;color:var(--portal-muted)" th:text="#{accounting.expenses}">Expenses</h4>
                 <table class="table-portal">
                     <tbody id="is-expenses">
                     <tr th:each="row : ${incomeStatement['expenses']}" class="accounting-report-row">

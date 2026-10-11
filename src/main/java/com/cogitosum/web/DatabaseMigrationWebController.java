@@ -7,8 +7,12 @@ import com.cogitosum.migration.v1.MigrationPreview;
 import com.cogitosum.migration.v1.MigrationValidationError;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.context.MessageSource;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.stereotype.Controller;
@@ -22,13 +26,31 @@ import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import org.springframework.context.i18n.LocaleContextHolder;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 
 @Controller
 @RequestMapping("/database/migration")
 public class DatabaseMigrationWebController {
 
     private static final Logger log = LoggerFactory.getLogger(DatabaseMigrationWebController.class);
+    private static final List<String> EXAMPLE_PACKAGE_FILES = List.of(
+        "manifest.json",
+        "accounts.csv",
+        "customers.csv",
+        "vendors.csv",
+        "invoices.csv",
+        "invoice_lines.csv",
+        "bills.csv",
+        "bill_lines.csv",
+        "journal_entries.csv",
+        "journal_lines.csv"
+    );
 
     private final InitialDataMigrationService migrationService;
     private final MessageSource messageSource;
@@ -50,6 +72,27 @@ public class DatabaseMigrationWebController {
         requireAdmin(authentication);
         populatePage(model);
         return "database/migration-documentation";
+    }
+
+    @GetMapping(value = "/example-package", produces = "application/zip")
+    public ResponseEntity<byte[]> downloadExamplePackage(Authentication authentication) throws IOException {
+        requireAdmin(authentication);
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        try (ZipOutputStream zip = new ZipOutputStream(output, StandardCharsets.UTF_8)) {
+            for (String filename : EXAMPLE_PACKAGE_FILES) {
+                zip.putNextEntry(new ZipEntry(filename));
+                ClassPathResource resource = new ClassPathResource("migration/examples/v1/" + filename);
+                try (InputStream input = resource.getInputStream()) {
+                    input.transferTo(zip);
+                }
+                zip.closeEntry();
+            }
+        }
+        return ResponseEntity.ok()
+            .contentType(MediaType.parseMediaType("application/zip"))
+            .header(HttpHeaders.CONTENT_DISPOSITION,
+                "attachment; filename=\"initial-data-migration-v1-example.zip\"")
+            .body(output.toByteArray());
     }
 
     @PostMapping("/validate")
@@ -95,7 +138,7 @@ public class DatabaseMigrationWebController {
     }
 
     private void populatePage(Model model) {
-        model.addAttribute("active", "migration");
+        model.addAttribute("active", "admin-reset");
     }
 
     private String message(String code, Object... arguments) {

@@ -19,6 +19,11 @@ public interface BankTransactionRepository extends JpaRepository<BankTransaction
     List<BankTransaction> findByCompanyIdAndBankAccountIdAndReconciledFalseOrderByTransactionDateAscIdAsc(
             Long companyId, Long bankAccountId);
 
+    List<BankTransaction> findByCompanyIdAndBankAccountIdOrderByTransactionDateDescIdDesc(
+            Long companyId, Long bankAccountId);
+
+    java.util.Optional<BankTransaction> findByIdAndCompanyId(Long id, Long companyId);
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     List<BankTransaction> findByIdInAndCompanyIdAndBankAccountId(
             Collection<Long> ids, Long companyId, Long bankAccountId);

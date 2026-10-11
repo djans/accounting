@@ -15,6 +15,7 @@ import com.cogitosum.service.PaymentService;
 import com.cogitosum.service.TaxAgencyService;
 import com.cogitosum.service.TaxCodeService;
 import com.cogitosum.service.TaxFilingService;
+import com.cogitosum.service.UserShortIdService;
 import com.cogitosum.service.VendorService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.AfterEach;
@@ -54,6 +55,8 @@ class JournalWebControllerTest {
     void setUp() {
         journalService = mock(GeneralJournalService.class);
         paymentService = mock(PaymentService.class);
+        UserShortIdService shortIdService = mock(UserShortIdService.class);
+        when(shortIdService.getOrCreate(anyString())).thenReturn("TEST001");
         messages = new StaticMessageSource();
         messages.addMessage("payments.reverse.success", Locale.ENGLISH, "Payment {0} reversed");
         messages.addMessage("payments.reverse.reversalBlocked", Locale.ENGLISH,
@@ -72,6 +75,7 @@ class JournalWebControllerTest {
         controller = new JournalWebController();
         ReflectionTestUtils.setField(controller, "journalService", journalService);
         ReflectionTestUtils.setField(controller, "paymentService", paymentService);
+        ReflectionTestUtils.setField(controller, "shortIdService", shortIdService);
         accountService = mock(ChartOfAccountService.class);
         customerService = mock(CustomerService.class);
         vendorService = mock(VendorService.class);

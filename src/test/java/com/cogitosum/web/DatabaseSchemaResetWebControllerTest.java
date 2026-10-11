@@ -1,13 +1,13 @@
 package com.cogitosum.web;
 
 import com.cogitosum.service.DatabaseSchemaResetService;
+import com.cogitosum.service.UserShortIdService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.context.MessageSource;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.ui.ExtendedModelMap;
 import org.springframework.web.servlet.mvc.support.RedirectAttributesModelMap;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -30,29 +30,27 @@ class DatabaseSchemaResetWebControllerTest {
 
     @Mock private DatabaseSchemaResetService resetService;
     @Mock private MessageSource messageSource;
+    @Mock private UserShortIdService shortIdService;
     @Mock private Authentication authentication;
 
     private DatabaseSchemaResetWebController controller;
 
     @BeforeEach
     void setUp() {
-        controller = new DatabaseSchemaResetWebController(resetService, messageSource);
+        controller = new DatabaseSchemaResetWebController(resetService, messageSource, shortIdService);
         when(authentication.isAuthenticated()).thenReturn(true);
         doReturn(List.of(new SimpleGrantedAuthority("ROLE_ADMIN")))
                 .when(authentication).getAuthorities();
     }
 
     @Test
-    void pageIsAdminOnly() {
-        ExtendedModelMap model = new ExtendedModelMap();
+    void legacyPageRedirectsToUnifiedResetUiAndRemainsAdminOnly() {
+        String view = controller.page(authentication);
 
-        String view = controller.page(authentication, model);
-
-        assertEquals("admin/database-recreate", view);
-        assertEquals("schema-reset", model.get("active"));
+        assertEquals("redirect:/admin/reset", view);
         doReturn(List.of()).when(authentication).getAuthorities();
         assertThrows(org.springframework.web.server.ResponseStatusException.class,
-                () -> controller.page(authentication, model));
+                () -> controller.page(authentication));
     }
 
     @Test
@@ -64,7 +62,7 @@ class DatabaseSchemaResetWebControllerTest {
 
         String view = controller.recreate("DROP", true, authentication, attributes);
 
-        assertEquals("redirect:/admin/database/recreate", view);
+        assertEquals("redirect:/admin/reset", view);
         assertEquals("Confirmation required", attributes.getFlashAttributes().get("flashError"));
         controller.recreate("DROP AND RECREATE", false, authentication, attributes);
         verify(resetService, never()).dropAndRecreate();

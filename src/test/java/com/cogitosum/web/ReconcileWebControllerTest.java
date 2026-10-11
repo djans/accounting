@@ -13,6 +13,7 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.mock.web.MockMultipartFile;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -21,8 +22,11 @@ import java.util.Optional;
 
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
@@ -79,6 +83,20 @@ class ReconcileWebControllerTest {
                 .andExpect(content().string(containsString("Customer payment")))
                 .andExpect(content().string(not(containsString("Import bank statement CSV"))))
                 .andExpect(view().name("reconcile_details"));
+    }
+
+    @Test
+    void bankAccountImportDispatchesSupportedStatementFormats() throws Exception {
+        MockMultipartFile file = new MockMultipartFile("file", "statement.ofx", "application/octet-stream",
+                "OFX".getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        when(reconciliationService.importOfx(eq(1L), any(byte[].class)))
+                .thenReturn(new BankReconciliationService.ImportResult(2, "hash"));
+
+        mvc.perform(multipart("/reconcile/account/1/import").file(file))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/reconcile/account/1"));
+
+        verify(reconciliationService).importOfx(eq(1L), any(byte[].class));
     }
 
     @Test

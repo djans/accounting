@@ -38,6 +38,20 @@ public class BankTransaction implements CompanyOwned {
     @Column(length = 500)
     private String reference;
 
+    @Column(length = 255)
+    private String fitId;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "suggested_category_id")
+    private ChartOfAccount suggestedCategory;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "categorization_rule_id")
+    private BankCategorizationRule categorizationRule;
+
+    @Column(name = "category_reviewed", nullable = false)
+    private boolean categoryReviewed;
+
     @Column(nullable = false, length = 64)
     private String sourceHash;
 
@@ -115,6 +129,38 @@ public class BankTransaction implements CompanyOwned {
 
     public void setReference(String reference) {
         this.reference = reference;
+    }
+
+    public String getFitId() {
+        return fitId;
+    }
+
+    public void setFitId(String fitId) {
+        this.fitId = fitId;
+    }
+
+    public ChartOfAccount getSuggestedCategory() {
+        return suggestedCategory;
+    }
+
+    public void setSuggestedCategory(ChartOfAccount suggestedCategory) {
+        this.suggestedCategory = suggestedCategory;
+    }
+
+    public BankCategorizationRule getCategorizationRule() {
+        return categorizationRule;
+    }
+
+    public void setCategorizationRule(BankCategorizationRule categorizationRule) {
+        this.categorizationRule = categorizationRule;
+    }
+
+    public boolean isCategoryReviewed() {
+        return categoryReviewed;
+    }
+
+    public void setCategoryReviewed(boolean categoryReviewed) {
+        this.categoryReviewed = categoryReviewed;
     }
 
     public String getSourceHash() {

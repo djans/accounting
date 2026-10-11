@@ -16,6 +16,7 @@ import com.cogitosum.entity.Invoice;
 import com.cogitosum.entity.LineItem;
 import com.cogitosum.entity.UserAccount;
 import com.cogitosum.entity.ChartOfAccount;
+import com.cogitosum.web.DatabaseMigrationWebController;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -24,6 +25,10 @@ import org.mockito.ArgumentMatchers;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.MessageSource;
+import org.springframework.http.MediaType;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import tools.jackson.databind.ObjectMapper;
 
 import java.io.ByteArrayOutputStream;
@@ -101,6 +106,7 @@ class InitialDataMigrationServiceTest {
         verify(invoiceRepository).save(invoiceCaptor.capture());
         Invoice importedInvoice = invoiceCaptor.getValue();
         assertEquals(new java.math.BigDecimal("25.00"), importedInvoice.getOpeningPaidAmount());
+        assertEquals("ON", importedInvoice.getTaxRegime());
         assertEquals(List.of("First consulting", "Second consulting"),
             importedInvoice.getLineItems().stream().map(LineItem::getDescription).toList());
         ArgumentCaptor<Bill> billCaptor = ArgumentCaptor.forClass(Bill.class);
@@ -111,6 +117,32 @@ class InitialDataMigrationServiceTest {
         verify(ledgerRepository, org.mockito.Mockito.times(2)).save(any());
         verify(ledgerRepository).saveAll(any());
         verify(entityManager).flush();
+    }
+
+    @Test
+    void downloadableExampleZipPassesTheCurrentV1Validator() throws Exception {
+        stubMigrationDomainEmpty();
+        DatabaseMigrationWebController controller = new DatabaseMigrationWebController(
+            migrationService, org.mockito.Mockito.mock(MessageSource.class));
+        UsernamePasswordAuthenticationToken administrator = new UsernamePasswordAuthenticationToken(
+            "admin@example.test", "", List.of(new SimpleGrantedAuthority("ROLE_ADMIN")));
+
+        var response = controller.downloadExamplePackage(administrator);
+
+        assertEquals(MediaType.parseMediaType("application/zip"), response.getHeaders().getContentType());
+        assertTrue(response.getHeaders().getFirst("Content-Disposition")
+            .contains("initial-data-migration-v1-example.zip"));
+        MigrationPreview preview = migrationService.preview(response.getBody(), administrator.getName());
+        assertTrue(preview.isValid(), preview.getErrors().toString());
+        assertEquals(5, preview.getRowCounts().get("accounts.csv"));
+        assertEquals(5, preview.getRowCounts().get("customers.csv"));
+        assertEquals(5, preview.getRowCounts().get("vendors.csv"));
+        assertEquals(5, preview.getRowCounts().get("invoices.csv"));
+        assertEquals(5, preview.getRowCounts().get("invoice_lines.csv"));
+        assertEquals(5, preview.getRowCounts().get("bills.csv"));
+        assertEquals(5, preview.getRowCounts().get("bill_lines.csv"));
+        assertEquals(5, preview.getRowCounts().get("journal_entries.csv"));
+        assertEquals(10, preview.getRowCounts().get("journal_lines.csv"));
     }
 
     @Test
@@ -181,6 +213,10 @@ class InitialDataMigrationServiceTest {
         when(billRepository.save(ArgumentMatchers.any())).thenAnswer(invocation -> invocation.getArgument(0));
         when(journalRepository.save(ArgumentMatchers.any())).thenAnswer(invocation -> invocation.getArgument(0));
         when(ledgerRepository.save(ArgumentMatchers.any())).thenAnswer(invocation -> invocation.getArgument(0));
+        stubMigrationDomainEmpty();
+    }
+
+    private void stubMigrationDomainEmpty() {
         when(accountRepository.findAllByCompanyIdOrderByAccountNumberAsc(1L)).thenReturn(List.of());
         when(customerRepository.findAllByCompanyIdOrderByBusinessNameAsc(1L)).thenReturn(List.of());
         when(vendorRepository.findAllByCompanyIdOrderByBusinessNameAsc(1L)).thenReturn(List.of());
@@ -222,7 +258,7 @@ class InitialDataMigrationServiceTest {
             """);
         files.put("invoices.csv", """
             source_id,invoice_number,customer_source_id,invoice_date,due_date,status,subtotal,gst_amount,hst_amount,qst_amount,total_amount,paid_amount,tax_regime,notes
-            invoice-1,INV-1,customer-1,2026-01-01,2026-01-31,PARTIALLY_PAID,100.00,0.00,0.00,0.00,100.00,25.00,,
+            invoice-1,INV-1,customer-1,2026-01-01,2026-01-31,PARTIALLY_PAID,100.00,0.00,0.00,0.00,100.00,25.00,ON,
             """);
         files.put("invoice_lines.csv", """
             source_id,invoice_source_id,line_number,description,quantity,unit_price,total

@@ -4,6 +4,7 @@ import com.cogitosum.entity.*;
 import com.cogitosum.repository.BankReconciliationLineRepository;
 import com.cogitosum.repository.BankReconciliationSessionRepository;
 import com.cogitosum.repository.BankTransactionRepository;
+import com.cogitosum.repository.BankCategorizationRuleRepository;
 import com.cogitosum.repository.ChartOfAccountRepository;
 import com.cogitosum.repository.GeneralLedgerRepository;
 import com.cogitosum.repository.JournalEntryRepository;
@@ -27,6 +28,7 @@ import static org.mockito.Mockito.*;
 class BankReconciliationServiceTest {
 
     @Mock private BankTransactionRepository bankTransactions;
+    @Mock private BankCategorizationRuleRepository categorizationRules;
     @Mock private BankReconciliationSessionRepository sessions;
     @Mock private BankReconciliationLineRepository reconciliationLines;
     @Mock private ChartOfAccountRepository accounts;
@@ -42,7 +44,7 @@ class BankReconciliationServiceTest {
     @BeforeEach
     void setUp() {
         service = new BankReconciliationService(
-                bankTransactions, sessions, reconciliationLines, accounts, ledgers, journalEntries,
+                bankTransactions, categorizationRules, sessions, reconciliationLines, accounts, ledgers, journalEntries,
                 chequeService, companyContext);
         company = new Company();
         company.setId(1L);
@@ -106,6 +108,82 @@ class BankReconciliationServiceTest {
                         .getBytes(java.nio.charset.StandardCharsets.UTF_8)));
 
         verify(bankTransactions, never()).saveAll(any());
+    }
+
+    @Test
+    void importOfxUsesFitidAsStableDuplicateKeyAcrossChangedFiles() {
+        when(accounts.findByIdAndCompanyId(10L, 1L)).thenReturn(Optional.of(account));
+        when(bankTransactions.existsByCompanyIdAndBankAccountIdAndSourceHash(eq(1L), eq(10L), anyString()))
+                .thenReturn(false);
+        when(bankTransactions.findByCompanyIdAndBankAccountIdAndSourceRowHashIn(
+                eq(1L), eq(10L), anyCollection())).thenReturn(List.of(new BankTransaction()));
+        String ofx = "OFXHEADER:100\nDATA:OFXSGML\n<OFX><BANKTRANLIST><STMTTRN>"
+                + "<DTPOSTED>20261001<TRNAMT>-12.50<FITID>stable-1<NAME>Shop</STMTTRN>"
+                + "</BANKTRANLIST></OFX>";
+
+        assertThrows(IllegalArgumentException.class, () -> service.importOfx(10L,
+                ofx.getBytes(java.nio.charset.StandardCharsets.UTF_8)));
+
+        verify(bankTransactions, never()).saveAll(any());
+    }
+
+    @Test
+    void importSelectsLowestPriorityMatchingCompanyRuleAsSuggestion() {
+        when(accounts.findByIdAndCompanyId(10L, 1L)).thenReturn(Optional.of(account));
+        when(bankTransactions.existsByCompanyIdAndBankAccountIdAndSourceHash(eq(1L), eq(10L), anyString()))
+                .thenReturn(false);
+        when(bankTransactions.findByCompanyIdAndBankAccountIdAndSourceRowHashIn(eq(1L), eq(10L), anyCollection()))
+                .thenReturn(List.of());
+        ChartOfAccount broadTarget = new ChartOfAccount();
+        broadTarget.setId(20L);
+        ChartOfAccount specificTarget = new ChartOfAccount();
+        specificTarget.setId(21L);
+        BankCategorizationRule broad = rule(1L, "coffee", 5, broadTarget);
+        BankCategorizationRule specific = rule(2L, "coffee shop", 20, specificTarget);
+        when(categorizationRules.findByCompanyIdAndActiveTrueOrderByPriorityAscIdAsc(1L))
+                .thenReturn(List.of(broad, specific));
+
+        service.importCsv(10L, "Date,Description,Amount\n2026-10-01,Coffee Shop,-12.00\n"
+                .getBytes(java.nio.charset.StandardCharsets.UTF_8));
+
+        @SuppressWarnings({"rawtypes", "unchecked"})
+        ArgumentCaptor<Iterable<BankTransaction>> captured =
+                (ArgumentCaptor) ArgumentCaptor.forClass(Iterable.class);
+        verify(bankTransactions).saveAll(captured.capture());
+        BankTransaction imported = captured.getValue().iterator().next();
+        assertEquals(broadTarget, imported.getSuggestedCategory());
+        assertEquals(broad, imported.getCategorizationRule());
+        assertFalse(imported.isCategoryReviewed());
+    }
+
+    @Test
+    void reviewingTransactionFromAnotherCompanyIsRejected() {
+        when(bankTransactions.findByIdAndCompanyId(55L, 1L)).thenReturn(Optional.empty());
+
+        assertThrows(IllegalArgumentException.class, () -> service.reviewSuggestedCategory(55L));
+
+        verify(bankTransactions, never()).save(any());
+    }
+
+    @Test
+    void categorizationRuleCannotTargetAnAccountOutsideTheCurrentCompany() {
+        when(accounts.findByIdAndCompanyId(77L, 1L)).thenReturn(Optional.empty());
+
+        assertThrows(IllegalArgumentException.class,
+                () -> service.createCategorizationRule("Vendor", "vendor", 1, 77L));
+
+        verify(categorizationRules, never()).save(any());
+    }
+
+    private BankCategorizationRule rule(Long id, String matchText, int priority, ChartOfAccount target) {
+        BankCategorizationRule rule = new BankCategorizationRule();
+        rule.setId(id);
+        rule.setCompany(company);
+        rule.setMatchText(matchText);
+        rule.setPriority(priority);
+        rule.setTargetAccount(target);
+        rule.setActive(true);
+        return rule;
     }
 
     @Test

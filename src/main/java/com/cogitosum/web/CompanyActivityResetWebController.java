@@ -5,6 +5,7 @@ import com.cogitosum.service.CompanyActivityResetService;
 import com.cogitosum.repository.CompanyActivityRepository.ActivityCounts;
 import com.cogitosum.repository.CompanyActivityRepository.BankReconciliationCounts;
 import com.cogitosum.service.CurrentCompanyContext;
+import com.cogitosum.service.UserShortIdService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.MessageSource;
@@ -30,22 +31,27 @@ public class CompanyActivityResetWebController {
     private final CompanyActivityResetService resetService;
     private final CurrentCompanyContext companyContext;
     private final MessageSource messageSource;
+    private final UserShortIdService shortIdService;
 
     public CompanyActivityResetWebController(
             CompanyActivityResetService resetService,
             CurrentCompanyContext companyContext,
-            MessageSource messageSource) {
+            MessageSource messageSource,
+            UserShortIdService shortIdService) {
         this.resetService = resetService;
         this.companyContext = companyContext;
         this.messageSource = messageSource;
+        this.shortIdService = shortIdService;
     }
 
     @GetMapping
-    public String page(Authentication authentication, Model model) {
+    public String page(@RequestParam(defaultValue = "activity") String operation,
+                       Authentication authentication, Model model) {
         requireAdmin(authentication);
         model.addAttribute("counts", resetService.getCurrentCompanyCounts());
         model.addAttribute("company", companyContext.requireCompany());
         model.addAttribute("active", "admin-reset");
+        model.addAttribute("resetOperation", "restart".equals(operation) ? "restart" : "activity");
         return "admin/reset";
     }
 
@@ -65,7 +71,7 @@ public class CompanyActivityResetWebController {
         ActivityCounts counts = resetService.resetCurrentCompany();
         try (LoggingCategory.Scope ignored = LoggingCategory.open(LoggingCategory.USER_ACTIVITY)) {
             log.warn("Company activity reset: actor={} company={} deleted={}",
-                    authentication.getName(), companyContext.requireCompanyId(), counts);
+                    shortIdService.getOrCreate(authentication.getName()), companyContext.requireCompanyId(), counts);
         }
         attributes.addFlashAttribute("flashSuccess", messageSource.getMessage(
                 "admin.reset.success",
@@ -94,7 +100,7 @@ public class CompanyActivityResetWebController {
                 resetService.resetBankReconciliationForCurrentCompany();
         try (LoggingCategory.Scope ignored = LoggingCategory.open(LoggingCategory.USER_ACTIVITY)) {
             log.warn("Company bank reconciliation reset: actor={} company={} deleted={}",
-                    authentication.getName(), companyContext.requireCompanyId(), counts);
+                    shortIdService.getOrCreate(authentication.getName()), companyContext.requireCompanyId(), counts);
         }
         attributes.addFlashAttribute("flashSuccess", messageSource.getMessage(
                 "admin.reset.bankSuccess",

@@ -21,6 +21,61 @@
                 </div>
             </div>
 
+            <div class="portal-card mb-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="mb-0" th:text="#{reconcile.import.title}">Import a bank statement</h5>
+                    <a class="btn btn-sm btn-outline-secondary" th:href="@{/reconcile/rules}"
+                       th:text="#{reconcile.rules.manage}">Manage rules</a>
+                </div>
+                <form th:action="@{/reconcile/account/{id}/import(id=${account.id})}" method="post"
+                      enctype="multipart/form-data" class="row g-2 align-items-end">
+                    <input th:if="${_csrf != null}" type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                    <div class="col-md-9">
+                        <label for="statementFile" class="form-label" th:text="#{reconcile.import.file}">CSV, OFX, or QFX file</label>
+                        <input class="form-control" type="file" id="statementFile" name="file" accept=".csv,.ofx,.qfx" required>
+                    </div>
+                    <div class="col-md-3">
+                        <button type="submit" class="btn btn-primary w-100" th:text="#{reconcile.import.submit}">Import</button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="portal-card mb-4">
+                <h5 class="mb-3" th:text="#{reconcile.import.transactions}">Imported statement transactions</h5>
+                <div class="table-responsive">
+                    <table class="table table-sm table-portal">
+                        <thead><tr>
+                            <th th:text="#{table.date}">Date</th>
+                            <th th:text="#{table.description}">Description</th>
+                            <th class="text-end" th:text="#{table.amount}">Amount</th>
+                            <th th:text="#{reconcile.category.suggestion}">Suggested category</th>
+                            <th th:text="#{reconcile.category.status}">Review</th>
+                        </tr></thead>
+                        <tbody>
+                        <tr th:each="transaction : ${bankTransactions}">
+                            <td th:text="${transaction.transactionDate}">2026-01-01</td>
+                            <td th:text="${transaction.description}">Payee</td>
+                            <td class="text-end" th:text="${#numbers.formatDecimal(transaction.amount, 1, 2)}">0.00</td>
+                            <td th:text="${transaction.suggestedCategory == null ? '—' : transaction.suggestedCategory.accountNumber + ' - ' + transaction.suggestedCategory.accountName}">—</td>
+                            <td>
+                                <form th:if="${transaction.suggestedCategory != null and !transaction.categoryReviewed}"
+                                      th:action="@{/reconcile/transactions/{id}/review-category(id=${transaction.id})}" method="post">
+                                    <input th:if="${_csrf != null}" type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                                    <input type="hidden" name="accountId" th:value="${account.id}">
+                                    <button class="btn btn-sm btn-outline-primary" type="submit" th:text="#{reconcile.category.review}">Confirm</button>
+                                </form>
+                                <span th:if="${transaction.categoryReviewed}" class="text-success" th:text="#{reconcile.category.reviewed}">Reviewed</span>
+                                <span th:if="${transaction.suggestedCategory == null}" class="text-muted" th:text="#{reconcile.category.noSuggestion}">No suggestion</span>
+                            </td>
+                        </tr>
+                        <tr th:if="${#lists.isEmpty(bankTransactions)}">
+                            <td colspan="5" class="text-center text-muted py-3" th:text="#{reconcile.import.empty}">No imported transactions.</td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
             <form th:action="@{/reconcile/finish}" method="post" id="reconcileForm">
                 <input th:if="${_csrf != null}" type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
                 <input type="hidden" name="accountId" th:value="${account.id}">

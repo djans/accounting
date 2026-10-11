@@ -1,7 +1,6 @@
 package com.cogitosum.web;
 
 import com.cogitosum.entity.Company;
-import com.cogitosum.entity.UserRole;
 import com.cogitosum.service.CompanyService;
 import com.cogitosum.service.CurrentCompanyContext;
 import org.springframework.security.access.AccessDeniedException;
@@ -26,7 +25,9 @@ public class CompanyWebController {
     public String list(Model model) {
         model.addAttribute("companies", companyService.getAllCompanies());
         model.addAttribute("currentCompanyId", companyContext.requireCompanyId());
-        boolean canManageCompanies = companyContext.currentUser().getRole() == UserRole.ADMIN;
+        boolean canManageCompanies = companyContext.currentMembershipRole()
+            .filter(role -> role == com.cogitosum.entity.UserRole.ADMIN)
+            .isPresent();
         model.addAttribute("canCreateCompany", canManageCompanies);
         model.addAttribute("canManagePostedJournalEditing", canManageCompanies);
         return "companies/list";

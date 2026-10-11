@@ -3,20 +3,36 @@
 <head th:replace="~{fragments/layout :: head(#{database.migration.documentation.title})}"></head>
 <body>
 <div class="portal-shell">
-    <div th:replace="~{fragments/layout :: sidebar('migration')}"></div>
+    <div th:replace="~{fragments/layout :: sidebar(${active})}"></div>
     <main class="portal-main">
         <div th:replace="~{fragments/layout :: topbar(#{database.migration.documentation.title})}"></div>
         <section class="portal-content">
             <div class="portal-card">
-                <div class="d-flex align-items-center justify-content-between">
+                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
                     <h2 class="portal-card-title" th:text="#{database.migration.documentation.heading}">Initial data migration package</h2>
-                    <a th:href="@{/database/migration}" class="btn-portal btn-ghost btn-sm">
-                        <i class="bi bi-arrow-left"></i>
-                        <span th:text="#{database.migration.documentation.back}">Back to migration</span>
-                    </a>
+                    <div class="d-flex gap-2">
+                        <a th:href="@{/admin/reset(operation='restart')}" class="btn-portal btn-ghost btn-sm">
+                            <i class="bi bi-arrow-left"></i>
+                            <span th:text="#{database.migration.returnToReset}">Back to reset and import options</span>
+                        </a>
+                        <a th:href="@{/database/migration/example-package}" class="btn-portal btn-ghost btn-sm"
+                           download="initial-data-migration-v1-example.zip">
+                            <i class="bi bi-file-earmark-zip"></i>
+                            <span th:text="#{database.migration.sampleDownload}">Download a sample ZIP</span>
+                        </a>
+                        <a th:href="@{/database/migration}" class="btn-portal btn-ghost btn-sm">
+                            <i class="bi bi-upload"></i>
+                            <span th:text="#{database.migration.documentation.back}">Back to migration</span>
+                        </a>
+                    </div>
                 </div>
                 <p th:text="#{database.migration.documentation.introduction}">
                     Use this one-time import format only to populate a new accounting dataset. It is not a backup or restore format.
+                </p>
+
+                <h3 th:text="#{database.migration.documentation.scopeTitle}">Supported data scope</h3>
+                <p th:text="#{database.migration.documentation.scopeDescription}">
+                    Version 1 imports only fields represented by its headers, not every database column. Fields omitted by the package are not restored.
                 </p>
 
                 <h3 th:text="#{database.migration.documentation.safetyTitle}">Safety and import process</h3>

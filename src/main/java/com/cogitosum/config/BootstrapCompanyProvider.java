@@ -1,7 +1,6 @@
 package com.cogitosum.config;
 
 import com.cogitosum.entity.Company;
-import com.cogitosum.entity.UserRole;
 import com.cogitosum.repository.UserAccountRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -36,7 +35,7 @@ public class BootstrapCompanyProvider {
         return userAccountRepository.findByEmail(bootstrapAdminEmail)
             .filter(user -> user.isEnabled() && user.getCompany() != null)
             .map(user -> user.getCompany())
-            .or(() -> userAccountRepository.findFirstByRoleOrderByIdAsc(UserRole.ADMIN)
+            .or(() -> userAccountRepository.findFirstByEnabledTrueOrderByIdAsc()
                     .filter(user -> user.isEnabled() && user.getCompany() != null)
                     .map(user -> user.getCompany()))
             .orElseThrow(() -> new IllegalStateException(

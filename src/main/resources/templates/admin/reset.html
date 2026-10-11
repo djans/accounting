@@ -10,6 +10,64 @@
             <div th:replace="~{fragments/layout :: flash}"></div>
 
             <div class="portal-card">
+                <h3 class="portal-card-title" th:text="#{admin.reset.workflowTitle}">
+                    Choose your reset and import path
+                </h3>
+                <p th:text="#{admin.reset.workflowIntro}">
+                    Choose a company activity reset, or follow the full restart workflow and optionally import an initial data package afterward.
+                </p>
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <div class="border rounded p-3 h-100">
+                            <span class="badge bg-secondary" th:text="#{admin.reset.workflow.activityBadge}">Standalone</span>
+                            <h4 class="h6 mt-2" th:text="#{admin.reset.workflow.activityTitle}">Reset company activity</h4>
+                            <p class="mb-0" th:text="#{admin.reset.workflow.activityDescription}">
+                                Clears accounting activity for the selected company and preserves its setup.
+                            </p>
+                        </div>
+                    </div>
+                    <div class="col-md-8">
+                        <div class="border rounded p-3 h-100">
+                            <h4 class="h6" th:text="#{admin.reset.workflow.fullTitle}">Full restart workflow</h4>
+                            <ol class="mb-0">
+                                <li th:text="#{admin.reset.workflow.fullStepReset}">
+                                    Select Restart from scratch below; all companies and users are deleted.
+                                </li>
+                                <li th:text="#{admin.reset.workflow.fullStepRestart}">
+                                    Restart the app and sign in with the recreated administrator account.
+                                </li>
+                                <li th:text="#{admin.reset.workflow.fullStepImport}">
+                                    Optionally import supported initial accounting data into the empty dataset.
+                                </li>
+                            </ol>
+                        </div>
+                    </div>
+                </div>
+                <fieldset class="mt-3" data-reset-operation-selector>
+                    <legend class="form-label" th:text="#{admin.reset.optionSelectorTitle}">
+                        Select one operation
+                    </legend>
+                    <div class="btn-group w-100" role="group">
+                        <input type="radio" class="btn-check" name="resetOperation" id="reset-activity-option"
+                               value="activity" autocomplete="off" aria-controls="company-activity-option"
+                               th:checked="${resetOperation == 'activity'}"/>
+                        <label class="btn btn-outline-primary" for="reset-activity-option"
+                               th:text="#{admin.reset.optionActivity}">Reset company activities</label>
+                        <input type="radio" class="btn-check" name="resetOperation" id="restart-database-option"
+                               value="restart" autocomplete="off" aria-controls="restart-from-scratch-option"
+                               th:checked="${resetOperation == 'restart'}"/>
+                        <label class="btn btn-outline-danger" for="restart-database-option"
+                               th:text="#{admin.reset.optionRestart}">Restart from scratch</label>
+                    </div>
+                    <p class="form-text mb-0" th:text="#{admin.reset.optionSelectorHelp}">
+                        Select an option to show only its controls. The operation is not run until you submit and confirm.
+                    </p>
+                </fieldset>
+            </div>
+
+            <div id="company-activity-option" class="reset-operation-panel" data-reset-operation-panel="activity"
+                 th:hidden="${resetOperation != 'activity'}">
+            <div class="portal-card">
                 <h3 class="portal-card-title" th:text="#{admin.reset.scopeTitle}">Reset activity data</h3>
                 <p th:text="#{admin.reset.scope(${company.name})}">
                     This operation affects only the current company.
@@ -93,8 +151,89 @@
                     </div>
                 </form>
             </div>
+            </div>
+
+            <div id="restart-from-scratch-option" class="reset-operation-panel" data-reset-operation-panel="restart"
+                 th:hidden="${resetOperation != 'restart'}">
+            <div class="portal-card">
+                <h3 class="portal-card-title" th:text="#{admin.schemaReset.title}">Restart from scratch</h3>
+                <p th:text="#{admin.schemaReset.optionDescription}">
+                    Delete and recreate the entire active database, including all companies and user accounts.
+                </p>
+                <div class="alert alert-danger" role="alert">
+                    <strong th:text="#{admin.schemaReset.warningTitle}">Destructive database operation</strong>
+                    <span th:text="#{admin.schemaReset.warning}">
+                        This permanently deletes all data, including companies and user accounts, then recreates the schema.
+                    </span>
+                    <a th:href="@{/database/backup/export}" th:text="#{admin.schemaReset.backupLink}">
+                        Download a database backup first
+                    </a>
+                </div>
+                <p class="text-muted" th:text="#{admin.schemaReset.restart}">
+                    After the reset, restart the application and sign in with the bootstrap administrator credentials.
+                </p>
+                <form th:action="@{/admin/database/recreate}" method="post">
+                    <div class="form-field">
+                        <label for="schema-reset-confirmation" th:text="#{admin.schemaReset.typePrompt}">
+                            Type DROP AND RECREATE to confirm
+                        </label>
+                        <input id="schema-reset-confirmation" type="text" name="confirmation"
+                               required pattern="DROP AND RECREATE" autocomplete="off"/>
+                    </div>
+                    <label class="d-flex align-items-center gap-2 my-3">
+                        <input type="checkbox" name="confirmReset" value="true" required/>
+                        <span th:text="#{admin.schemaReset.checkbox}">
+                            I understand all database data, including user accounts, will be permanently deleted.
+                        </span>
+                    </label>
+                    <div class="form-actions">
+                        <button type="submit" class="btn-portal btn-danger"
+                                th:data-confirm="#{admin.schemaReset.browserConfirm}"
+                                onclick="return confirm(this.getAttribute('data-confirm'))">
+                            <i class="bi bi-database-x"></i>
+                            <span th:text="#{admin.schemaReset.submit}">Restart from scratch</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="portal-card">
+                <h3 class="portal-card-title" th:text="#{admin.reset.importCardTitle}">
+                    Import initial accounting data
+                </h3>
+                <p th:text="#{admin.reset.importCardDescription}">
+                    Use this optional step after restarting from scratch and signing in again.
+                </p>
+                <div class="alert alert-info" role="note">
+                    <span th:text="#{admin.reset.importCardScope}">
+                        This versioned package imports accounts, customers, vendors, invoices, bills, and journals only.
+                        It is not a backup and does not import companies, users, tax setup, or payment history.
+                    </span>
+                </div>
+                <a class="btn-portal" th:href="@{/database/migration}">
+                    <i class="bi bi-database-up"></i>
+                    <span th:text="#{admin.reset.importCardAction}">Validate and import a data package</span>
+                </a>
+            </div>
+            </div>
         </section>
     </main>
 </div>
+<script>
+    (function () {
+        const selector = document.querySelector('[data-reset-operation-selector]');
+        if (!selector) return;
+        const panels = document.querySelectorAll('[data-reset-operation-panel]');
+        function updatePanels() {
+            const selected = selector.querySelector('input[name="resetOperation"]:checked');
+            if (!selected) return;
+            panels.forEach(function (panel) {
+                panel.hidden = panel.dataset.resetOperationPanel !== selected.value;
+            });
+        }
+        selector.addEventListener('change', updatePanels);
+        updatePanels();
+    })();
+</script>
 </body>
 </html>

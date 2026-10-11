@@ -5,8 +5,11 @@ import com.cogitosum.entity.Invoice;
 import com.cogitosum.entity.InvoiceStatus;
 import com.cogitosum.entity.LineItem;
 import com.cogitosum.service.CustomerService;
+import com.cogitosum.service.CustomerStatementPdfService;
+import com.cogitosum.service.CustomerStatementService;
 import com.cogitosum.service.DocumentAttachmentService;
 import com.cogitosum.service.InvoiceEmailService;
+import com.cogitosum.service.InvoicePdfBundleService;
 import com.cogitosum.service.InvoicePdfService;
 import com.cogitosum.service.InvoiceService;
 import com.cogitosum.service.PaymentService;
@@ -27,6 +30,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import org.springframework.format.annotation.DateTimeFormat;
 
 @Controller
 @RequestMapping("/invoices")
@@ -39,6 +43,9 @@ public class InvoiceWebController {
     @Autowired private InvoiceEmailService invoiceEmailService;
     @Autowired private DocumentAttachmentService attachmentService;
     @Autowired private TaxFilingService taxFilingService;
+    @Autowired private InvoicePdfBundleService invoicePdfBundleService;
+    @Autowired private CustomerStatementService customerStatementService;
+    @Autowired private CustomerStatementPdfService customerStatementPdfService;
 
     @GetMapping
     public String list(@RequestParam(required = false) InvoiceStatus status, Model model) {
@@ -50,6 +57,75 @@ public class InvoiceWebController {
         model.addAttribute("customers", customerService.getAllCustomers());
         model.addAttribute("dateFilterPeriods", taxFilingService.getDateFilterPeriods(LocalDate.now()));
         return "invoices/list";
+    }
+
+    @GetMapping("/statements")
+    public String customerStatement(
+            @RequestParam(required = false) Long customerId,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
+            Model model) {
+        LocalDate effectiveEndDate = endDate == null ? LocalDate.now() : endDate;
+        LocalDate effectiveStartDate = startDate == null
+                ? LocalDate.of(effectiveEndDate.getYear(), 1, 1) : startDate;
+        model.addAttribute("customers", customerService.getAllCustomers());
+        model.addAttribute("selectedCustomerId", customerId);
+        model.addAttribute("startDate", effectiveStartDate);
+        model.addAttribute("endDate", effectiveEndDate);
+        if (customerId != null) {
+            try {
+                model.addAttribute("statement",
+                        customerStatementService.getStatement(customerId, effectiveStartDate, effectiveEndDate));
+            } catch (IllegalArgumentException exception) {
+                model.addAttribute("statementError", exception.getMessage());
+            }
+        }
+        return "invoices/statements";
+    }
+
+    @GetMapping("/statements/{customerId}.pdf")
+    public ResponseEntity<byte[]> customerStatementPdf(
+            @PathVariable Long customerId,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+        LocalDate effectiveEndDate = endDate == null ? LocalDate.now() : endDate;
+        try {
+            CustomerStatementService.Statement statement =
+                    customerStatementService.getStatement(customerId, startDate, effectiveEndDate);
+            byte[] pdf = customerStatementPdfService.createPdf(statement);
+            String filename = CustomerStatementPdfService.filenameFor(
+                    statement.customer(), startDate, effectiveEndDate);
+            return ResponseEntity.ok()
+                    .contentType(MediaType.APPLICATION_PDF)
+                    .cacheControl(CacheControl.noStore().cachePrivate())
+                    .header("X-Content-Type-Options", "nosniff")
+                    .header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.attachment()
+                            .filename(filename, StandardCharsets.UTF_8).build().toString())
+                    .contentLength(pdf.length)
+                    .body(pdf);
+        } catch (IllegalArgumentException exception) {
+            return ResponseEntity.badRequest().contentType(MediaType.TEXT_PLAIN)
+                    .body("Invalid statement request".getBytes(StandardCharsets.UTF_8));
+        }
+    }
+
+    @PostMapping("/pdf-download")
+    public ResponseEntity<byte[]> downloadSelectedPdfs(
+            @RequestParam(value = "invoiceIds", required = false) List<Long> invoiceIds) {
+        try {
+            InvoicePdfBundleService.Download download = invoicePdfBundleService.download(invoiceIds);
+            return ResponseEntity.ok()
+                    .contentType(MediaType.parseMediaType(download.contentType()))
+                    .cacheControl(CacheControl.noStore().cachePrivate())
+                    .header("X-Content-Type-Options", "nosniff")
+                    .header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.attachment()
+                            .filename(download.filename(), StandardCharsets.UTF_8).build().toString())
+                    .contentLength(download.content().length)
+                    .body(download.content());
+        } catch (IllegalArgumentException exception) {
+            return ResponseEntity.badRequest().contentType(MediaType.TEXT_PLAIN)
+                    .body(exception.getMessage().getBytes(StandardCharsets.UTF_8));
+        }
     }
 
     @GetMapping("/new")

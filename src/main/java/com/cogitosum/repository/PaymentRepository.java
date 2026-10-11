@@ -3,6 +3,8 @@ package com.cogitosum.repository;
 import com.cogitosum.entity.Payment;
 import com.cogitosum.entity.PaymentStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
@@ -23,4 +25,10 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
     List<Payment> findByCompanyIdAndPaymentDateBetween(Long companyId, LocalDate startDate, LocalDate endDate);
     List<Payment> findAllByCompanyId(Long companyId);
     List<Payment> findByCompanyIdAndPaymentMethod(Long companyId, com.cogitosum.entity.PaymentMethod paymentMethod);
+
+    @Query("SELECT payment FROM Payment payment "
+            + "WHERE payment.company.id = :companyId AND payment.invoice.customer.id = :customerId "
+            + "ORDER BY payment.paymentDate, payment.id")
+    List<Payment> findStatementPayments(@Param("companyId") Long companyId,
+                                        @Param("customerId") Long customerId);
 }

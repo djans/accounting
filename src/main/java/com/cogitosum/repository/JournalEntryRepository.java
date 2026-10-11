@@ -25,6 +25,33 @@ public interface JournalEntryRepository extends JpaRepository<JournalEntry, Long
             select entry
             from JournalEntry entry
             where entry.journal.company.id = :companyId
+              and entry.journal.status in :statuses
+              and entry.journal.journalDate <= :throughDate
+            order by entry.journal.journalDate, entry.journal.id, entry.lineNumber
+            """)
+    List<JournalEntry> findReportEntriesThroughDate(
+            @Param("companyId") Long companyId,
+            @Param("statuses") List<JournalStatus> statuses,
+            @Param("throughDate") LocalDate throughDate);
+
+    @Query("""
+            select entry
+            from JournalEntry entry
+            where entry.journal.company.id = :companyId
+              and entry.journal.status in :statuses
+              and entry.journal.journalDate between :startDate and :endDate
+            order by entry.journal.journalDate, entry.journal.id, entry.lineNumber
+            """)
+    List<JournalEntry> findReportEntriesBetweenDates(
+            @Param("companyId") Long companyId,
+            @Param("statuses") List<JournalStatus> statuses,
+            @Param("startDate") LocalDate startDate,
+            @Param("endDate") LocalDate endDate);
+
+    @Query("""
+            select entry
+            from JournalEntry entry
+            where entry.journal.company.id = :companyId
               and entry.account.id = :accountId
               and entry.journal.status = :status
               and entry.journal.journalDate <= :throughDate
