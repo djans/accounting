@@ -77,14 +77,31 @@ Browser / API client
 
 ## Database selection and startup
 
-`Main` checks for the local database configuration at `${user.home}/.accounting/database.properties`. If it is absent, the application first checks whether the existing MySQL configuration can connect to an already-created database. If so, it saves those settings locally to preserve an existing installation. Otherwise, it starts the database setup web application without initializing the accounting application or requiring a database connection.
+`Main` checks for the local database configuration at
+`${user.home}/.accounting/database.properties` by default; the location can be
+overridden with `APP_DATABASE_CONFIG_PATH`. If the file is absent, `Main`
+starts the database setup web application without initializing the accounting
+application or requiring a database connection.
+
+Shared Spring configuration lives in `src/main/resources/application.yml`.
+Spring loads `application-<profile>.yml` on top of that shared configuration.
+The default profile is `local`; `development`, `staging`, and `production` can
+be selected with `SPRING_PROFILES_ACTIVE` or
+`--spring.profiles.active=<profile>`. Database credentials are kept in the
+external properties file, not in the shared or profile YAML files.
 
 The setup page supports:
 
 - **MySQL**: a JDBC URL, username, and password. The setup verifies the connection and requests database creation when needed; the MySQL account must have the required database privileges.
 - **SQLite**: a filesystem path. The setup creates the file if needed and refuses to configure a database that already contains user-defined database objects.
 
-The settings are written outside the repository and imported by Spring Boot on the next application start. The setup server binds to `127.0.0.1` by default. Remote setup requires both `APP_SETUP_BIND_ADDRESS` and a strong `APP_SETUP_TOKEN`; Docker deployments must persist `/root/.accounting` so the configuration and SQLite database survive container replacement. Oracle and Db2 are not implemented.
+The settings are written outside the repository and imported by Spring Boot on
+the next application start. `APP_DATABASE_CONFIG_PATH` can point to a mounted
+configuration file in container deployments. The setup server binds to
+`127.0.0.1` by default. Remote setup requires both `APP_SETUP_BIND_ADDRESS` and
+a strong `APP_SETUP_TOKEN`; Docker deployments must persist `/root/.accounting`
+so the configuration and SQLite database survive container replacement.
+Oracle and Db2 are not implemented.
 
 ## Persistence and schema lifecycle
 

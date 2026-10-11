@@ -10,8 +10,7 @@ public class Main {
 
     public static void main(String[] args) {
         DatabaseConfigurationStore databaseConfiguration = new DatabaseConfigurationStore();
-        if (!databaseConfiguration.isConfigured()
-                && !databaseConfiguration.importLegacyMySqlConfigurationIfAvailable()) {
+        if (!databaseConfiguration.isConfigured()) {
             DatabaseSetupApplication.run(args);
             return;
         }

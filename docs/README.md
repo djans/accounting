@@ -26,13 +26,35 @@ the application to initialize the schema.
 
 MySQL setup requires credentials that can create the selected database. SQLite
 creates a new database file. The saved settings are stored outside the
-repository at `${user.home}/.accounting/database.properties`. Oracle and DB2
-are not supported. Switching database engines does not migrate existing data.
+repository at `${user.home}/.accounting/database.properties` by default.
+Override the file location with `APP_DATABASE_CONFIG_PATH`. Oracle and DB2 are
+not supported. Switching database engines does not migrate existing data.
+Keep this file readable only by the account running the application. Setup
+creates it with owner-only POSIX permissions where supported; on Windows it
+inherits the permissions of its parent directory.
+
+Shared application settings are in `src/main/resources/application.yml`.
+Database connection details are imported from the external properties file;
+they are not kept in the application YAML.
 
 The first-run setup server binds to `127.0.0.1` by default. To make it
 accessible remotely, configure both `APP_SETUP_BIND_ADDRESS` and a strong
 `APP_SETUP_TOKEN`. Persist `/root/.accounting` when running the Docker image so
 the database configuration and SQLite file survive container replacement.
+
+## Spring profiles
+
+The common configuration is in `application.yml`; profile-specific overrides
+are in `application-local.yml`, `application-development.yml`,
+`application-staging.yml`, and `application-production.yml`. The default
+profile is `local`, so `mvn spring-boot:run` continues to work without extra
+arguments. Select another profile with `SPRING_PROFILES_ACTIVE` set to
+`development`, `staging`, or `production`, or
+`--spring.profiles.active=development`.
+Development, staging, and production profiles do not use the default
+bootstrap credentials. Set `APP_BOOTSTRAP_ADMIN_EMAIL` and
+`APP_BOOTSTRAP_ADMIN_PASSWORD` before first initialization or after a full
+database reset; existing installations with an administrator do not need them.
 
 ### Optional invoice email
 
@@ -64,7 +86,10 @@ docker-compose up
 ```
 
 For direct `docker run` setup, configure the setup bind address and token and
-mount a persistent volume at `/root/.accounting`.
+mount a persistent volume at `/root/.accounting`. Docker Compose defaults to
+the `production` profile; set `SPRING_PROFILES_ACTIVE` to override it. Supply
+bootstrap administrator credentials through environment variables when
+initializing an empty database.
 
 ## Application features
 

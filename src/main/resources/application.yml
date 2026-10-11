@@ -1,23 +1,57 @@
-apiVersion: argoproj.io/v1alpha1
-kind: Application
-metadata:
-  name: accounting
-  namespace: argocd
-spec:
-  project: default
+spring:
+  application:
+    name: accounting
+  config:
+    import: "optional:file:${APP_DATABASE_CONFIG_PATH:${user.home}/.accounting/database.properties}"
+  profiles:
+    default: local
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:schema.sql
+  jpa:
+    hibernate:
+      ddl-auto: none
+  servlet:
+    multipart:
+      max-file-size: 20MB
+      max-request-size: 21MB
+  mail:
+    host: "${SMTP_HOST:}"
+    port: "${SMTP_PORT:587}"
+    username: "${SMTP_USERNAME:}"
+    password: "${SMTP_PASSWORD:}"
+    properties:
+      mail:
+        smtp:
+          auth: "${SMTP_AUTH:true}"
+          starttls:
+            enable: "${SMTP_STARTTLS:true}"
+  messages:
+    basename: messages
+    encoding: UTF-8
+    fallback-to-system-locale: false
 
-  source:
-    repoURL: https://github.com/djans/accounting.git
-    targetRevision: main
-    path: accounting
+server:
+  port: 8080
 
-  destination:
-    server: https://kubernetes.default.svc
-    namespace: accounting
+app:
+  attachments:
+    max-size: 10485760
+  invoice-mail:
+    enabled: "${APP_INVOICE_MAIL_ENABLED:false}"
+    from: "${INVOICE_MAIL_FROM:}"
+  seed:
+    reference-data:
+      enabled: "${APP_SEED_REFERENCE_DATA_ENABLED:false}"
+    vendor-data:
+      enabled: "${APP_SEED_VENDOR_DATA_ENABLED:false}"
+  bootstrap:
+    admin:
+      email: "${APP_BOOTSTRAP_ADMIN_EMAIL:root@example.com}"
+      password: "${APP_BOOTSTRAP_ADMIN_PASSWORD:password}"
 
-  syncPolicy:
-    automated:
-      prune: true
-      selfHeal: true
-    syncOptions:
-      - CreateNamespace=true
+management:
+  health:
+    mail:
+      enabled: false
