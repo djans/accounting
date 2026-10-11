@@ -1,0 +1,6 @@
+source_id,name,email,business_name,address,city,province,postal_code,country,business_number,gst_number,qst_number
+vendor-001,North Supply,sales1@example.invalid,North Supply Co,10 Sample Road,Toronto,ON,M2M2M2,Canada,,,
+vendor-002,Maple Office,sales2@example.invalid,Maple Office Ltd,20 Sample Road,Ottawa,ON,K2K2K2,Canada,,,
+vendor-003,Blue Paper,sales3@example.invalid,Blue Paper Inc,30 Sample Road,Montreal,QC,H2H2H2,Canada,,,
+vendor-004,West Equipment,sales4@example.invalid,West Equipment Co,40 Sample Road,Calgary,AB,T2T2T2,Canada,,,
+vendor-005,Harbour Services,sales5@example.invalid,Harbour Services Ltd,50 Sample Road,Halifax,NS,B2B2B2,Canada,,,

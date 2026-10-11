@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="fr" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(#{database.engineMigration.completeTitle})}"></head>
+<body>
+<div class="portal-shell">
+    <div th:replace="~{fragments/layout :: sidebar('database-engine-migration')}"></div>
+    <main class="portal-main">
+        <div th:replace="~{fragments/layout :: topbar(#{database.engineMigration.completeTitle})}"></div>
+        <section class="portal-content">
+            <div th:replace="~{fragments/layout :: flash}"></div>
+            <div class="portal-card">
+                <h2 class="portal-card-title" th:text="#{database.engineMigration.completeTitle}">
+                    Database migration complete
+                </h2>
+                <p th:text="#{database.engineMigration.completeBody}">
+                    The destination is now configured. Stop and restart the application before using it.
+                </p>
+                <p>
+                    <strong th:text="#{database.engineMigration.importedRows}">Rows copied:</strong>
+                    <span th:text="${migrationRows}">0</span>
+                </p>
+                <a class="btn-portal" th:href="@{/admin/database/migrate}"
+                   th:text="#{database.engineMigration.back}">Back to database migration</a>
+            </div>
+        </section>
+    </main>
+</div>
+</body>
+</html>

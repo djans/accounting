@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en" th:lang="${#locale.language}" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(#{invoices.statement.title})}"></head>
+<body>
+<div class="portal-shell">
+    <div th:replace="~{fragments/layout :: sidebar('invoices')}"></div>
+    <main class="portal-main">
+        <div th:replace="~{fragments/layout :: topbar(#{invoices.statement.title})}"></div>
+        <section class="portal-content">
+            <div th:replace="~{fragments/layout :: flash}"></div>
+            <div class="portal-card">
+                <h2 class="portal-card-title" th:text="#{invoices.statement.title}">Customer account statement</h2>
+                <form th:action="@{/invoices/statements}" method="get" class="form-grid">
+                    <div class="form-field">
+                        <label for="customerId" th:text="#{invoices.statement.customer}">Customer</label>
+                        <select id="customerId" name="customerId" required>
+                            <option value="" th:text="#{invoices.statement.selectCustomer}">Select a customer</option>
+                            <option th:each="customer : ${customers}" th:value="${customer.id}"
+                                    th:selected="${customer.id == selectedCustomerId}"
+                                    th:text="${customer.businessName}">Customer</option>
+                        </select>
+                    </div>
+                    <div class="form-field">
+                        <label for="startDate" th:text="#{invoices.statement.from}">From</label>
+                        <input id="startDate" type="date" name="startDate" th:value="${startDate}"/>
+                    </div>
+                    <div class="form-field">
+                        <label for="endDate" th:text="#{invoices.statement.to}">To</label>
+                        <input id="endDate" type="date" name="endDate" th:value="${endDate}" required/>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn-portal" th:text="#{invoices.statement.show}">
+                            Show statement
+                        </button>
+                    </div>
+                </form>
+                <p th:if="${statementError}" class="flash flash-error" role="alert"
+                   th:text="${statementError}">Could not create the statement.</p>
+            </div>
+
+            <div class="portal-card" th:if="${statement != null}">
+                <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
+                    <div>
+                        <h3 class="portal-card-title" th:text="#{invoices.statement.title}">Customer account statement</h3>
+                        <strong th:text="${statement.customer.businessName}">Customer</strong>
+                        <div class="text-muted" th:text="${statement.customer.name + ' · ' + statement.customer.email}">
+                            Contact
+                        </div>
+                        <div class="text-muted"
+                             th:text="#{invoices.statement.period(${startDate}, ${endDate})}">
+                            Statement period
+                        </div>
+                    </div>
+                    <a class="btn-portal btn-ghost btn-sm"
+                       th:href="@{/invoices/statements/{customerId}.pdf(customerId=${statement.customer.id},startDate=${startDate},endDate=${endDate})}">
+                        <i class="bi bi-file-earmark-pdf"></i>
+                        <span th:text="#{invoices.statement.downloadPdf}">Download PDF</span>
+                    </a>
+                </div>
+                <div class="report-totals my-3">
+                    <div class="stat-card">
+                        <div class="stat-label" th:text="#{invoices.statement.openingBalance}">Opening balance</div>
+                        <div class="stat-value" th:text="${#numbers.formatCurrency(statement.openingBalance)}">$0</div>
+                    </div>
+                    <div class="stat-card is-accent">
+                        <div class="stat-label" th:text="#{invoices.statement.closingBalance}">Closing balance</div>
+                        <div class="stat-value" th:text="${#numbers.formatCurrency(statement.closingBalance)}">$0</div>
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table class="table-portal">
+                        <thead>
+                        <tr>
+                            <th th:text="#{table.date}">Date</th>
+                            <th th:text="#{table.description}">Description</th>
+                            <th th:text="#{table.status}">Type</th>
+                            <th class="num" th:text="#{invoices.statement.debit}">Charges</th>
+                            <th class="num" th:text="#{invoices.statement.credit}">Payments</th>
+                            <th class="num" th:text="#{table.balance}">Balance</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr>
+                            <td th:text="${startDate}">2026-01-01</td>
+                            <td th:text="#{invoices.statement.openingBalance}">Opening balance</td>
+                            <td></td><td class="num"></td><td class="num"></td>
+                            <td class="num" th:text="${#numbers.formatCurrency(statement.openingBalance)}">$0</td>
+                        </tr>
+                        <tr th:each="line : ${statement.lines}">
+                            <td th:text="${line.date}">2026-01-01</td>
+                            <td th:text="${line.description}">Invoice</td>
+                            <td th:text="${line.status}">Invoice</td>
+                            <td class="num" th:text="${line.debit.signum() == 0 ? '' : #numbers.formatCurrency(line.debit)}"></td>
+                            <td class="num" th:text="${line.credit.signum() == 0 ? '' : #numbers.formatCurrency(line.credit)}"></td>
+                            <td class="num" th:text="${#numbers.formatCurrency(line.balance)}">$0</td>
+                        </tr>
+                        <tr th:if="${#lists.isEmpty(statement.lines)}">
+                            <td colspan="6" class="empty-state" th:text="#{invoices.statement.noActivity}">
+                                No account activity in this period.
+                            </td>
+                        </tr>
+                        </tbody>
+                        <tfoot>
+                        <tr>
+                            <td colspan="5" th:text="#{invoices.statement.closingBalance}">Closing balance</td>
+                            <td class="num" th:text="${#numbers.formatCurrency(statement.closingBalance)}">$0</td>
+                        </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </section>
+    </main>
+</div>
+</body>
+</html>

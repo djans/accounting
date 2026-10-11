@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="fr" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(#{database.setup.title})}"></head>
+<body>
+<main class="portal-main" style="max-width:680px;margin:4rem auto;">
+    <section class="portal-content">
+        <div class="portal-card">
+            <h1 class="portal-card-title" th:text="#{database.setup.title}">Database setup</h1>
+            <p th:text="#{database.setup.intro}">Choose a database.</p>
+            <div th:if="${setupErrorKey != null}" class="flash flash-error"
+                 th:text="#{${setupErrorKey}}">Database setup error.</div>
+            <form th:action="@{/setup}" method="post">
+                <div class="form-field" style="margin-top:1rem;">
+                    <label for="setupToken" th:text="#{database.setup.token}">Setup access token</label>
+                    <input id="setupToken" name="setupToken" type="password" autocomplete="off"
+                           th:required="${requiresSetupToken}"/>
+                </div>
+                <div class="form-field">
+                    <label for="databaseType" th:text="#{database.setup.type}">Database type</label>
+                    <select id="databaseType" name="databaseType" required>
+                        <option value="mysql" th:selected="${databaseType == 'mysql'}"
+                                th:text="#{database.setup.mysql}">MySQL</option>
+                        <option value="sqlite" th:selected="${databaseType == 'sqlite'}"
+                                th:text="#{database.setup.sqlite}">SQLite</option>
+                        <option value="oracle" disabled th:text="#{database.setup.oracleUnavailable}">
+                            Oracle (not available yet)
+                        </option>
+                        <option value="db2" disabled th:text="#{database.setup.db2Unavailable}">
+                            Db2 (not available yet)
+                        </option>
+                    </select>
+                </div>
+                <div id="mysql-settings">
+                    <div class="form-field" style="margin-top:1rem;">
+                        <label for="mysqlUrl" th:text="#{database.setup.mysqlUrl}">JDBC URL</label>
+                        <input id="mysqlUrl" name="mysqlUrl" type="text" th:value="${mysqlUrl}"
+                               placeholder="jdbc:mysql://localhost:3306/accounting"/>
+                        <small class="text-muted" th:text="#{database.setup.mysqlUrlHelp}">MySQL URL help.</small>
+                    </div>
+                    <div class="form-field" style="margin-top:1rem;">
+                        <label for="username" th:text="#{database.setup.username}">Username</label>
+                        <input id="username" name="username" type="text" autocomplete="username"
+                               th:value="${username}"/>
+                    </div>
+                    <div class="form-field" style="margin-top:1rem;">
+                        <label for="password" th:text="#{database.setup.password}">Password</label>
+                        <input id="password" name="password" type="password" autocomplete="new-password"/>
+                    </div>
+                </div>
+                <div id="sqlite-settings" style="margin-top:1rem;">
+                    <div class="form-field">
+                        <label for="sqlitePath" th:text="#{database.setup.sqlitePath}">Database file</label>
+                        <input id="sqlitePath" name="sqlitePath" type="text" th:value="${sqlitePath}"/>
+                        <small class="text-muted" th:text="#{database.setup.sqliteHelp}">SQLite help.</small>
+                    </div>
+                </div>
+                <button type="submit" class="btn-portal" style="margin-top:1.25rem;"
+                        th:text="#{database.setup.submit}">Test and save</button>
+            </form>
+        </div>
+    </section>
+</main>
+<script>
+    const databaseType = document.getElementById("databaseType");
+    const mysqlSettings = document.getElementById("mysql-settings");
+    const sqliteSettings = document.getElementById("sqlite-settings");
+    const mysqlInputs = mysqlSettings.querySelectorAll("input");
+    const sqlitePath = document.getElementById("sqlitePath");
+
+    function updateDatabaseFields() {
+        const useMySql = databaseType.value === "mysql";
+        mysqlSettings.hidden = !useMySql;
+        sqliteSettings.hidden = useMySql;
+        mysqlInputs.forEach((input) => input.required = useMySql && input.id !== "password");
+        sqlitePath.required = !useMySql;
+    }
+
+    databaseType.addEventListener("change", updateDatabaseFields);
+    updateDatabaseFields();
+</script>
+</body>
+</html>

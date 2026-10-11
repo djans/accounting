@@ -1,0 +1,6 @@
+source_id,invoice_source_id,line_number,description,quantity,unit_price,total
+invoice-line-001,invoice-001,1,"Consulting, initial review",1.00,100.00,100.00
+invoice-line-002,invoice-002,1,Design services,1.00,250.00,250.00
+invoice-line-003,invoice-003,1,Project delivery,1.00,300.00,300.00
+invoice-line-004,invoice-004,1,Monthly support,1.00,400.00,400.00
+invoice-line-005,invoice-005,1,Planning services,1.00,500.00,500.00

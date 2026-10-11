@@ -1,0 +1,11 @@
+source_id,journal_source_id,line_number,account_source_id,debit,credit,cleared,description
+journal-line-001a,journal-001,1,acct-receivable,100.00,0.00,false,Invoice receivable
+journal-line-001b,journal-001,2,acct-revenue,0.00,100.00,false,Invoice revenue
+journal-line-002a,journal-002,1,acct-bank,50.00,0.00,false,Customer receipt debit
+journal-line-002b,journal-002,2,acct-receivable,0.00,50.00,false,Customer receipt credit
+journal-line-003a,journal-003,1,acct-expense,300.00,0.00,false,Bill expense debit
+journal-line-003b,journal-003,2,acct-payable,0.00,300.00,false,Bill payable credit
+journal-line-004a,journal-004,1,acct-payable,25.00,0.00,false,Reversal debit
+journal-line-004b,journal-004,2,acct-bank,0.00,25.00,false,Reversal credit
+journal-line-005a,journal-005,1,acct-expense,20.00,0.00,false,Draft expense debit
+journal-line-005b,journal-005,2,acct-bank,0.00,20.00,false,Draft cash credit

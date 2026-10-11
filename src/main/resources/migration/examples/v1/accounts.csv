@@ -1,0 +1,6 @@
+source_id,account_number,account_name,account_type,description,is_active
+acct-bank,1000,Operating bank,ASSET,Sample cash account,true
+acct-receivable,1100,Accounts receivable,ASSET,Sample receivables,true
+acct-payable,2000,Accounts payable,LIABILITY,Sample payables,true
+acct-revenue,4000,Service revenue,REVENUE,Sample revenue account,true
+acct-expense,5000,Office expense,EXPENSE,Sample expense account,true

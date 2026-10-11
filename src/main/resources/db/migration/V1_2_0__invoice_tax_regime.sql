@@ -1,0 +1,1 @@
+ALTER TABLE invoices ADD COLUMN tax_regime VARCHAR(30) NULL;

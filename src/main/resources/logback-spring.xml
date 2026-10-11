@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <springProperty scope="context" name="LOG_PATH" source="app.logging.path" defaultValue="logs"/>
+    <property name="LOG_PATTERN"
+              value="%d{yyyy-MM-dd'T'HH:mm:ss.SSSXXX} %-5level [%X{logCategory:-INTERNAL_PROCESS}] [%thread] %logger{40} - %msg%n%ex"/>
+
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>${LOG_PATTERN}</pattern>
+        </encoder>
+    </appender>
+
+    <appender name="UNIFIED_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_PATH}/accounting.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_PATH}/archive/accounting.%d{yyyy-MM-dd}.%i.log.gz</fileNamePattern>
+            <maxFileSize>20MB</maxFileSize>
+            <maxHistory>30</maxHistory>
+            <totalSizeCap>1GB</totalSizeCap>
+        </rollingPolicy>
+        <encoder>
+            <pattern>${LOG_PATTERN}</pattern>
+        </encoder>
+    </appender>
+
+    <appender name="CATEGORY_FILES" class="ch.qos.logback.classic.sift.SiftingAppender">
+        <discriminator class="ch.qos.logback.classic.sift.MDCBasedDiscriminator">
+            <key>logCategory</key>
+            <defaultValue>INTERNAL_PROCESS</defaultValue>
+        </discriminator>
+        <maxAppenderCount>3</maxAppenderCount>
+        <sift>
+            <appender name="CATEGORY-${logCategory}" class="ch.qos.logback.core.rolling.RollingFileAppender">
+                <file>${LOG_PATH}/accounting-${logCategory}.log</file>
+                <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+                    <fileNamePattern>${LOG_PATH}/archive/accounting-${logCategory}.%d{yyyy-MM-dd}.%i.log.gz</fileNamePattern>
+                    <maxFileSize>20MB</maxFileSize>
+                    <maxHistory>30</maxHistory>
+                    <totalSizeCap>500MB</totalSizeCap>
+                </rollingPolicy>
+                <encoder>
+                    <pattern>${LOG_PATTERN}</pattern>
+                </encoder>
+            </appender>
+        </sift>
+    </appender>
+
+    <root level="INFO">
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="UNIFIED_FILE"/>
+        <appender-ref ref="CATEGORY_FILES"/>
+    </root>
+</configuration>

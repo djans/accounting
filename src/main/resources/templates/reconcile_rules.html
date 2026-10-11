@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(#{reconcile.rules.title})}"></head>
+<body>
+<div class="portal-shell">
+    <div th:replace="~{fragments/layout :: sidebar('reconcile')}"></div>
+    <main class="portal-main">
+        <div th:replace="~{fragments/layout :: topbar(#{reconcile.rules.title})}"></div>
+        <section class="portal-content">
+            <div th:replace="~{fragments/layout :: flash}"></div>
+            <div class="portal-card mb-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h3 class="mb-0" th:text="#{reconcile.rules.title}">Bank categorization rules</h3>
+                    <a class="btn btn-sm btn-outline-secondary" th:href="@{/reconcile}" th:text="#{btn.back}">Back</a>
+                </div>
+                <p class="text-muted" th:text="#{reconcile.rules.help}">The lowest priority number wins; equal priorities use creation order.</p>
+                <form th:action="@{/reconcile/rules}" method="post" class="row g-3">
+                    <input th:if="${_csrf != null}" type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                    <div class="col-md-3">
+                        <label class="form-label" for="ruleName" th:text="#{reconcile.rules.name}">Rule name</label>
+                        <input class="form-control" id="ruleName" name="name" maxlength="120" required>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label" for="matchText" th:text="#{reconcile.rules.matchText}">Description/reference contains</label>
+                        <input class="form-control" id="matchText" name="matchText" maxlength="255" required>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label" for="priority" th:text="#{reconcile.rules.priority}">Priority</label>
+                        <input class="form-control" id="priority" name="priority" type="number" value="100" required>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label" for="targetAccountId" th:text="#{reconcile.rules.target}">Target account</label>
+                        <select class="form-select" id="targetAccountId" name="targetAccountId" required>
+                            <option value="" th:text="#{select.chooseAccount}">Choose account</option>
+                            <option th:each="account : ${accounts}" th:value="${account.id}"
+                                    th:text="${account.accountNumber + ' - ' + account.accountName}"></option>
+                        </select>
+                    </div>
+                    <div class="col-md-1 d-flex align-items-end">
+                        <button class="btn btn-primary" type="submit" th:text="#{reconcile.rules.save}">Save</button>
+                    </div>
+                </form>
+            </div>
+            <div class="portal-card">
+                <div class="table-responsive">
+                    <table class="table table-portal">
+                        <thead><tr>
+                            <th th:text="#{reconcile.rules.priority}">Priority</th>
+                            <th th:text="#{reconcile.rules.name}">Rule</th>
+                            <th th:text="#{reconcile.rules.matchText}">Match text</th>
+                            <th th:text="#{reconcile.rules.target}">Target account</th>
+                            <th></th>
+                        </tr></thead>
+                        <tbody>
+                        <tr th:each="rule : ${rules}">
+                            <td th:text="${rule.priority}">100</td>
+                            <td th:text="${rule.name}">Rule</td>
+                            <td th:text="${rule.matchText}">match</td>
+                            <td th:text="${rule.targetAccount.accountNumber + ' - ' + rule.targetAccount.accountName}">Account</td>
+                            <td>
+                                <form th:if="${rule.active}" th:action="@{/reconcile/rules/{id}/deactivate(id=${rule.id})}" method="post">
+                                    <input th:if="${_csrf != null}" type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                                    <button class="btn btn-sm btn-outline-danger" type="submit" th:text="#{reconcile.rules.disable}">Disable</button>
+                                </form>
+                                <span th:unless="${rule.active}" class="text-muted" th:text="#{reconcile.rules.disabled}">Disabled</span>
+                            </td>
+                        </tr>
+                        <tr th:if="${#lists.isEmpty(rules)}">
+                            <td colspan="5" class="text-center text-muted py-3" th:text="#{reconcile.rules.empty}">No rules yet.</td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+    </main>
+</div>
+</body>
+</html>

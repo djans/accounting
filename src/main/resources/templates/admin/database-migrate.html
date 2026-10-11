@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="fr" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(#{database.engineMigration.title})}"></head>
+<body>
+<div class="portal-shell">
+    <div th:replace="~{fragments/layout :: sidebar('database-engine-migration')}"></div>
+    <main class="portal-main">
+        <div th:replace="~{fragments/layout :: topbar(#{database.engineMigration.title})}"></div>
+        <section class="portal-content">
+            <div th:replace="~{fragments/layout :: flash}"></div>
+            <div class="portal-card">
+                <h2 class="portal-card-title" th:text="#{database.engineMigration.title}">Migrate database engine</h2>
+                <p th:text="#{database.engineMigration.intro}">
+                    Copy the complete application database between MySQL and SQLite.
+                </p>
+                <div th:if="${migrationPageError}" class="flash flash-error" th:text="${migrationPageError}"></div>
+                <div th:if="${sourceDatabaseType == 'mysql'}">
+                    <p>
+                        <strong th:text="#{database.engineMigration.source}">Current source:</strong>
+                        <span th:text="#{database.engineMigration.mysql}">MySQL</span>
+                        <span aria-hidden="true">&rarr;</span>
+                        <span th:text="#{database.engineMigration.sqlite}">SQLite</span>
+                    </p>
+                    <h3 th:text="#{database.engineMigration.currentMysqlSettings}">Current MySQL connection</h3>
+                    <div class="mb-3">
+                        <label class="form-label" for="mysqlSourceUrl"
+                               th:text="#{database.setup.mysqlUrl}">JDBC URL</label>
+                        <input class="form-control" id="mysqlSourceUrl" type="text" readonly
+                               th:value="${mysqlSourceUrl}"/>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="mysqlSourceUsername"
+                               th:text="#{database.setup.username}">Username</label>
+                        <input class="form-control" id="mysqlSourceUsername" type="text" readonly
+                               th:value="${mysqlSourceUsername}"/>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="mysqlSourcePassword"
+                               th:text="#{database.setup.password}">Password</label>
+                        <input class="form-control" id="mysqlSourcePassword" type="password" readonly
+                               autocomplete="off" th:value="${mysqlSourcePassword}"/>
+                    </div>
+                    <p class="text-muted" th:text="#{database.engineMigration.sqlitePathHelp}">
+                        The path is on the computer running this application.
+                    </p>
+                    <div class="alert alert-info" role="note"
+                         th:text="#{database.engineMigration.reverseMysqlHelp}">
+                        To migrate back to MySQL later, keep the MySQL JDBC URL, username, and password available.
+                    </div>
+                    <form th:action="@{/admin/database/migrate/sqlite}" method="post">
+                        <div class="mb-3">
+                            <label class="form-label" for="sqlitePath"
+                                   th:text="#{database.setup.sqlitePath}">Database file</label>
+                            <input class="form-control" id="sqlitePath" name="sqlitePath" type="text" required/>
+                        </div>
+                        <div th:replace="~{admin/fragments/database-migrate-confirmation :: fields}"></div>
+                        <button type="submit" class="btn-portal btn-danger"
+                                th:text="#{database.engineMigration.submit}">Migrate to SQLite</button>
+                    </form>
+                </div>
+                <div th:if="${sourceDatabaseType == 'sqlite'}">
+                    <p>
+                        <strong th:text="#{database.engineMigration.source}">Current source:</strong>
+                        <span th:text="#{database.engineMigration.sqlite}">SQLite</span>
+                        <span aria-hidden="true">&rarr;</span>
+                        <span th:text="#{database.engineMigration.mysql}">MySQL</span>
+                    </p>
+                    <p class="text-muted" th:text="#{database.engineMigration.mysqlHelp}">
+                        The MySQL account must be able to create and replace tables in the destination database.
+                    </p>
+                    <form th:action="@{/admin/database/migrate/mysql}" method="post">
+                        <div class="mb-3">
+                            <label class="form-label" for="mysqlUrl"
+                                   th:text="#{database.setup.mysqlUrl}">JDBC URL</label>
+                            <input class="form-control" id="mysqlUrl" name="mysqlUrl" type="text" inputmode="url"
+                                   placeholder="jdbc:mysql://localhost:3306/accounting" required/>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label" for="username"
+                                   th:text="#{database.setup.username}">Username</label>
+                            <input class="form-control" id="username" name="username" type="text"
+                                   autocomplete="username" required/>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label" for="password"
+                                   th:text="#{database.setup.password}">Password</label>
+                            <input class="form-control" id="password" name="password" type="password"
+                                   autocomplete="new-password"/>
+                        </div>
+                        <div th:replace="~{admin/fragments/database-migrate-confirmation :: fields}"></div>
+                        <button type="submit" class="btn-portal btn-danger"
+                                th:text="#{database.engineMigration.submit}">Migrate to MySQL</button>
+                    </form>
+                </div>
+            </div>
+        </section>
+    </main>
+</div>
+</body>
+</html>

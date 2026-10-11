@@ -1,0 +1,10 @@
+spring:
+  thymeleaf:
+    cache: false
+app:
+  logging:
+    path: "c:/accounting/logs"
+
+logging:
+  level:
+    com.cogitosum: DEBUG

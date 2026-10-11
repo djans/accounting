@@ -1,0 +1,6 @@
+source_id,journal_number,journal_date,narrative,reference,status,posted_date,posted_by
+journal-001,EX-JRN-001,2026-01-05,Sample invoice posting,EX-INV-001,POSTED,2026-01-05T09:00:00,example
+journal-002,EX-JRN-002,2026-01-10,Sample customer receipt summary,EX-INV-002,POSTED,2026-01-10T09:00:00,example
+journal-003,EX-JRN-003,2026-01-16,Sample bill posting,EX-BILL-003,POSTED,2026-01-16T09:00:00,example
+journal-004,EX-JRN-004,2026-01-21,Sample bill payment reversal,EX-BILL-004,REVERSED,2026-01-21T09:00:00,example
+journal-005,EX-JRN-005,2026-01-25,Sample draft adjustment,,DRAFT,,example

@@ -1,0 +1,6 @@
+source_id,name,email,business_name,address,city,province,postal_code,country,business_number,gst_number
+customer-001,Alex Martin,alex.martin@example.invalid,Martin Consulting,1 Example Street,Toronto,ON,M1M1M1,Canada,,
+customer-002,Blair Chen,blair.chen@example.invalid,Chen Design,2 Example Street,Ottawa,ON,K1K1K1,Canada,,
+customer-003,Casey Singh,casey.singh@example.invalid,Singh Studio,3 Example Street,Montreal,QC,H1H1H1,Canada,,
+customer-004,Devon Roy,devon.roy@example.invalid,Roy Services,4 Example Street,Calgary,AB,T1T1T1,Canada,,
+customer-005,Emery Park,emery.park@example.invalid,Park Advisory,5 Example Street,Halifax,NS,B1B1B1,Canada,,

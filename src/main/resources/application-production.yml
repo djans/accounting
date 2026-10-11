@@ -1,0 +1,25 @@
+spring:
+  thymeleaf:
+    cache: true
+
+server:
+  error:
+    include-message: never
+    include-binding-errors: never
+    include-stacktrace: never
+
+management:
+  endpoint:
+    health:
+      show-details: never
+
+app:
+  bootstrap:
+    admin:
+      email: "${APP_BOOTSTRAP_ADMIN_EMAIL:}"
+      password: "${APP_BOOTSTRAP_ADMIN_PASSWORD:}"
+
+logging:
+  level:
+    com.cogitosum: WARN
+    com.cogitosum.config.UserActivityLoggingInterceptor: INFO

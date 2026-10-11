@@ -1,0 +1,13 @@
+spring:
+  thymeleaf:
+    cache: false
+
+app:
+  bootstrap:
+    admin:
+      email: "${APP_BOOTSTRAP_ADMIN_EMAIL:}"
+      password: "${APP_BOOTSTRAP_ADMIN_PASSWORD:}"
+
+logging:
+  level:
+    com.cogitosum: INFO

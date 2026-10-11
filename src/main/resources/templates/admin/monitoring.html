@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(#{admin.monitoring.title})}"></head>
+<body>
+<div class="portal-shell">
+    <div th:replace="~{fragments/layout :: sidebar(${active})}"></div>
+    <main class="portal-main">
+        <div th:replace="~{fragments/layout :: topbar(#{admin.monitoring.title})}"></div>
+        <section class="portal-content">
+            <div class="portal-card">
+                <h3 class="portal-card-title" th:text="#{admin.monitoring.healthTitle}">Application health</h3>
+                <p>
+                    <span th:text="#{admin.monitoring.overallStatus}">Overall status:</span>
+                    <strong th:text="${healthStatus}">UP</strong>
+                </p>
+                <table class="table-portal">
+                    <thead>
+                    <tr>
+                        <th th:text="#{admin.monitoring.component}">Component</th>
+                        <th th:text="#{admin.monitoring.status}">Status</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="component : ${healthComponents}">
+                        <td th:text="${component.name()}">database</td>
+                        <td th:text="${component.status()}">UP</td>
+                    </tr>
+                    </tbody>
+                </table>
+                <p class="text-muted" th:text="#{admin.monitoring.healthPrivacy}">
+                    Health details are intentionally limited to component names and status.
+                </p>
+                <a th:href="${actuatorHealthUrl}" th:text="#{admin.monitoring.healthEndpoint}">Health endpoint</a>
+            </div>
+
+            <div class="portal-card">
+                <h3 class="portal-card-title" th:text="#{admin.monitoring.metricsTitle}">Metrics</h3>
+                <div class="mb-3" th:if="${not #lists.isEmpty(metrics)}">
+                    <label class="form-label mb-1" for="metricsFilter"
+                           th:text="#{admin.monitoring.filterLabel}">Filter metrics by name</label>
+                    <input id="metricsFilter" type="search" class="form-control form-control-sm"
+                           data-table-search data-rows-selector="#metricsRows tr[data-table-filter-row]"
+                           data-no-matches-id="metricsNoMatches" th:attr="placeholder=#{admin.monitoring.filterPlaceholder}"/>
+                </div>
+                <div id="metricsNoMatches" class="empty-state" hidden
+                     th:text="#{admin.monitoring.noMatches}">No metrics match this filter.</div>
+                <table class="table-portal">
+                    <thead>
+                    <tr>
+                        <th th:text="#{admin.monitoring.metric}">Metric</th>
+                        <th th:text="#{admin.monitoring.statistic}">Statistic</th>
+                        <th th:text="#{admin.monitoring.value}">Value</th>
+                        <th th:text="#{admin.monitoring.unit}">Unit</th>
+                    </tr>
+                    </thead>
+                    <tbody id="metricsRows">
+                    <tr th:each="metric : ${metrics}" data-table-filter-row
+                        th:attr="data-table-filter-text=${metric.name()}">
+                        <td th:text="${metric.name()}">process.uptime</td>
+                        <td th:text="${metric.statistic()}">value</td>
+                        <td class="num" th:text="${metric.value()}">0</td>
+                        <td th:text="${metric.unit()}">seconds</td>
+                    </tr>
+                    <tr th:if="${#lists.isEmpty(metrics)}">
+                        <td colspan="4" th:text="#{admin.monitoring.noMetrics}">No metrics are currently available.</td>
+                    </tr>
+                    </tbody>
+                </table>
+                <a th:href="${actuatorMetricsUrl}" th:text="#{admin.monitoring.metricsEndpoint}">Metrics endpoint</a>
+            </div>
+        </section>
+    </main>
+</div>
+<script th:src="@{/js/table-search.js}" defer></script>
+</body>
+</html>

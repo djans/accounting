@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(#{admin.users.title})}"></head>
+<body>
+<div class="portal-shell">
+    <div th:replace="~{fragments/layout :: sidebar(${active})}"></div>
+    <main class="portal-main">
+        <div th:replace="~{fragments/layout :: topbar(#{admin.users.title})}"></div>
+        <section class="portal-content">
+            <div th:replace="~{fragments/layout :: flash}"></div>
+
+            <div class="portal-card">
+                <h2 class="portal-card-title" th:text="#{admin.users.title}">Company user access</h2>
+                <p>
+                    <span th:text="#{admin.users.company}">Company</span>:
+                    <strong th:text="${company.name}">Company name</strong>
+                </p>
+                <p class="text-muted" th:text="#{admin.users.intro}">
+                    Company access and role are managed separately for each company. Removing access never deletes the account.
+                </p>
+                <div class="alert alert-info" role="note">
+                    <strong th:text="#{admin.users.roleScopeTitle}">Company-specific role</strong>
+                    <p class="mb-0" th:text="#{admin.users.roleScope}">
+                        The same user can have a different role in every company.
+                    </p>
+                </div>
+            </div>
+
+            <div class="portal-card">
+                <h2 class="portal-card-title" th:text="#{admin.users.membersTitle}">Users with company access</h2>
+                <div class="table-responsive" th:if="${!users.isEmpty()}">
+                    <table class="table-portal">
+                        <thead>
+                        <tr>
+                            <th th:text="#{admin.users.name}">Name</th>
+                            <th th:text="#{admin.users.shortId}">ShortID</th>
+                            <th th:text="#{admin.users.email}">Email</th>
+                            <th th:text="#{admin.users.role}">Role in this company</th>
+                            <th th:text="#{admin.users.status}">Account status</th>
+                            <th th:text="#{admin.users.actions}">Actions</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr th:each="user : ${users}">
+                            <td th:text="${user.fullName}">User name</td>
+                            <td><code th:text="${user.shortId}">JAND001</code></td>
+                            <td th:text="${user.email}">user@example.com</td>
+                            <td>
+                                <form method="post" th:action="@{/admin/users/{userId}/role(userId=${user.userId})}"
+                                      class="d-flex gap-2">
+                                    <select name="role" class="form-select" th:attr="aria-label=#{admin.users.role}">
+                                        <option th:each="roleOption : ${roles}"
+                                                th:value="${roleOption.role()}"
+                                                th:selected="${roleOption.role() == user.role}"
+                                                th:text="#{${roleOption.messageKey()}}">
+                                            Auditor
+                                        </option>
+                                    </select>
+                                    <button type="submit" class="btn-portal" th:text="#{admin.users.updateRole}">
+                                        Update
+                                    </button>
+                                </form>
+                            </td>
+                            <td>
+                                <span th:if="${user.enabled}" th:text="#{admin.users.enabled}">Enabled</span>
+                                <span th:unless="${user.enabled}" th:text="#{admin.users.disabled}">Disabled</span>
+                            </td>
+                            <td>
+                                <form method="post"
+                                      th:action="@{/admin/users/{userId}/revoke(userId=${user.userId})}"
+                                      onsubmit="return confirm(this.dataset.confirm)"
+                                      th:attr="data-confirm=#{admin.users.removeConfirm}">
+                                    <button type="submit" class="btn-portal btn-danger"
+                                            th:disabled="${user.userId == currentUserId}"
+                                            th:text="#{admin.users.removeAccess}">
+                                        Remove access
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <p class="text-muted" th:if="${users.isEmpty()}" th:text="#{admin.users.noMembers}">
+                    No users currently have access to this company.
+                </p>
+                <p class="small text-muted mb-0" th:text="#{admin.users.selfRemoval}">
+                    Your own access cannot be removed here.
+                </p>
+            </div>
+
+            <div class="portal-card">
+                <h2 class="portal-card-title" th:text="#{admin.users.grantTitle}">Grant access to an existing account</h2>
+                <p class="text-muted" th:text="#{admin.users.grantHint}">
+                    The account must already exist and be enabled. Choose its role for this company.
+                </p>
+                <form th:action="@{/admin/users/grant}" method="post">
+                    <div class="mb-3">
+                        <label class="form-label" for="grantEmail" th:text="#{admin.users.email}">Email</label>
+                        <input id="grantEmail" name="email" type="email" class="form-control"
+                               autocomplete="email" required/>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="grantRole" th:text="#{admin.users.role}">Company role</label>
+                        <select id="grantRole" name="role" class="form-select" required>
+                            <option th:each="roleOption : ${roles}" th:value="${roleOption.role()}"
+                                    th:text="#{${roleOption.messageKey()}}">
+                                Auditor
+                            </option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn-portal" th:text="#{admin.users.grantAction}">
+                        Grant company access
+                    </button>
+                </form>
+            </div>
+
+            <div class="portal-card">
+                <h2 class="portal-card-title" th:text="#{admin.users.createTitle}">Create a new account</h2>
+                <p class="text-muted" th:text="#{admin.users.createHint}">
+                    Create an account and assign its role in this company. Share the initial password securely; it is not emailed.
+                </p>
+                <form th:action="@{/admin/users/create}" method="post">
+                    <div class="mb-3">
+                        <label class="form-label" for="fullName" th:text="#{admin.users.name}">Name</label>
+                        <input id="fullName" name="fullName" type="text" class="form-control"
+                               autocomplete="name" maxlength="255" required/>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="newEmail" th:text="#{admin.users.email}">Email</label>
+                        <input id="newEmail" name="email" type="email" class="form-control"
+                               autocomplete="email" maxlength="255" required/>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="newRole" th:text="#{admin.users.role}">Company role</label>
+                        <select id="newRole" name="role" class="form-select" required>
+                            <option th:each="roleOption : ${roles}" th:value="${roleOption.role()}"
+                                    th:selected="${roleOption.role().name() == 'AUDITOR'}"
+                                    th:text="#{${roleOption.messageKey()}}">
+                                Auditor
+                            </option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="password" th:text="#{admin.users.initialPassword}">
+                            Initial password
+                        </label>
+                        <input id="password" name="password" type="password" class="form-control"
+                               autocomplete="new-password" th:minlength="${minimumPasswordLength}" required/>
+                        <div class="form-text">
+                            <span th:text="#{admin.users.passwordRequirements}">
+                                At least 12 characters, including a letter, a number, and a special character.
+                            </span>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="confirmPassword" th:text="#{admin.users.confirmPassword}">
+                            Confirm password
+                        </label>
+                        <input id="confirmPassword" name="confirmPassword" type="password" class="form-control"
+                               autocomplete="new-password" th:minlength="${minimumPasswordLength}" required/>
+                    </div>
+                    <button type="submit" class="btn-portal" th:text="#{admin.users.createAction}">
+                        Create account
+                    </button>
+                </form>
+            </div>
+        </section>
+    </main>
+</div>
+</body>
+</html>

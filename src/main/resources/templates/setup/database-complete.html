@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html lang="fr" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(#{database.setup.completeTitle})}"></head>
+<body>
+<main class="portal-main" style="max-width:680px;margin:4rem auto;">
+    <section class="portal-content">
+        <div class="portal-card">
+            <h1 class="portal-card-title" th:text="#{database.setup.completeTitle}">Database configured</h1>
+            <p th:text="#{database.setup.completeBody}">Restart the application.</p>
+            <p class="text-muted" th:text="#{database.setup.restart}">Restart the application.</p>
+        </div>
+    </section>
+</main>
+</body>
+</html>

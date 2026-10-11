@@ -1,0 +1,6 @@
+source_id,invoice_number,customer_source_id,invoice_date,due_date,status,subtotal,gst_amount,hst_amount,qst_amount,total_amount,paid_amount,tax_regime,notes
+invoice-001,EX-INV-001,customer-001,2026-01-05,2026-02-04,SENT,100.00,0.00,0.00,0.00,100.00,0.00,ON,Sample sent invoice
+invoice-002,EX-INV-002,customer-002,2026-01-10,2026-02-09,PARTIALLY_PAID,250.00,0.00,0.00,0.00,250.00,50.00,ON,Sample partial payment summary
+invoice-003,EX-INV-003,customer-003,2026-01-15,2026-02-14,PAID,300.00,0.00,0.00,0.00,300.00,300.00,QC,Sample paid invoice
+invoice-004,EX-INV-004,customer-004,2026-01-20,2026-02-19,OVERDUE,400.00,0.00,0.00,0.00,400.00,0.00,AB,Sample overdue invoice
+invoice-005,EX-INV-005,customer-005,2026-01-25,2026-02-24,DRAFT,500.00,0.00,0.00,0.00,500.00,0.00,NS,Sample draft invoice

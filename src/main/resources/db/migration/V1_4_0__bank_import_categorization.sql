@@ -1,0 +1,2 @@
+-- Applied by DatabaseSchemaVersionService with database-specific, retry-safe DDL
+-- so the same forward migration supports both MySQL and SQLite.

@@ -1,0 +1,6 @@
+source_id,bill_source_id,line_number,expense_account_source_id,description,quantity,unit_price,total
+bill-line-001,bill-001,1,acct-expense,Office supplies,1.00,100.00,100.00
+bill-line-002,bill-002,1,acct-expense,Printer paper,1.00,250.00,250.00
+bill-line-003,bill-003,1,acct-expense,Equipment repair,1.00,300.00,300.00
+bill-line-004,bill-004,1,acct-expense,Monthly hosting,1.00,400.00,400.00
+bill-line-005,bill-005,1,acct-expense,Planning materials,1.00,500.00,500.00
