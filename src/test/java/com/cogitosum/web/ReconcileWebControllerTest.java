@@ -104,7 +104,7 @@ class ReconcileWebControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(content().contentType("application/pdf"))
                 .andExpect(header().string("Content-Disposition",
-                        containsString("filename=reconciliation-1001-2026-09-30.pdf")));
+                        containsString("filename=\"reconciliation-1001-2026-09-30.pdf\"")));
     }
 
     @Test

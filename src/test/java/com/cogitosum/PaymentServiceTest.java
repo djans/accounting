@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
@@ -13,12 +14,14 @@ import java.time.LocalDate;
 
 @SpringBootTest
 @Transactional
+@WithMockUser(username = "test-admin@example.test", roles = "ADMIN")
 public class PaymentServiceTest {
 
     @Autowired private PaymentRepository paymentRepository;
     @Autowired private com.cogitosum.service.PaymentService paymentService;
     @Autowired private com.cogitosum.repository.CustomerRepository customerRepository;
     @Autowired private com.cogitosum.repository.InvoiceRepository invoiceRepository;
+    @Autowired private com.cogitosum.service.CurrentCompanyContext companyContext;
 
     @Test
     public void saveCheque_and_fetchByPaymentMethod() {
@@ -32,6 +35,7 @@ public class PaymentServiceTest {
         c.setProvince("QC");
         c.setPostalCode("A1A1A1");
         c.setCountry("CA");
+        c.setCompany(companyContext.requireCompany());
         customerRepository.save(c);
 
         // create invoice minimal
@@ -40,6 +44,7 @@ public class PaymentServiceTest {
         inv.setCustomer(c);
         inv.setInvoiceDate(LocalDate.now());
         inv.setDueDate(LocalDate.now());
+        inv.setCompany(companyContext.requireCompany());
         inv.setStatus(InvoiceStatus.DRAFT);
         inv.setSubtotal(BigDecimal.ZERO);
         inv.setGstAmount(BigDecimal.ZERO);
@@ -55,6 +60,7 @@ public class PaymentServiceTest {
         p.setPaymentMethod(PaymentMethod.CHEQUE);
         p.setStatus(PaymentStatus.PENDING);
         p.setTransactionId("TX-1");
+        p.setCompany(companyContext.requireCompany());
         paymentRepository.save(p);
 
         var cheques = paymentService.getPaymentsByMethod(PaymentMethod.CHEQUE);

@@ -177,8 +177,8 @@ public class BankReconciliationReportPdfService {
         private static final float RIGHT = 570;
         private static final float BOTTOM = 48;
         private static final float LINE_HEIGHT = 16;
-        private static final float[] COLUMNS = {42, 126, 196, 243, 345, 402, 484};
-        private static final float[] COLUMN_WIDTHS = {82, 68, 45, 100, 55, 80, 86};
+        private static final float[] COLUMNS = {42, 126, 196, 266, 345, 402, 484};
+        private static final float[] COLUMN_WIDTHS = {82, 68, 70, 77, 55, 80, 86};
 
         private final PDDocument document;
         private final BankReconciliationSession session;
@@ -247,9 +247,27 @@ public class BankReconciliationReportPdfService {
         }
 
         private void note(String value) throws IOException {
-            ensureRowSpace();
-            text(value, LEFT, y, regular, 8, RIGHT - LEFT);
-            y -= LINE_HEIGHT;
+            float maxWidth = RIGHT - LEFT;
+            StringBuilder line = new StringBuilder();
+            for (String word : InvoicePdfService.safeText(value).split(" ")) {
+                String candidate = line.isEmpty() ? word : line + " " + word;
+                if (!line.isEmpty()
+                        && regular.getStringWidth(candidate) / 1000 * 8 > maxWidth) {
+                    ensureRowSpace();
+                    text(line.toString(), LEFT, y, regular, 8, maxWidth);
+                    y -= LINE_HEIGHT;
+                    line.setLength(0);
+                }
+                if (!line.isEmpty()) {
+                    line.append(' ');
+                }
+                line.append(word);
+            }
+            if (!line.isEmpty()) {
+                ensureRowSpace();
+                text(line.toString(), LEFT, y, regular, 8, maxWidth);
+                y -= LINE_HEIGHT;
+            }
         }
 
         private void rule() throws IOException {

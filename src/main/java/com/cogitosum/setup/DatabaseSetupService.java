@@ -26,6 +26,7 @@ public class DatabaseSetupService {
         this.configurationStore = configurationStore;
     }
 
+    // Adding an engine requires wiring its URL validation, driver, dialect, schema, and connection options here.
     public void configure(String databaseType, String mysqlUrl, String username,
                           String password, String sqlitePath) {
         if ("mysql".equalsIgnoreCase(databaseType)) {

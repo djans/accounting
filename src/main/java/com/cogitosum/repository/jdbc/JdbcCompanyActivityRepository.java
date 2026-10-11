@@ -37,6 +37,7 @@ public abstract class JdbcCompanyActivityRepository implements CompanyActivityRe
 
     @Override
     public void resetActivity(Long companyId) {
+        // Keep shared statements portable; bank reconciliation reset SQL is supplied by each engine adapter.
         jdbcTemplate.update("UPDATE written_cheques SET reissue_of_id = NULL WHERE company_id = ?", companyId);
         jdbcTemplate.update("UPDATE credit_card_charges SET reissue_of_id = NULL WHERE company_id = ?", companyId);
         jdbcTemplate.update("DELETE FROM payments WHERE company_id = ?", companyId);

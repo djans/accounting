@@ -7,9 +7,12 @@ import com.cogitosum.entity.TaxFilingPeriod;
 import com.cogitosum.entity.TaxFilingStatus;
 import com.cogitosum.entity.TaxReturnRowSnapshot;
 import com.cogitosum.repository.BillRepository;
+import com.cogitosum.repository.CreditCardChargeRepository;
 import com.cogitosum.repository.InvoiceRepository;
 import com.cogitosum.repository.TaxFilingPeriodRepository;
 import com.cogitosum.repository.TaxReturnRowSnapshotRepository;
+import com.cogitosum.repository.WrittenChequeRepository;
+import com.cogitosum.service.TaxCodeService;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -31,6 +34,9 @@ class TaxReturnSnapshotServiceTest {
         CurrentCompanyContext companyContext = mock(CurrentCompanyContext.class);
         GeneralJournalService journals = mock(GeneralJournalService.class);
         BillRepository bills = mock(BillRepository.class);
+        CreditCardChargeRepository creditCardCharges = mock(CreditCardChargeRepository.class);
+        WrittenChequeRepository cheques = mock(WrittenChequeRepository.class);
+        TaxCodeService taxCodeService = mock(TaxCodeService.class);
         InvoiceRepository invoices = mock(InvoiceRepository.class);
         TaxFilingPeriod period = period(TaxFilingStatus.OPEN);
         when(companyContext.requireCompanyId()).thenReturn(7L);
@@ -38,6 +44,11 @@ class TaxReturnSnapshotServiceTest {
         when(periods.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
         when(bills.findByCompanyIdAndBillDateBetweenOrderByBillDateDesc(eq(7L), any(), any()))
                 .thenReturn(List.of());
+        when(creditCardCharges.findByCompanyIdAndChargeDateBetweenOrderByChargeDateDescIdDesc(
+                eq(7L), any(), any())).thenReturn(List.of());
+        when(cheques.findByCompanyIdAndChequeDateBetweenOrderByChequeDateDescIdDesc(
+                eq(7L), any(), any())).thenReturn(List.of());
+        when(taxCodeService.getAllCodes()).thenReturn(List.of());
         when(journals.getJournalsByDateRange(any(), any())).thenReturn(List.of());
 
         TaxReturnRowDTO sales = new TaxReturnRowDTO(
@@ -50,6 +61,9 @@ class TaxReturnSnapshotServiceTest {
         ReflectionTestUtils.setField(service, "companyContext", companyContext);
         ReflectionTestUtils.setField(service, "journalService", journals);
         ReflectionTestUtils.setField(service, "billRepository", bills);
+        ReflectionTestUtils.setField(service, "creditCardChargeRepository", creditCardCharges);
+        ReflectionTestUtils.setField(service, "chequeRepository", cheques);
+        ReflectionTestUtils.setField(service, "taxCodeService", taxCodeService);
         ReflectionTestUtils.setField(service, "invoiceRepository", invoices);
         doReturn(List.of()).when(service).getReturnLineBreakdown(period);
         doReturn(false).when(service).hasUnmappedReturnLineAmounts(period, List.of());

@@ -55,7 +55,7 @@ class BankReconciliationReportPdfServiceTest {
             String text = new PDFTextStripper().getText(document);
             assertTrue(text.contains("Reconciliation Detail"));
             assertTrue(text.contains("Transfer"));
-            assertTrue(text.contains("TRANSFER-15"));
+            assertTrue(text.contains("TRANSFER-15"), text);
             assertTrue(text.contains("25,000.00"));
             assertTrue(text.contains("Clr"));
             assertTrue(text.contains("X"));
@@ -80,7 +80,7 @@ class BankReconciliationReportPdfServiceTest {
 
         try (var document = Loader.loadPDF(report.content())) {
             String text = new PDFTextStripper().getText(document);
-            assertTrue(text.contains("TRANSFER-15"));
+            assertTrue(text.contains("TRANSFER-15"), text);
             assertTrue(text.contains("verify them against the original statement"));
         }
     }

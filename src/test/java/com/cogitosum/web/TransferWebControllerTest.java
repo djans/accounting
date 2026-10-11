@@ -19,7 +19,6 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Locale;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -115,7 +114,7 @@ class TransferWebControllerTest {
                 .andExpect(content().string(containsString("Copy transfer")))
                 .andExpect(content().string(containsString("View transfer")));
 
-        mockMvc.perform(get("/transfers").locale(Locale.FRENCH))
+        mockMvc.perform(get("/transfers").param("lang", "fr"))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("Comptabilisé")));
     }

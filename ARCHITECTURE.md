@@ -116,7 +116,13 @@ These files initialize new databases and are used by a full schema reset; their 
 
 When a change affects entities, columns, relationships, constraints, or indexes, update **both** engine schema files, add a versioned migration for existing databases, and update the related tests and any dialect-specific adapter. Follow [docs/SCHEMA_VERSIONING.md](docs/SCHEMA_VERSIONING.md) for the release procedure. Adding another database engine also requires its driver, dialect, schema, configuration path, and validation coverage.
 
-JDBC adapters execute their SQL directly; configuring a Hibernate dialect does not translate it. When adding a database engine, review `JdbcCompanyMembershipRepository`, especially `grant()`: its `INSERT ... SELECT` has no `FROM` clause and may need an engine-specific implementation. Include this repository in the new engine's integration coverage.
+JDBC adapters execute their SQL directly; configuring a Hibernate dialect does not translate it. When adding a database engine:
+
+- Extend `DatabaseSetupService` with URL validation and the engine's driver, Hibernate dialect, schema, and connection options.
+- Review `JdbcCompanyMembershipRepository`, especially `grant()`: its `INSERT ... SELECT` has no `FROM` clause and may need an engine-specific implementation.
+- Keep common SQL in `JdbcCompanyActivityRepository` portable and provide an engine adapter for `resetBankReconciliation()` as needed. `MysqlCompanyActivityRepository` and `SqliteCompanyActivityRepository` are the existing examples; validate activity counting and reset behavior for the new engine.
+- `DatabaseSetupSecurityConfiguration` is database-engine agnostic, but verify the setup security chain remains active in the database setup mode.
+- Add integration coverage for setup and the membership and activity repositories.
 
 ## Security boundaries
 

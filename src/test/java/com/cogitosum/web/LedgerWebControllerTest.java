@@ -39,6 +39,7 @@ class LedgerWebControllerTest {
         GeneralLedgerService ledgerService = mock(GeneralLedgerService.class);
         ChartOfAccount account = new ChartOfAccount();
         account.setId(12L);
+        account.setAccountType(AccountType.ASSET);
         GeneralLedger ledger = new GeneralLedger();
         ledger.setAccount(account);
         when(ledgerService.getLedgerByAccountId(12L)).thenReturn(Optional.of(ledger));

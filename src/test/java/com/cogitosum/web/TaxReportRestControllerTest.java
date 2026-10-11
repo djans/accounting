@@ -6,6 +6,7 @@ import com.cogitosum.entity.TaxCode;
 import com.cogitosum.service.TaxAgencyService;
 import com.cogitosum.service.TaxCodeService;
 import com.cogitosum.service.TaxFilingService;
+import com.cogitosum.service.CurrentCompanyContext;
 import com.cogitosum.repository.GeneralLedgerRepository;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -41,6 +42,9 @@ class TaxReportRestControllerTest {
 
     @MockitoBean
     private GeneralLedgerRepository ledgerRepository;
+
+    @MockitoBean
+    private CurrentCompanyContext companyContext;
 
     @Test
     void agenciesReturnsList() throws Exception {

@@ -31,7 +31,6 @@ class AuthBootstrapTest {
                 passwordEncoder, "root@example.com", "password");
         when(userAccountRepository.findByEmail("root@example.com")).thenReturn(Optional.empty());
         when(userAccountRepository.count()).thenReturn(0L);
-        when(companyRepository.findByEmail("root@example.com")).thenReturn(Optional.empty());
         when(companyRepository.save(any(Company.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(passwordEncoder.encode("password")).thenReturn("encoded-default");
         when(userAccountRepository.save(any(UserAccount.class)))
