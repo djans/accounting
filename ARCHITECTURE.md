@@ -142,4 +142,5 @@ Spring Security protects the application routes and role-restricted operations. 
 Spring Actuator exposes only health, info, and metrics over HTTP. Both those
 endpoints and `/admin/monitoring` require the administrator role. The
 monitoring page displays health component statuses without health details and
-a bounded list of metric measurements without tags.
+a bounded list of metric measurements without tags. Its metric table can be
+filtered by metric name and scales byte values to readable binary units.

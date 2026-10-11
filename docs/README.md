@@ -124,7 +124,8 @@ Administrators can review component health and Micrometer metrics under
 **Administration / Health and metrics**. The read-only Actuator endpoints
 `/actuator/health`, `/actuator/info`, and `/actuator/metrics` are restricted to
 administrators; health details are not exposed. Metrics shown in the page are
-limited to 40 names and omit metric tags.
+limited to 40 names and omit metric tags. Filter the table by metric name; byte
+measurements are displayed in B, KiB, MiB, GiB, TiB, or PiB as appropriate.
 
 ## Documentation
 
