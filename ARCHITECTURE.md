@@ -114,6 +114,8 @@ Hibernate does not create or update the application schema (`spring.jpa.hibernat
 
 These files initialize new databases and are used by a full schema reset; their SQL is not interchangeable. Schema-version migrations for populated databases are registered in `DatabaseSchemaVersionService` and stored under `src/main/resources/db/migration/`. The administrator reviews and applies pending migrations through `/database/schema`. A full reset is destructive and recreates the schema for the active engine.
 
+An administrator can copy the complete database between MySQL and SQLite in either direction through `/admin/database/migrate`. The source is the active connection; the destination requires its engine-specific settings. The destination schema is recreated and its data is replaced, then the runtime database configuration is saved for the next start. This operation requires a backup and a maintenance window; the application must be restarted immediately after migration.
+
 When a change affects entities, columns, relationships, constraints, or indexes, update **both** engine schema files, add a versioned migration for existing databases, and update the related tests and any dialect-specific adapter. Follow [docs/SCHEMA_VERSIONING.md](docs/SCHEMA_VERSIONING.md) for the release procedure. Adding another database engine also requires its driver, dialect, schema, configuration path, and validation coverage.
 
 JDBC adapters execute their SQL directly; configuring a Hibernate dialect does not translate it. When adding a database engine:
@@ -127,3 +129,17 @@ JDBC adapters execute their SQL directly; configuring a Hibernate dialect does n
 ## Security boundaries
 
 Spring Security protects the application routes and role-restricted operations. Company-scoped services resolve the active company from the authenticated user and its memberships rather than trusting a company identifier supplied by a request. Database credentials are stored outside source control; remote first-run configuration is token-protected.
+
+## Operations and monitoring
+
+`LoggingCategory` marks application events as `USER_ACTIVITY`, `ERROR`, or
+`INTERNAL_PROCESS`. Logback sends every event to the console and unified
+`accounting.log`, and routes categorized events to corresponding
+`accounting-<CATEGORY>.log` files. Logs are written under `logs/` by default;
+`APP_LOG_PATH` changes the directory. Daily compressed archives are kept under
+`archive/`.
+
+Spring Actuator exposes only health, info, and metrics over HTTP. Both those
+endpoints and `/admin/monitoring` require the administrator role. The
+monitoring page displays health component statuses without health details and
+a bounded list of metric measurements without tags.

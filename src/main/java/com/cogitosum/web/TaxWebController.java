@@ -1,5 +1,6 @@
 package com.cogitosum.web;
 
+import com.cogitosum.config.LoggingCategory;
 import com.cogitosum.entity.*;
 import com.cogitosum.repository.ChartOfAccountRepository;
 import com.cogitosum.repository.GeneralLedgerRepository;
@@ -212,8 +213,10 @@ public class TaxWebController {
             }
             ra.addFlashAttribute("flashSuccess", "Tax group saved");
         } catch (Exception e) {
-            log.error("Could not save tax group (id={}, code={}, name={}, itemIds={})",
-                    id, code, name, itemIds, e);
+            try (LoggingCategory.Scope ignored = LoggingCategory.open(LoggingCategory.ERROR)) {
+                log.error("Could not save tax group (id={}, code={}, name={}, itemIds={})",
+                        id, code, name, itemIds, e);
+            }
             String detail = e.getMessage();
             if (detail == null || detail.isBlank()) {
                 detail = messageSource.getMessage("tax.group.saveErrorNoDetails",

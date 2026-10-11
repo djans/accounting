@@ -1,5 +1,6 @@
 package com.cogitosum.web;
 
+import com.cogitosum.config.LoggingCategory;
 import com.cogitosum.service.CompanyActivityResetService;
 import com.cogitosum.repository.CompanyActivityRepository.ActivityCounts;
 import com.cogitosum.repository.CompanyActivityRepository.BankReconciliationCounts;
@@ -62,8 +63,10 @@ public class CompanyActivityResetWebController {
         }
 
         ActivityCounts counts = resetService.resetCurrentCompany();
-        log.warn("Company activity reset: actor={} company={} deleted={}",
-                authentication.getName(), companyContext.requireCompanyId(), counts);
+        try (LoggingCategory.Scope ignored = LoggingCategory.open(LoggingCategory.USER_ACTIVITY)) {
+            log.warn("Company activity reset: actor={} company={} deleted={}",
+                    authentication.getName(), companyContext.requireCompanyId(), counts);
+        }
         attributes.addFlashAttribute("flashSuccess", messageSource.getMessage(
                 "admin.reset.success",
                 new Object[]{counts.invoices(), counts.customerPayments(), counts.bills(),
@@ -89,8 +92,10 @@ public class CompanyActivityResetWebController {
 
         BankReconciliationCounts counts =
                 resetService.resetBankReconciliationForCurrentCompany();
-        log.warn("Company bank reconciliation reset: actor={} company={} deleted={}",
-                authentication.getName(), companyContext.requireCompanyId(), counts);
+        try (LoggingCategory.Scope ignored = LoggingCategory.open(LoggingCategory.USER_ACTIVITY)) {
+            log.warn("Company bank reconciliation reset: actor={} company={} deleted={}",
+                    authentication.getName(), companyContext.requireCompanyId(), counts);
+        }
         attributes.addFlashAttribute("flashSuccess", messageSource.getMessage(
                 "admin.reset.bankSuccess",
                 new Object[]{counts.importedBankTransactions(), counts.reconciliationSessions()},

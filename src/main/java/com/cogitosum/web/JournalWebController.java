@@ -1,5 +1,6 @@
 package com.cogitosum.web;
 
+import com.cogitosum.config.LoggingCategory;
 import com.cogitosum.entity.ChartOfAccount;
 import com.cogitosum.entity.GeneralJournal;
 import com.cogitosum.entity.JournalEntry;
@@ -173,9 +174,11 @@ public class JournalWebController {
                 throw new IllegalArgumentException("Journal not found");
             }
             if (updated.getStatus() == JournalStatus.POSTED) {
-                log.warn("Posted journal edited: journal={} actor={} reference={} date={} lines={}",
-                        id, authentication.getName(), updated.getReference(), updated.getJournalDate(),
-                        updated.getEntries().size());
+                try (LoggingCategory.Scope ignored = LoggingCategory.open(LoggingCategory.USER_ACTIVITY)) {
+                    log.warn("Posted journal edited: journal={} actor={} reference={} date={} lines={}",
+                            id, authentication.getName(), updated.getReference(), updated.getJournalDate(),
+                            updated.getEntries().size());
+                }
                 ra.addFlashAttribute("flashSuccess", message("journal.postedUpdated"));
             } else {
                 ra.addFlashAttribute("flashSuccess", message("journal.updated"));
@@ -196,8 +199,10 @@ public class JournalWebController {
         try {
             GeneralJournalService.PostedJournalDateChange change =
                     journalService.updatePostedJournalDate(id, journalDate);
-            log.warn("Posted journal date changed: journal={} actor={} oldDate={} newDate={}",
-                    id, authentication.getName(), change.previousDate(), change.newDate());
+            try (LoggingCategory.Scope ignored = LoggingCategory.open(LoggingCategory.USER_ACTIVITY)) {
+                log.warn("Posted journal date changed: journal={} actor={} oldDate={} newDate={}",
+                        id, authentication.getName(), change.previousDate(), change.newDate());
+            }
             ra.addFlashAttribute("flashSuccess", message(
                     "journal.postedDateUpdated", change.previousDate(), change.newDate()));
         } catch (IllegalArgumentException | IllegalStateException e) {

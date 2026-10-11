@@ -1,5 +1,7 @@
 package com.cogitosum.setup;
 
+import org.springframework.stereotype.Component;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -11,6 +13,7 @@ import java.nio.file.attribute.PosixFilePermission;
 import java.util.EnumSet;
 import java.util.Properties;
 
+@Component
 public class DatabaseConfigurationStore {
 
     private final Path configurationFile;

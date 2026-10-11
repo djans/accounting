@@ -1,5 +1,6 @@
 package com.cogitosum.web;
 
+import com.cogitosum.config.LoggingCategory;
 import com.cogitosum.service.DatabaseSchemaVersionService;
 import com.cogitosum.service.DatabaseSchemaVersionService.Status;
 import org.slf4j.Logger;
@@ -76,8 +77,10 @@ public class DatabaseSchemaVersionWebController {
             attributes.addFlashAttribute("flashSuccess",
                     message("database.schema.updated", updated.currentVersion()));
         } catch (DataAccessException | IllegalStateException exception) {
-            log.error("Database schema migration failed for actor={} at version={}",
-                    authentication.getName(), status.currentVersion(), exception);
+            try (LoggingCategory.Scope ignored = LoggingCategory.open(LoggingCategory.ERROR)) {
+                log.error("Database schema migration failed for actor={} at version={}",
+                        authentication.getName(), status.currentVersion(), exception);
+            }
             attributes.addFlashAttribute("flashError",
                     message("database.schema.migrationFailed"));
         }

@@ -1,5 +1,6 @@
 package com.cogitosum.web;
 
+import com.cogitosum.config.LoggingCategory;
 import com.cogitosum.migration.v1.InitialDataMigrationService;
 import com.cogitosum.migration.v1.MigrationImportSummary;
 import com.cogitosum.migration.v1.MigrationPreview;
@@ -59,7 +60,9 @@ public class DatabaseMigrationWebController {
             MigrationPreview preview = migrationService.preview(file.getBytes(), authentication.getName());
             model.addAttribute("preview", preview);
         } catch (Exception ex) {
-            log.warn("Migration package validation failed before parsing", ex);
+            try (LoggingCategory.Scope ignored = LoggingCategory.open(LoggingCategory.ERROR)) {
+                log.warn("Migration package validation failed before parsing", ex);
+            }
             model.addAttribute("preview", new MigrationPreview(null, java.util.Map.of(),
                 List.of(new MigrationValidationError("manifest.json", 0,
                     message("database.migration.error.unreadable")))));
@@ -83,7 +86,9 @@ public class DatabaseMigrationWebController {
         } catch (IllegalArgumentException | IllegalStateException ex) {
             attributes.addFlashAttribute("flashError", ex.getMessage());
         } catch (Exception ex) {
-            log.error("Confirmed migration import failed", ex);
+            try (LoggingCategory.Scope ignored = LoggingCategory.open(LoggingCategory.ERROR)) {
+                log.error("Confirmed migration import failed", ex);
+            }
             attributes.addFlashAttribute("flashError", message("database.migration.error.failed"));
         }
         return "redirect:/database/migration";

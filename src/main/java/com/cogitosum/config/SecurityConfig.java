@@ -56,6 +56,7 @@ public class SecurityConfig {
                 .requestMatchers("/account/credentials/**").authenticated()
                 .requestMatchers("/database/backup/**").hasRole("ADMIN")
                 .requestMatchers("/admin/reset", "/admin/reset/**").hasRole("ADMIN")
+                .requestMatchers("/admin/monitoring", "/actuator", "/actuator/**").hasRole("ADMIN")
                 .requestMatchers("/admin/database/**").hasRole("ADMIN")
                 .requestMatchers("/database/query", "/database/query/**").hasRole("ADMIN")
                 .requestMatchers("/database/migration/**").hasRole("ADMIN")

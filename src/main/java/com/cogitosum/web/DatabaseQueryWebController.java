@@ -1,5 +1,6 @@
 package com.cogitosum.web;
 
+import com.cogitosum.config.LoggingCategory;
 import com.cogitosum.service.DatabaseQueryService;
 import com.cogitosum.service.DatabaseQueryService.ConfirmationRequiredException;
 import com.cogitosum.service.DatabaseQueryService.QueryResult;
@@ -67,21 +68,27 @@ public class DatabaseQueryWebController {
             model.addAttribute("queryResult", result);
             logExecution(actor, table, command, sql, result, elapsedMillis(startedAt));
         } catch (ConfirmationRequiredException ex) {
-            log.warn("Administrative SQL rejected: user={} table={} command={} durationMs={} "
-                            + "reason=confirmation-required statement={}",
-                    actor, table, command, elapsedMillis(startedAt), auditText(sql));
+            try (LoggingCategory.Scope ignored = LoggingCategory.open(LoggingCategory.USER_ACTIVITY)) {
+                log.warn("Administrative SQL rejected: user={} table={} command={} durationMs={} "
+                                + "reason=confirmation-required",
+                        actor, table, command, elapsedMillis(startedAt));
+            }
             model.addAttribute("flashError", message(ex.getMessage()));
             model.addAttribute("requiresConfirmation", true);
         } catch (IllegalArgumentException ex) {
-            log.warn("Administrative SQL rejected: user={} table={} command={} durationMs={} "
-                            + "reason={} statement={}",
-                    actor, table, command, elapsedMillis(startedAt), ex.getMessage(), auditText(sql));
+            try (LoggingCategory.Scope ignored = LoggingCategory.open(LoggingCategory.USER_ACTIVITY)) {
+                log.warn("Administrative SQL rejected: user={} table={} command={} durationMs={} "
+                                + "reasonType={}",
+                        actor, table, command, elapsedMillis(startedAt), ex.getClass().getSimpleName());
+            }
             model.addAttribute("flashError", message(ex.getMessage()));
         } catch (SQLException ex) {
-            log.error("Administrative SQL failed: user={} table={} command={} durationMs={} sqlState={} "
-                            + "vendorCode={} error={} statement={}",
-                    actor, table, command, elapsedMillis(startedAt), ex.getSQLState(), ex.getErrorCode(),
-                    auditText(ex.getMessage()), auditText(sql));
+            try (LoggingCategory.Scope ignored = LoggingCategory.open(LoggingCategory.ERROR)) {
+                log.error("Administrative SQL failed: user={} table={} command={} durationMs={} sqlState={} "
+                                + "vendorCode={} errorType={}",
+                        actor, table, command, elapsedMillis(startedAt), ex.getSQLState(), ex.getErrorCode(),
+                        ex.getClass().getSimpleName());
+            }
             model.addAttribute("flashError",
                     message("database.query.error.execute", ex.getMessage()));
         }
@@ -118,13 +125,17 @@ public class DatabaseQueryWebController {
                     ? Long.toString(result.affectedRows())
                     : "not-reported");
         if (queryService.requiresConfirmation(sql)) {
-            log.warn("Administrative SQL completed: user={} table={} command={} durationMs={} "
-                            + "outcome={} statement={}",
-                    actor, table, command, durationMillis, outcome, auditText(sql));
+            try (LoggingCategory.Scope ignored = LoggingCategory.open(LoggingCategory.USER_ACTIVITY)) {
+                log.warn("Administrative SQL completed: user={} table={} command={} durationMs={} "
+                                + "outcome={}",
+                        actor, table, command, durationMillis, outcome);
+            }
         } else {
-            log.info("Administrative SQL completed: user={} table={} command={} durationMs={} "
-                            + "outcome={} statement={}",
-                    actor, table, command, durationMillis, outcome, auditText(sql));
+            try (LoggingCategory.Scope ignored = LoggingCategory.open(LoggingCategory.USER_ACTIVITY)) {
+                log.info("Administrative SQL completed: user={} table={} command={} durationMs={} "
+                                + "outcome={}",
+                        actor, table, command, durationMillis, outcome);
+            }
         }
     }
 
@@ -132,21 +143,4 @@ public class DatabaseQueryWebController {
         return TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startedAt);
     }
 
-    private String auditText(String value) {
-        if (value == null) {
-            return "";
-        }
-        StringBuilder singleLine = new StringBuilder(value.length());
-        for (int i = 0; i < value.length(); i++) {
-            char character = value.charAt(i);
-            if (character == '\\') {
-                singleLine.append("\\\\");
-            } else if (Character.isISOControl(character)) {
-                singleLine.append(String.format("\\u%04x", (int) character));
-            } else {
-                singleLine.append(character);
-            }
-        }
-        return singleLine.toString();
-    }
 }

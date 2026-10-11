@@ -30,54 +30,58 @@ public class DatabaseSchemaResetService {
     public int dropAndRecreate() {
         int droppedTables;
         try (Connection connection = dataSource.getConnection()) {
-            String product = connection.getMetaData().getDatabaseProductName().toLowerCase();
-            boolean mysql = product.contains("mysql");
-            boolean sqlite = product.contains("sqlite");
-            if (!mysql && !sqlite) {
-                throw new IllegalStateException("Schema reset is not supported for " + product);
-            }
-            String catalog = connection.getCatalog();
-            if (mysql && !StringUtils.hasText(catalog)) {
-                throw new IllegalStateException("The active database catalog could not be determined.");
-            }
-
-            boolean originalAutoCommit = connection.getAutoCommit();
-            connection.setAutoCommit(true);
-            boolean foreignKeysDisabled = false;
-            try {
-                setForeignKeyChecks(connection, mysql, false);
-                foreignKeysDisabled = true;
-
-                List<String> tables = listTables(connection, mysql ? catalog : null, sqlite);
-                String quote = connection.getMetaData().getIdentifierQuoteString().trim();
-                for (String table : tables) {
-                    String quotedTable = quote.isEmpty()
-                            ? table
-                            : quote + table.replace(quote, quote + quote) + quote;
-                    try (Statement statement = connection.createStatement()) {
-                        statement.execute("DROP TABLE IF EXISTS " + quotedTable);
-                    }
-                }
-
-                ResourceDatabasePopulator schema = new ResourceDatabasePopulator(
-                        new ClassPathResource(sqlite ? "schema-sqlite.sql" : "schema.sql"));
-                schema.populate(connection);
-                droppedTables = tables.size();
-            } finally {
-                try {
-                    if (foreignKeysDisabled) {
-                        setForeignKeyChecks(connection, mysql, true);
-                    }
-                } finally {
-                    connection.setAutoCommit(originalAutoCommit);
-                }
-            }
+            droppedTables = recreateSchema(connection);
         } catch (SQLException exception) {
             throw new DataAccessResourceFailureException(
                     "Could not drop and recreate the application database schema.", exception);
         }
         schemaVersionService.applyPendingMigrations();
         return droppedTables;
+    }
+
+    public int recreateSchema(Connection connection) throws SQLException {
+        String product = connection.getMetaData().getDatabaseProductName().toLowerCase();
+        boolean mysql = product.contains("mysql");
+        boolean sqlite = product.contains("sqlite");
+        if (!mysql && !sqlite) {
+            throw new IllegalStateException("Schema reset is not supported for " + product);
+        }
+        String catalog = connection.getCatalog();
+        if (mysql && !StringUtils.hasText(catalog)) {
+            throw new IllegalStateException("The database catalog could not be determined.");
+        }
+
+        boolean originalAutoCommit = connection.getAutoCommit();
+        connection.setAutoCommit(true);
+        boolean foreignKeysDisabled = false;
+        try {
+            setForeignKeyChecks(connection, mysql, false);
+            foreignKeysDisabled = true;
+
+            List<String> tables = listTables(connection, mysql ? catalog : null, sqlite);
+            String quote = connection.getMetaData().getIdentifierQuoteString().trim();
+            for (String table : tables) {
+                String quotedTable = quote.isEmpty()
+                        ? table
+                        : quote + table.replace(quote, quote + quote) + quote;
+                try (Statement statement = connection.createStatement()) {
+                    statement.execute("DROP TABLE IF EXISTS " + quotedTable);
+                }
+            }
+
+            ResourceDatabasePopulator schema = new ResourceDatabasePopulator(
+                    new ClassPathResource(sqlite ? "schema-sqlite.sql" : "schema.sql"));
+            schema.populate(connection);
+            return tables.size();
+        } finally {
+            try {
+                if (foreignKeysDisabled) {
+                    setForeignKeyChecks(connection, mysql, true);
+                }
+            } finally {
+                connection.setAutoCommit(originalAutoCommit);
+            }
+        }
     }
 
     private void setForeignKeyChecks(Connection connection, boolean mysql, boolean enabled)

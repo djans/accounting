@@ -28,7 +28,18 @@ MySQL setup requires credentials that can create the selected database. SQLite
 creates a new database file. The saved settings are stored outside the
 repository at `${user.home}/.accounting/database.properties` by default.
 Override the file location with `APP_DATABASE_CONFIG_PATH`. Oracle and DB2 are
-not supported. Switching database engines does not migrate existing data.
+not supported. Changing the engine during first-run setup does not migrate
+existing data. After setup, an administrator can use **Administration /
+Database engine migration** to copy all application data between MySQL and
+SQLite in either direction. The destination schema is recreated, so all
+destination data is replaced; back up both databases and stop other application
+users and instances from using the installation during the copy. MySQL
+migration needs a destination JDBC URL, username, password, and privileges to
+create the database and create/drop its tables; SQLite migration needs a
+writable file path on the application host. The destination connection is
+saved to the runtime configuration, and the application must be restarted
+immediately after a successful migration.
+
 Keep this file readable only by the account running the application. Setup
 creates it with owner-only POSIX permissions where supported; on Windows it
 inherits the permissions of its parent directory.
@@ -99,6 +110,21 @@ initializing an empty database.
 - Bank reconciliation, transfers, cheques, and credit-card charges.
 - Invoice and bill attachments, PDF generation, optional invoice email, and database backup/restore.
 - MySQL and SQLite persistence.
+- Categorized operational, error, and internal-process logs, with an administrator monitoring page and protected Spring Actuator health and metrics endpoints.
+
+## Operations, logs, and monitoring
+
+Application logs are written to the console and to `logs/accounting.log`.
+Category files are `logs/accounting-USER_ACTIVITY.log`,
+`logs/accounting-ERROR.log`, and `logs/accounting-INTERNAL_PROCESS.log`.
+Daily compressed archives are stored under `logs/archive/`; set `APP_LOG_PATH`
+to change the log directory. The unified log contains all categories.
+
+Administrators can review component health and Micrometer metrics under
+**Administration / Health and metrics**. The read-only Actuator endpoints
+`/actuator/health`, `/actuator/info`, and `/actuator/metrics` are restricted to
+administrators; health details are not exposed. Metrics shown in the page are
+limited to 40 names and omit metric tags.
 
 ## Documentation
 

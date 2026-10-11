@@ -47,6 +47,15 @@ public class DatabaseSchemaVersionService {
 
     public synchronized Status applyPendingMigrations() {
         try (Connection connection = dataSource.getConnection()) {
+            return applyPendingMigrations(connection);
+        } catch (SQLException exception) {
+            throw new DataAccessResourceFailureException(
+                    "Could not apply the database schema migrations.", exception);
+        }
+    }
+
+    public synchronized Status applyPendingMigrations(Connection connection) {
+        try {
             boolean originalAutoCommit = connection.getAutoCommit();
             connection.setAutoCommit(true);
             try {

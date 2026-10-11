@@ -1,5 +1,6 @@
 package com.cogitosum.web;
 
+import com.cogitosum.config.LoggingCategory;
 import com.cogitosum.service.DatabaseSchemaResetService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -55,8 +56,10 @@ public class DatabaseSchemaResetWebController {
         }
 
         int droppedTables = resetService.dropAndRecreate();
-        log.warn("Application database schema recreated: actor={} droppedTables={}",
-                authentication.getName(), droppedTables);
+        try (LoggingCategory.Scope ignored = LoggingCategory.open(LoggingCategory.USER_ACTIVITY)) {
+            log.warn("Application database schema recreated: actor={} droppedTables={}",
+                    authentication.getName(), droppedTables);
+        }
         return "admin/database-recreated";
     }
 

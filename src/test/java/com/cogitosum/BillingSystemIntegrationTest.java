@@ -91,6 +91,29 @@ public class BillingSystemIntegrationTest {
     }
 
     @Test
+    public void actuatorEndpointsAreAdministratorOnlyAndHealthDetailsAreHidden() throws Exception {
+        mockMvc.perform(get("/actuator/health")
+                        .with(user("test-admin@example.test").roles("ADMIN")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").exists())
+                .andExpect(content().string(org.hamcrest.Matchers.not(
+                        org.hamcrest.Matchers.containsString("components"))));
+
+        mockMvc.perform(get("/actuator/health")
+                        .with(user("accountant@example.test").roles("ACCOUNTANT")))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    public void monitoringPageRendersForAdministrator() throws Exception {
+        mockMvc.perform(get("/admin/monitoring")
+                        .with(user("test-admin@example.test").roles("ADMIN")))
+                .andExpect(status().isOk())
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("System monitoring")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("/actuator/metrics")));
+    }
+
+    @Test
     public void testUpdateCustomer() throws Exception {
         Customer customer = new Customer();
         customer.setName("Original Name");

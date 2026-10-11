@@ -1,5 +1,6 @@
 package com.cogitosum.controller;
 
+import com.cogitosum.config.LoggingCategory;
 import com.cogitosum.service.AccountingReportService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -26,7 +27,7 @@ public class AccountingReportController {
             Map<String, Object> trialBalance = accountingReportService.getTrialBalance();
             return new ResponseEntity<>(trialBalance, HttpStatus.OK);
         } catch (Exception e) {
-            log.error("Could not generate trial balance", e);
+            logError("Could not generate trial balance", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
@@ -37,7 +38,7 @@ public class AccountingReportController {
             Map<String, Object> balanceSheet = accountingReportService.getBalanceSheet();
             return new ResponseEntity<>(balanceSheet, HttpStatus.OK);
         } catch (Exception e) {
-            log.error("Could not generate balance sheet", e);
+            logError("Could not generate balance sheet", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
@@ -48,7 +49,7 @@ public class AccountingReportController {
             Map<String, Object> incomeStatement = accountingReportService.getIncomeStatement();
             return new ResponseEntity<>(incomeStatement, HttpStatus.OK);
         } catch (Exception e) {
-            log.error("Could not generate income statement", e);
+            logError("Could not generate income statement", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
@@ -59,7 +60,9 @@ public class AccountingReportController {
             Map<String, Object> detail = accountingReportService.getAccountDetail(accountId);
             return new ResponseEntity<>(detail, HttpStatus.OK);
         } catch (Exception e) {
-            log.error("Could not generate account detail for account {}", accountId, e);
+            try (LoggingCategory.Scope ignored = LoggingCategory.open(LoggingCategory.ERROR)) {
+                log.error("Could not generate account detail for account {}", accountId, e);
+            }
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
@@ -70,7 +73,9 @@ public class AccountingReportController {
             List<Map<String, Object>> transactions = accountingReportService.getAccountTransactions(accountId);
             return new ResponseEntity<>(transactions, HttpStatus.OK);
         } catch (Exception e) {
-            log.error("Could not get transactions for account {}", accountId, e);
+            try (LoggingCategory.Scope ignored = LoggingCategory.open(LoggingCategory.ERROR)) {
+                log.error("Could not get transactions for account {}", accountId, e);
+            }
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
@@ -81,8 +86,14 @@ public class AccountingReportController {
             Map<String, ?> balances = accountingReportService.getAccountTypeBalances();
             return new ResponseEntity<>(balances, HttpStatus.OK);
         } catch (Exception e) {
-            log.error("Could not generate account type balances", e);
+            logError("Could not generate account type balances", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    private void logError(String message, Exception exception) {
+        try (LoggingCategory.Scope ignored = LoggingCategory.open(LoggingCategory.ERROR)) {
+            log.error(message, exception);
         }
     }
 }

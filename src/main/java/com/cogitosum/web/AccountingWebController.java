@@ -1,5 +1,6 @@
 package com.cogitosum.web;
 
+import com.cogitosum.config.LoggingCategory;
 import com.cogitosum.service.AccountingReportService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
@@ -35,7 +36,9 @@ public class AccountingWebController {
             model.addAttribute("totalCredits", tb.getOrDefault("totalCredits", BigDecimal.ZERO));
             model.addAttribute("balanced", tb.getOrDefault("balanced", true));
         } catch (RuntimeException e) {
-            log.error("Could not render trial balance page", e);
+            try (LoggingCategory.Scope ignored = LoggingCategory.open(LoggingCategory.ERROR)) {
+                log.error("Could not render trial balance page", e);
+            }
             model.addAttribute("accounts", new LinkedHashMap<>());
             model.addAttribute("accountRows", new ArrayList<>());
             model.addAttribute("totalDebits", BigDecimal.ZERO);
