@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<html lang="en" th:lang="${#locale.language}" xmlns:th="http://www.thymeleaf.org">
 <head th:replace="~{fragments/layout :: head(#{cheques.title})}"></head>
 <body>
 <div class="portal-shell">
@@ -15,17 +15,74 @@
                    th:title="#{cheques.newDraft}" th:attr="aria-label=#{cheques.newDraft}">
                     <i class="bi bi-plus-lg" aria-hidden="true"></i>
                 </a>
-                <div th:if="${not #lists.isEmpty(cheques)}" class="mb-3">
-                    <label class="form-label mb-1" for="chequesFilter" th:text="#{listFilter.textLabel}">Filter this list</label>
-                    <input id="chequesFilter" type="search" class="form-control form-control-sm"
-                           data-table-search data-rows-selector="#chequeRows tr[data-table-filter-row]"
-                           data-no-matches-id="chequesNoMatches"
-                           th:attr="placeholder=#{listFilter.textPlaceholder}"/>
+                <div th:if="${not #lists.isEmpty(cheques)}"
+                     class="d-flex align-items-end gap-2 flex-wrap mb-3"
+                     data-list-filter
+                     data-rows-selector="#chequeRows tr[data-list-date]"
+                     data-no-matches-selector="#chequesNoMatches"
+                     data-vendor-filter-id="chequeVendorFilter"
+                     data-text-filter-id="chequesFilter"
+                     th:attr="data-current-period-start=${dateFilterPeriods.current != null ? dateFilterPeriods.current.startDate : ''},
+                              data-current-period-end=${dateFilterPeriods.current != null ? dateFilterPeriods.current.endDate : ''},
+                              data-previous-period-start=${dateFilterPeriods.previous != null ? dateFilterPeriods.previous.startDate : ''},
+                              data-previous-period-end=${dateFilterPeriods.previous != null ? dateFilterPeriods.previous.endDate : ''}">
+                    <div>
+                        <label class="form-label mb-1" for="chequeDatePreset"
+                               th:text="#{listFilter.dateLabel}">Filter by date</label>
+                        <select id="chequeDatePreset" class="form-select form-select-sm" data-date-preset>
+                            <option value="all" th:text="#{listFilter.allDates}">All dates</option>
+                            <option value="this-month" th:text="#{listFilter.thisMonth}">This month</option>
+                            <option value="current-period" th:if="${dateFilterPeriods.current != null}"
+                                    th:text="#{listFilter.currentPeriod(${dateFilterPeriods.current.agencyCode}, ${dateFilterPeriods.current.startDate}, ${dateFilterPeriods.current.endDate})}">
+                                Current tax filing period
+                            </option>
+                            <option value="" disabled="disabled" th:unless="${dateFilterPeriods.current != null}"
+                                    th:text="#{listFilter.noCurrentTaxPeriod}">No open tax filing period</option>
+                            <option value="previous-period" th:if="${dateFilterPeriods.previous != null}"
+                                    th:text="#{listFilter.previousPeriod(${dateFilterPeriods.previous.agencyCode}, ${dateFilterPeriods.previous.startDate}, ${dateFilterPeriods.previous.endDate})}">
+                                Previous tax filing period
+                            </option>
+                            <option value="" disabled="disabled" th:unless="${dateFilterPeriods.previous != null}"
+                                    th:text="#{listFilter.noPreviousTaxPeriod}">No previous filed tax period</option>
+                            <option value="this-year" th:text="#{listFilter.thisYear}">This year</option>
+                            <option value="last-year" th:text="#{listFilter.lastYear}">Last year</option>
+                            <option value="custom" th:text="#{listFilter.customRange}">Custom range</option>
+                        </select>
+                    </div>
+                    <div class="d-flex align-items-end gap-2" data-custom-date-range hidden>
+                        <div>
+                            <label class="form-label mb-1" for="chequeDateFrom"
+                                   th:text="#{listFilter.from}">From</label>
+                            <input id="chequeDateFrom" type="date" class="form-control form-control-sm" data-date-from/>
+                        </div>
+                        <div>
+                            <label class="form-label mb-1" for="chequeDateTo"
+                                   th:text="#{listFilter.to}">To</label>
+                            <input id="chequeDateTo" type="date" class="form-control form-control-sm" data-date-to/>
+                        </div>
+                    </div>
+                    <small class="text-danger" data-filter-range-error hidden
+                           th:text="#{listFilter.invalidDateRange}">Start date must be on or before the end date.</small>
+                    <div>
+                        <label class="form-label mb-1" for="chequeVendorFilter"
+                               th:text="#{listFilter.vendorLabel}">Filter by vendor</label>
+                        <select id="chequeVendorFilter" class="form-select form-select-sm" data-vendor-filter>
+                            <option value="" th:text="#{listFilter.allVendors}">All vendors</option>
+                            <option th:each="vendor : ${vendors}" th:value="${vendor.id}"
+                                    th:text="${vendor.businessName}">Vendor</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="form-label mb-1" for="chequesFilter"
+                               th:text="#{listFilter.textLabel}">Filter this list</label>
+                        <input id="chequesFilter" type="search" class="form-control form-control-sm"
+                               th:attr="placeholder=#{listFilter.textPlaceholder}"/>
+                    </div>
                 </div>
                 <div id="chequesNoMatches" class="empty-state" hidden th:text="#{listFilter.noMatches}">
                     No records match these filters.
                 </div>
-                <table class="table-portal" th:if="${not #lists.isEmpty(cheques)}">
+                <table class="table-portal" data-table-totals th:if="${not #lists.isEmpty(cheques)}">
                     <thead>
                     <tr>
                         <th th:text="#{table.chequeNumber}">Cheque #</th>
@@ -37,11 +94,13 @@
                     </tr>
                     </thead>
                     <tbody id="chequeRows">
-                    <tr th:each="p : ${cheques}" data-table-filter-row>
+                    <tr th:each="p : ${cheques}"
+                        th:attr="data-list-date=${p.chequeDate},data-list-vendor-id=${p.vendor.id}">
                         <td th:text="${p.chequeNumber}">1</td>
                         <td th:text="${p.vendor.businessName}">Vendor</td>
                         <td th:text="${p.chequeDate}">2026-01-01</td>
-                        <td class="num" th:text="${#numbers.formatCurrency(p.amount)}">$0</td>
+                        <td class="num" data-total-key="amount" th:attr="data-total-value=${p.amount}"
+                            th:text="${#numbers.formatCurrency(p.amount)}">$0</td>
                         <td>
                             <span class="badge-pill"
                                   th:classappend="${' ' + #strings.toLowerCase(p.status.name())}"
@@ -115,13 +174,21 @@
                         </td>
                     </tr>
                     </tbody>
+                    <tfoot>
+                    <tr>
+                        <td colspan="3" th:text="#{table.totals}">Totals</td>
+                        <td class="num" data-total-cell="amount">$0.00</td>
+                        <td colspan="2"></td>
+                    </tr>
+                    </tfoot>
                 </table>
                 <div th:if="${#lists.isEmpty(cheques)}" class="empty-state">No cheques recorded yet.</div>
             </div>
         </section>
     </main>
 </div>
-<script th:src="@{/js/table-search.js}" defer></script>
+<script th:src="@{/js/table-totals.js}"></script>
+<script th:src="@{/js/list-filters.js}"></script>
 <style>
     .cheque-new-action { margin-bottom: 1rem; }
     .cheque-actions { white-space: nowrap; }

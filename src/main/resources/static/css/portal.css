@@ -236,6 +236,13 @@ body {
     vertical-align: middle;
 }
 
+.table-portal tfoot td {
+    padding: 0.75rem 0.85rem;
+    border-top: 2px solid var(--portal-border);
+    background: #f9fafb;
+    font-weight: 600;
+}
+
 .table-portal.entries-table {
     font-size: 0.80rem;
 }

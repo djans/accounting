@@ -15,12 +15,69 @@
                    th:title="#{creditCardCharges.newDraft}" th:attr="aria-label=#{creditCardCharges.newDraft}">
                     <i class="bi bi-plus-lg" aria-hidden="true"></i>
                 </a>
-                <div th:if="${not #lists.isEmpty(charges)}" class="mb-3">
-                    <label class="form-label mb-1" for="chargesFilter" th:text="#{listFilter.textLabel}">Filter this list</label>
-                    <input id="chargesFilter" type="search" class="form-control form-control-sm"
-                           data-table-search data-rows-selector="#chargeRows tr[data-table-filter-row]"
-                           data-no-matches-id="chargesNoMatches"
-                           th:attr="placeholder=#{listFilter.textPlaceholder}"/>
+                <div th:if="${not #lists.isEmpty(charges)}"
+                     class="d-flex align-items-end gap-2 flex-wrap mb-3"
+                     data-list-filter
+                     data-rows-selector="#chargeRows tr[data-list-date]"
+                     data-no-matches-selector="#chargesNoMatches"
+                     data-vendor-filter-id="chargeVendorFilter"
+                     data-text-filter-id="chargesFilter"
+                     th:attr="data-current-period-start=${dateFilterPeriods.current != null ? dateFilterPeriods.current.startDate : ''},
+                              data-current-period-end=${dateFilterPeriods.current != null ? dateFilterPeriods.current.endDate : ''},
+                              data-previous-period-start=${dateFilterPeriods.previous != null ? dateFilterPeriods.previous.startDate : ''},
+                              data-previous-period-end=${dateFilterPeriods.previous != null ? dateFilterPeriods.previous.endDate : ''}">
+                    <div>
+                        <label class="form-label mb-1" for="chargeDatePreset"
+                               th:text="#{listFilter.dateLabel}">Filter by date</label>
+                        <select id="chargeDatePreset" class="form-select form-select-sm" data-date-preset>
+                            <option value="all" th:text="#{listFilter.allDates}">All dates</option>
+                            <option value="this-month" th:text="#{listFilter.thisMonth}">This month</option>
+                            <option value="current-period" th:if="${dateFilterPeriods.current != null}"
+                                    th:text="#{listFilter.currentPeriod(${dateFilterPeriods.current.agencyCode}, ${dateFilterPeriods.current.startDate}, ${dateFilterPeriods.current.endDate})}">
+                                Current tax filing period
+                            </option>
+                            <option value="" disabled="disabled" th:unless="${dateFilterPeriods.current != null}"
+                                    th:text="#{listFilter.noCurrentTaxPeriod}">No open tax filing period</option>
+                            <option value="previous-period" th:if="${dateFilterPeriods.previous != null}"
+                                    th:text="#{listFilter.previousPeriod(${dateFilterPeriods.previous.agencyCode}, ${dateFilterPeriods.previous.startDate}, ${dateFilterPeriods.previous.endDate})}">
+                                Previous tax filing period
+                            </option>
+                            <option value="" disabled="disabled" th:unless="${dateFilterPeriods.previous != null}"
+                                    th:text="#{listFilter.noPreviousTaxPeriod}">No previous filed tax period</option>
+                            <option value="this-year" th:text="#{listFilter.thisYear}">This year</option>
+                            <option value="last-year" th:text="#{listFilter.lastYear}">Last year</option>
+                            <option value="custom" th:text="#{listFilter.customRange}">Custom range</option>
+                        </select>
+                    </div>
+                    <div class="d-flex align-items-end gap-2" data-custom-date-range hidden>
+                        <div>
+                            <label class="form-label mb-1" for="chargeDateFrom"
+                                   th:text="#{listFilter.from}">From</label>
+                            <input id="chargeDateFrom" type="date" class="form-control form-control-sm" data-date-from/>
+                        </div>
+                        <div>
+                            <label class="form-label mb-1" for="chargeDateTo"
+                                   th:text="#{listFilter.to}">To</label>
+                            <input id="chargeDateTo" type="date" class="form-control form-control-sm" data-date-to/>
+                        </div>
+                    </div>
+                    <small class="text-danger" data-filter-range-error hidden
+                           th:text="#{listFilter.invalidDateRange}">Start date must be on or before the end date.</small>
+                    <div>
+                        <label class="form-label mb-1" for="chargeVendorFilter"
+                               th:text="#{listFilter.vendorLabel}">Filter by vendor</label>
+                        <select id="chargeVendorFilter" class="form-select form-select-sm" data-vendor-filter>
+                            <option value="" th:text="#{listFilter.allVendors}">All vendors</option>
+                            <option th:each="vendor : ${vendors}" th:value="${vendor.id}"
+                                    th:text="${vendor.businessName}">Vendor</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="form-label mb-1" for="chargesFilter"
+                               th:text="#{listFilter.textLabel}">Filter this list</label>
+                        <input id="chargesFilter" type="search" class="form-control form-control-sm"
+                               th:attr="placeholder=#{listFilter.textPlaceholder}"/>
+                    </div>
                 </div>
                 <form id="charge-bulk-form" th:if="${not #lists.isEmpty(charges)}"
                       th:action="@{/credit-card-charges/bulk-post}" method="post" class="charge-bulk-actions"
@@ -34,7 +91,7 @@
                         Delete selected drafts
                     </button>
                 </form>
-                <table class="table-portal" th:if="${not #lists.isEmpty(charges)}">
+                <table class="table-portal" data-table-totals th:if="${not #lists.isEmpty(charges)}">
                     <thead><tr>
                         <th>
                             <input id="charge-select-all" type="checkbox"
@@ -52,7 +109,8 @@
                         <th th:text="#{table.actions}">Actions</th>
                     </tr></thead>
                     <tbody id="chargeRows">
-                    <tr th:each="charge : ${charges}" data-table-filter-row>
+                    <tr th:each="charge : ${charges}"
+                        th:attr="data-list-date=${charge.chargeDate},data-list-vendor-id=${charge.vendor.id}">
                         <td>
                             <input type="checkbox" name="chargeIds" form="charge-bulk-form"
                                    th:value="${charge.id}"
@@ -64,9 +122,12 @@
                         <td th:text="${charge.memo}"></td>
                         <td th:text="${charge.expenseAccount.accountNumber + ' — ' + charge.expenseAccount.accountName}"></td>
                         <td th:text="${charge.cardAccount.accountNumber + ' — ' + charge.cardAccount.accountName}"></td>
-                        <td class="num" th:text="${#numbers.formatCurrency(charge.netAmount)}"></td>
-                        <td class="num" th:text="${#numbers.formatCurrency(charge.taxAmount)}"></td>
-                        <td class="num" th:text="${#numbers.formatCurrency(charge.totalAmount)}"></td>
+                        <td class="num" data-total-key="net" th:attr="data-total-value=${charge.netAmount}"
+                            th:text="${#numbers.formatCurrency(charge.netAmount)}"></td>
+                        <td class="num" data-total-key="tax" th:attr="data-total-value=${charge.taxAmount}"
+                            th:text="${#numbers.formatCurrency(charge.taxAmount)}"></td>
+                        <td class="num" data-total-key="total" th:attr="data-total-value=${charge.totalAmount}"
+                            th:text="${#numbers.formatCurrency(charge.totalAmount)}"></td>
                         <td>
                             <span class="badge-pill"
                                   th:classappend="${' ' + #strings.toLowerCase(charge.status.name())}"
@@ -141,6 +202,15 @@
                         </td>
                     </tr>
                     </tbody>
+                    <tfoot>
+                    <tr>
+                        <td colspan="6" th:text="#{table.totals}">Totals</td>
+                        <td class="num" data-total-cell="net">$0.00</td>
+                        <td class="num" data-total-cell="tax">$0.00</td>
+                        <td class="num" data-total-cell="total">$0.00</td>
+                        <td colspan="2"></td>
+                    </tr>
+                    </tfoot>
                 </table>
                 <div th:if="${#lists.isEmpty(charges)}" class="empty-state" th:text="#{creditCardCharges.empty}">
                     No credit card charges recorded yet.
@@ -152,7 +222,8 @@
         </section>
     </main>
 </div>
-<script th:src="@{/js/table-search.js}" defer></script>
+<script th:src="@{/js/table-totals.js}"></script>
+<script th:src="@{/js/list-filters.js}"></script>
 <style>
     .charge-new-action { margin-bottom: 1rem; }
     .charge-bulk-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1rem; }

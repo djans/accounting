@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<html lang="en" th:lang="${#locale.language}" xmlns:th="http://www.thymeleaf.org">
 <head th:replace="~{fragments/layout :: head('Payments')}"></head>
 <body>
 <div class="portal-shell">
@@ -84,7 +84,7 @@
                 </div>
                 <div id="paymentFilterNoMatches" class="empty-state" hidden
                      th:text="#{listFilter.noMatches}">No payments match these filters.</div>
-                <table th:if="${not #lists.isEmpty(payments)}" class="table-portal">
+                <table th:if="${not #lists.isEmpty(payments)}" class="table-portal" data-table-totals>
                     <thead>
                     <tr>
                         <th th:text="#{table.transaction}">Transaction</th>
@@ -115,7 +115,8 @@
                                   th:classappend="${' ' + #strings.toLowerCase(p.status.name())}"
                                   th:text="${p.status}"></span>
                         </td>
-                        <td class="num" th:text="${#numbers.formatCurrency(p.amount)}">$0</td>
+                        <td class="num" data-total-key="amount" th:attr="data-total-value=${p.amount}"
+                            th:text="${#numbers.formatCurrency(p.amount)}">$0</td>
                         <td style="text-align:right; white-space:nowrap;">
                             <form th:if="${p.status.name() == 'PENDING'}"
                                   th:action="@{/payments/{id}/complete(id=${p.id})}" method="post" style="display:inline">
@@ -130,11 +131,19 @@
                         </td>
                     </tr>
                     </tbody>
+                    <tfoot>
+                    <tr>
+                        <td colspan="6" th:text="#{table.totals}">Totals</td>
+                        <td class="num" data-total-cell="amount">$0.00</td>
+                        <td></td>
+                    </tr>
+                    </tfoot>
                 </table>
             </div>
         </section>
     </main>
 </div>
+<script th:src="@{/js/table-totals.js}"></script>
 <script th:src="@{/js/list-filters.js}"></script>
 </body>
 </html>

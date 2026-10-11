@@ -25,18 +25,23 @@ public class ChequeWebController {
     private final ChartOfAccountService accountService;
     private final TaxCodeService taxCodeService;
     private final MessageSource messageSource;
+    private final TaxFilingService taxFilingService;
 
     public ChequeWebController(ChequeService chequeService, VendorService vendorService,
                                CustomerService customerService, ChartOfAccountService accountService,
-                               TaxCodeService taxCodeService, MessageSource messageSource) {
+                               TaxCodeService taxCodeService, MessageSource messageSource,
+                               TaxFilingService taxFilingService) {
         this.chequeService = chequeService; this.vendorService = vendorService;
         this.customerService = customerService; this.accountService = accountService;
         this.taxCodeService = taxCodeService; this.messageSource = messageSource;
+        this.taxFilingService = taxFilingService;
     }
 
     @GetMapping
     public String list(Model model) {
         model.addAttribute("cheques", chequeService.findAll());
+        model.addAttribute("vendors", vendorService.getAllVendors());
+        model.addAttribute("dateFilterPeriods", taxFilingService.getDateFilterPeriods(LocalDate.now()));
         return "cheques/list";
     }
 

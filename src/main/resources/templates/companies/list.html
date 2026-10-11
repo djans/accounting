@@ -41,19 +41,26 @@
                             <td th:text="${company.legalName}">Legal name</td>
                             <td th:text="${company.email}">email@example.com</td>
                             <td th:if="${canManagePostedJournalEditing}">
-                                <span class="badge"
-                                      th:classappend="${company.postedJournalEditingEnabled} ? ' bg-warning text-dark' : ' bg-secondary'"
-                                      th:text="${company.postedJournalEditingEnabled ? #messages.msg('company.postedJournalEditing.enabledStatus') : #messages.msg('company.postedJournalEditing.disabledStatus')}">
-                                    Disabled
-                                </span>
                                 <form th:action="@{/companies/{id}/posted-journal-editing(id=${company.id})}"
-                                      method="post" class="mt-2">
-                                    <input type="hidden" name="enabled"
-                                           th:value="${!company.postedJournalEditingEnabled}"/>
-                                    <button type="submit" class="btn-portal btn-ghost btn-sm"
-                                            th:text="${company.postedJournalEditingEnabled ? #messages.msg('company.postedJournalEditing.disable') : #messages.msg('company.postedJournalEditing.enable')}">
-                                        Enable
-                                    </button>
+                                      method="post" data-posted-journal-editing>
+                                    <div class="d-flex flex-wrap gap-3">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" name="enabled" value="true"
+                                                   th:id="|posted-journal-editing-enabled-${company.id}|"
+                                                   th:checked="${company.postedJournalEditingEnabled}"/>
+                                            <label class="form-check-label"
+                                                   th:for="|posted-journal-editing-enabled-${company.id}|"
+                                                   th:text="#{company.postedJournalEditing.enabledStatus}">Enabled</label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" name="enabled" value="false"
+                                                   th:id="|posted-journal-editing-disabled-${company.id}|"
+                                                   th:checked="${!company.postedJournalEditingEnabled}"/>
+                                            <label class="form-check-label"
+                                                   th:for="|posted-journal-editing-disabled-${company.id}|"
+                                                   th:text="#{company.postedJournalEditing.disabledStatus}">Disabled</label>
+                                        </div>
+                                    </div>
                                 </form>
                             </td>
                             <td>
@@ -75,5 +82,12 @@
         </section>
     </main>
 </div>
+<script>
+    document.querySelectorAll('[data-posted-journal-editing] input[type="radio"]').forEach(function (radio) {
+        radio.addEventListener('change', function () {
+            this.form.requestSubmit();
+        });
+    });
+</script>
 </body>
 </html>

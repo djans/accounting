@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<html lang="en" th:lang="${#locale.language}" xmlns:th="http://www.thymeleaf.org">
 <head th:replace="~{fragments/layout :: head('General Ledger')}"></head>
 <body>
 <div class="portal-shell">
@@ -27,7 +27,7 @@
                     <input id="ledgerSearch" type="search" class="form-control form-control-sm"
                            style="max-width: 20rem" th:placeholder="#{ledger.filter.searchPlaceholder}"/>
                 </div>
-                <table th:if="${not #lists.isEmpty(ledgers)}" class="table-portal">
+                <table th:if="${not #lists.isEmpty(ledgers)}" class="table-portal" data-table-totals>
                     <thead>
                     <tr>
                         <th th:text="#{table.accountNum}">Account #</th>
@@ -47,15 +47,26 @@
                         <td th:text="${gl.account.accountNumber}">1010</td>
                         <td style="font-weight:500" th:text="${gl.account.accountName}">Cash</td>
                         <td><span class="badge-pill" th:text="${gl.account.accountType}">ASSET</span></td>
-                        <td class="num" th:text="${#numbers.formatCurrency(gl.debitBalance)}">$0</td>
-                        <td class="num" th:text="${#numbers.formatCurrency(gl.creditBalance)}">$0</td>
-                        <td class="num" style="font-weight:600"
+                        <td class="num" data-total-key="debits" th:attr="data-total-value=${gl.debitBalance}"
+                            th:text="${#numbers.formatCurrency(gl.debitBalance)}">$0</td>
+                        <td class="num" data-total-key="credits" th:attr="data-total-value=${gl.creditBalance}"
+                            th:text="${#numbers.formatCurrency(gl.creditBalance)}">$0</td>
+                        <td class="num" data-total-key="balance" th:attr="data-total-value=${gl.balance}"
                             th:text="${#numbers.formatCurrency(gl.balance)}">$0</td>
                         <td th:text="${gl.lastUpdated}">—</td>
                         <td><a class="btn-portal btn-ghost btn-sm" th:href="@{/ledger/{id}/edit(id=${gl.id})}"
                                th:text="#{ledger.viewAccount}">View Account</a></td>
                     </tr>
                     </tbody>
+                    <tfoot>
+                    <tr>
+                        <td colspan="3" th:text="#{table.totals}">Totals</td>
+                        <td class="num" data-total-cell="debits">$0.00</td>
+                        <td class="num" data-total-cell="credits">$0.00</td>
+                        <td class="num" data-total-cell="balance">$0.00</td>
+                        <td colspan="2"></td>
+                    </tr>
+                    </tfoot>
                 </table>
                 <div id="ledgerNoMatches" class="empty-state" hidden
                      th:text="#{ledger.filter.noMatches}">No accounts match these filters.</div>
@@ -83,10 +94,14 @@
         });
 
         ledgerNoMatches.hidden = visibleRows > 0;
+        if (typeof window.updateTableTotals === 'function') {
+            window.updateTableTotals();
+        }
     }
 
     ledgerTypeFilter.addEventListener('change', filterLedgerRows);
     ledgerSearch.addEventListener('input', filterLedgerRows);
 </script>
+<script th:src="@{/js/table-totals.js}"></script>
 </body>
 </html>

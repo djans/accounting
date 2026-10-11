@@ -7,9 +7,11 @@ import com.cogitosum.entity.CreditCardChargeStatus;
 import com.cogitosum.entity.Vendor;
 import com.cogitosum.service.BillService;
 import com.cogitosum.service.CreditCardChargeService;
+import com.cogitosum.service.TaxFilingService;
 import com.cogitosum.service.TaxRegime;
 import com.cogitosum.service.VendorService;
 import com.cogitosum.service.ChartOfAccountService;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
@@ -35,6 +37,14 @@ class CreditCardChargeWebControllerTest {
     @MockitoBean private VendorService vendorService;
     @MockitoBean private ChartOfAccountService accountService;
     @MockitoBean private BillService billService;
+    @MockitoBean private TaxFilingService taxFilingService;
+
+    @BeforeEach
+    void setUpListFilters() {
+        when(taxFilingService.getDateFilterPeriods(any(LocalDate.class)))
+                .thenReturn(new TaxFilingService.FilterPeriodRanges(null, null));
+        when(vendorService.getAllVendors()).thenReturn(new ArrayList<>());
+    }
 
     @Test
     void draftListShowsEditDeleteAndPostActions() throws Exception {
@@ -50,6 +60,24 @@ class CreditCardChargeWebControllerTest {
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("name=\"chargeIds\"")))
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("Post selected drafts")))
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("Delete selected drafts")));
+    }
+
+    @Test
+    void listOffersDateAndVendorFilters() throws Exception {
+        Vendor vendor = new Vendor();
+        vendor.setId(1L);
+        vendor.setBusinessName("Test Vendor");
+        CreditCardCharge charge = charge(CreditCardChargeStatus.POSTED);
+        charge.setVendor(vendor);
+        when(chargeService.findAll()).thenReturn(List.of(charge));
+        when(vendorService.getAllVendors()).thenReturn(List.of(vendor));
+
+        mockMvc.perform(get("/credit-card-charges"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("Filter by date")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("Filter by vendor")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("All vendors")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("Test Vendor")));
     }
 
     @Test

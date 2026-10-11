@@ -48,6 +48,12 @@
         const customerFilter = customerFilterId
             ? document.getElementById(customerFilterId)
             : null;
+        const vendorFilterId = filter.dataset.vendorFilterId;
+        const vendorFilter = vendorFilterId
+            ? document.getElementById(vendorFilterId)
+            : null;
+        const textFilterId = filter.dataset.textFilterId;
+        const textFilter = textFilterId ? document.getElementById(textFilterId) : null;
         const rows = document.querySelectorAll(filter.dataset.rowsSelector);
         const noMatches = document.querySelector(filter.dataset.noMatchesSelector);
         const rangeError = filter.querySelector('[data-filter-range-error]');
@@ -56,6 +62,10 @@
             const range = rangeFor(filter);
             const invalidRange = Boolean(range.start && range.end && range.start > range.end);
             const selectedCustomer = customerFilter ? customerFilter.value : '';
+            const selectedVendor = vendorFilter ? vendorFilter.value : '';
+            const searchText = textFilter
+                ? textFilter.value.trim().toLocaleLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+                : '';
             let visibleRows = 0;
 
             if (rangeError) {
@@ -69,7 +79,17 @@
                     && (!range.end || (rowDate && rowDate <= range.end));
                 const matchesCustomer = !selectedCustomer
                     || row.dataset.listCustomerId === selectedCustomer;
-                const visible = matchesDate && matchesCustomer;
+                const matchesVendor = !selectedVendor
+                    || row.dataset.listVendorId === selectedVendor;
+                const matchesText = !searchText || Array.from(row.cells)
+                    .slice(0, -1)
+                    .map(cell => cell.textContent)
+                    .join(' ')
+                    .toLocaleLowerCase()
+                    .normalize('NFD')
+                    .replace(/[\u0300-\u036f]/g, '')
+                    .includes(searchText);
+                const visible = matchesDate && matchesCustomer && matchesVendor && matchesText;
                 row.hidden = !visible;
                 if (visible) {
                     visibleRows++;
@@ -78,6 +98,9 @@
 
             if (noMatches) {
                 noMatches.hidden = rows.length === 0 || visibleRows > 0 || invalidRange;
+            }
+            if (typeof window.updateTableTotals === 'function') {
+                window.updateTableTotals();
             }
         }
 
@@ -91,6 +114,12 @@
             .forEach(input => input.addEventListener('change', applyFilters));
         if (customerFilter) {
             customerFilter.addEventListener('change', applyFilters);
+        }
+        if (vendorFilter) {
+            vendorFilter.addEventListener('change', applyFilters);
+        }
+        if (textFilter) {
+            textFilter.addEventListener('input', applyFilters);
         }
         updateControls();
     });

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<html lang="en" th:lang="${#locale.language}" xmlns:th="http://www.thymeleaf.org">
 <head th:replace="~{fragments/layout :: head('Invoices')}"></head>
 <body>
 <div class="portal-shell">
@@ -97,7 +97,7 @@
                 </div>
                 <div id="invoiceFilterNoMatches" class="empty-state" hidden
                      th:text="#{listFilter.noMatches}">No invoices match these filters.</div>
-                <table th:if="${not #lists.isEmpty(invoices)}" class="table-portal">
+                <table th:if="${not #lists.isEmpty(invoices)}" class="table-portal" data-table-totals>
                     <thead>
                     <tr>
                         <th th:text="#{table.invoiceNum}">Invoice #</th>
@@ -124,19 +124,33 @@
                                   th:classappend="${' ' + #strings.toLowerCase(inv.status.name())}"
                                   th:text="${#messages.msg('invoice.status.' + inv.status.name())}">Draft</span>
                         </td>
-                        <td class="num" th:text="${#numbers.formatCurrency(inv.subtotal)}">$0</td>
-                        <td class="num"
+                        <td class="num" data-total-key="subtotal"
+                            th:attr="data-total-value=${inv.subtotal}"
+                            th:text="${#numbers.formatCurrency(inv.subtotal)}">$0</td>
+                        <td class="num" data-total-key="tax"
+                            th:attr="data-total-value=${inv.gstAmount.add(inv.hstAmount).add(inv.qstAmount)}"
                             th:text="${#numbers.formatCurrency(inv.gstAmount.add(inv.hstAmount).add(inv.qstAmount))}">$0</td>
-                        <td class="num" th:text="${#numbers.formatCurrency(inv.totalAmount)}">$0</td>
-                        <td class="num"
+                        <td class="num" data-total-key="total" th:attr="data-total-value=${inv.totalAmount}"
+                            th:text="${#numbers.formatCurrency(inv.totalAmount)}">$0</td>
+                        <td class="num" data-total-key="paid" th:attr="data-total-value=${inv.paidAmount ?: 0}"
                             th:text="${inv.paidAmount != null ? #numbers.formatCurrency(inv.paidAmount) : '$0.00'}">$0</td>
                     </tr>
                     </tbody>
+                    <tfoot>
+                    <tr>
+                        <td colspan="5" th:text="#{table.totals}">Totals</td>
+                        <td class="num" data-total-cell="subtotal">$0.00</td>
+                        <td class="num" data-total-cell="tax">$0.00</td>
+                        <td class="num" data-total-cell="total">$0.00</td>
+                        <td class="num" data-total-cell="paid">$0.00</td>
+                    </tr>
+                    </tfoot>
                 </table>
             </div>
         </section>
     </main>
 </div>
+<script th:src="@{/js/table-totals.js}"></script>
 <script th:src="@{/js/list-filters.js}"></script>
 </body>
 </html>

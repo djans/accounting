@@ -6,6 +6,7 @@ import com.cogitosum.service.BillService;
 import com.cogitosum.service.ChartOfAccountService;
 import com.cogitosum.service.VendorService;
 import com.cogitosum.service.TaxRegime;
+import com.cogitosum.service.TaxFilingService;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.stereotype.Controller;
@@ -27,20 +28,24 @@ public class CreditCardChargeWebController {
     private final ChartOfAccountService accountService;
     private final BillService billService;
     private final MessageSource messageSource;
+    private final TaxFilingService taxFilingService;
 
     public CreditCardChargeWebController(CreditCardChargeService chargeService, VendorService vendorService,
                                          ChartOfAccountService accountService, BillService billService,
-                                         MessageSource messageSource) {
+                                         MessageSource messageSource, TaxFilingService taxFilingService) {
         this.chargeService = chargeService;
         this.vendorService = vendorService;
         this.accountService = accountService;
         this.billService = billService;
         this.messageSource = messageSource;
+        this.taxFilingService = taxFilingService;
     }
 
     @GetMapping
     public String list(Model model) {
         model.addAttribute("charges", chargeService.findAll());
+        model.addAttribute("vendors", vendorService.getAllVendors());
+        model.addAttribute("dateFilterPeriods", taxFilingService.getDateFilterPeriods(LocalDate.now()));
         return "credit-card-charges/list";
     }
 

@@ -2,6 +2,7 @@ package com.cogitosum.web;
 
 import com.cogitosum.service.*;
 import com.cogitosum.entity.*;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
@@ -16,6 +17,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -40,6 +42,16 @@ public class ChequeWebControllerTest {
 
     @MockitoBean
     private TaxCodeService taxCodeService;
+
+    @MockitoBean
+    private TaxFilingService taxFilingService;
+
+    @BeforeEach
+    void setUpListFilters() {
+        when(taxFilingService.getDateFilterPeriods(any(java.time.LocalDate.class)))
+                .thenReturn(new TaxFilingService.FilterPeriodRanges(null, null));
+        when(vendorService.getAllVendors()).thenReturn(new ArrayList<>());
+    }
 
     @Test
     public void newCheque_ReturnsViewWithAttributes() throws Exception {
@@ -73,6 +85,27 @@ public class ChequeWebControllerTest {
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("Issued")))
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("Copy cheque")))
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("Void cheque")));
+    }
+
+    @Test
+    public void listOffersDateAndVendorFilters() throws Exception {
+        WrittenCheque cheque = new WrittenCheque();
+        cheque.setStatus(WrittenChequeStatus.ISSUED);
+        cheque.setChequeDate(java.time.LocalDate.of(2026, 1, 15));
+        cheque.setAmount(new java.math.BigDecimal("25.00"));
+        Vendor vendor = new Vendor();
+        vendor.setId(1L);
+        vendor.setBusinessName("Test Vendor");
+        cheque.setVendor(vendor);
+        when(chequeService.findAll()).thenReturn(List.of(cheque));
+        when(vendorService.getAllVendors()).thenReturn(List.of(vendor));
+
+        mockMvc.perform(get("/cheques"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("Filter by date")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("Filter by vendor")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("All vendors")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("Test Vendor")));
     }
 
     @Test

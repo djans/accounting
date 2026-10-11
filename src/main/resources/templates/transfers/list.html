@@ -25,7 +25,7 @@
                 <div id="transfersNoMatches" class="empty-state" hidden th:text="#{listFilter.noMatches}">
                     No records match these filters.
                 </div>
-                <table class="table-portal" th:if="${not #lists.isEmpty(transfers)}">
+                <table class="table-portal" data-table-totals th:if="${not #lists.isEmpty(transfers)}">
                     <thead>
                     <tr>
                         <th th:text="#{table.date}">Date</th>
@@ -42,7 +42,8 @@
                         <td th:text="${transfer.transferDate}">2026-01-01</td>
                         <td th:text="${transfer.fromAccount.accountNumber + ' — ' + transfer.fromAccount.accountName}">1000 — Bank</td>
                         <td th:text="${transfer.toAccount.accountNumber + ' — ' + transfer.toAccount.accountName}">1010 — Savings</td>
-                        <td class="num" th:text="${#numbers.formatCurrency(transfer.amount)}">$0.00</td>
+                        <td class="num" data-total-key="amount" th:attr="data-total-value=${transfer.amount}"
+                            th:text="${#numbers.formatCurrency(transfer.amount)}">$0.00</td>
                         <td th:text="${transfer.notes}"></td>
                         <td>
                             <span class="badge-pill"
@@ -110,6 +111,13 @@
                         </td>
                     </tr>
                     </tbody>
+                    <tfoot>
+                    <tr>
+                        <td colspan="3" th:text="#{table.totals}">Totals</td>
+                        <td class="num" data-total-cell="amount">$0.00</td>
+                        <td colspan="3"></td>
+                    </tr>
+                    </tfoot>
                 </table>
                 <div th:if="${#lists.isEmpty(transfers)}" class="empty-state" th:text="#{transfers.empty}">
                     No transfers recorded yet.
@@ -118,6 +126,7 @@
         </section>
     </main>
 </div>
+<script th:src="@{/js/table-totals.js}"></script>
 <script th:src="@{/js/table-search.js}" defer></script>
 <style>
     .transfer-new-action { margin-bottom: 1rem; }
