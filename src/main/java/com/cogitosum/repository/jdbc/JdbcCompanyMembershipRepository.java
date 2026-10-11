@@ -58,6 +58,7 @@ public class JdbcCompanyMembershipRepository implements CompanyMembershipReposit
 
     @Override
     public void grant(Long userId, Long companyId) {
+        // This INSERT ... SELECT has no FROM clause; verify or adapt it for each new database engine.
         jdbcTemplate.update(
             "INSERT INTO user_company_memberships (user_id, company_id) "
                 + "SELECT ?, ? WHERE NOT EXISTS (SELECT 1 FROM user_company_memberships WHERE user_id = ? AND company_id = ?)",

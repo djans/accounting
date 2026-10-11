@@ -116,6 +116,8 @@ These files initialize new databases and are used by a full schema reset; their 
 
 When a change affects entities, columns, relationships, constraints, or indexes, update **both** engine schema files, add a versioned migration for existing databases, and update the related tests and any dialect-specific adapter. Follow [docs/SCHEMA_VERSIONING.md](docs/SCHEMA_VERSIONING.md) for the release procedure. Adding another database engine also requires its driver, dialect, schema, configuration path, and validation coverage.
 
+JDBC adapters execute their SQL directly; configuring a Hibernate dialect does not translate it. When adding a database engine, review `JdbcCompanyMembershipRepository`, especially `grant()`: its `INSERT ... SELECT` has no `FROM` clause and may need an engine-specific implementation. Include this repository in the new engine's integration coverage.
+
 ## Security boundaries
 
 Spring Security protects the application routes and role-restricted operations. Company-scoped services resolve the active company from the authenticated user and its memberships rather than trusting a company identifier supplied by a request. Database credentials are stored outside source control; remote first-run configuration is token-protected.
