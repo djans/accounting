@@ -82,6 +82,20 @@ public class BillingSystemIntegrationTest {
     }
 
     @Test
+    public void dashboardShowsCompanyFinancialKpis() throws Exception {
+        mockMvc.perform(get("/")
+                        .with(user("test-admin@example.test").roles("ADMIN")))
+                .andExpect(status().isOk())
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("Financial overview")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("Revenue")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("Net profit")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("Cash")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("Taxes to remit")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("Accounts receivable")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("Accounts payable")));
+    }
+
+    @Test
     public void testGetCustomerByEmail() throws Exception {
         Customer customer = new Customer();
         customer.setName("Jane Doe");

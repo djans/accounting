@@ -113,6 +113,9 @@ initializing an empty database.
 - Company-scoped user access and role management for administrators (see [`USER_ACCESS.md`](USER_ACCESS.md)).
 - Double-entry journals, a general ledger, fiscal years, and filtered accounting
   reports with before- and after-closing trial balances and PDF downloads.
+- The company dashboard summarizes fiscal-year-to-date revenue and net profit,
+  plus current general-ledger cash, tax payable, accounts receivable, and
+  accounts payable balances.
 - Tax agencies, codes, filing periods, calculations, and reconciliation.
 - Bank reconciliation, transfers, cheques, and credit-card charges.
 - CSV and OFX/QFX bank statement import with company-specific categorization suggestions (see [`BANK_RECONCILIATION.md`](BANK_RECONCILIATION.md)).

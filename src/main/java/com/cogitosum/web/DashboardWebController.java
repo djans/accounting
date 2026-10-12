@@ -2,8 +2,9 @@ package com.cogitosum.web;
 
 import com.cogitosum.entity.InvoiceStatus;
 import com.cogitosum.entity.JournalStatus;
-import com.cogitosum.service.AccountingReportService;
 import com.cogitosum.service.CustomerService;
+import com.cogitosum.service.AccountingReportService;
+import com.cogitosum.service.DashboardFinancialMetricsService;
 import com.cogitosum.service.GeneralJournalService;
 import com.cogitosum.service.InvoiceService;
 import com.cogitosum.service.PaymentService;
@@ -13,7 +14,6 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 
 import java.math.BigDecimal;
-import java.util.Map;
 
 @Controller
 public class DashboardWebController {
@@ -22,6 +22,7 @@ public class DashboardWebController {
     @Autowired private InvoiceService invoiceService;
     @Autowired private PaymentService paymentService;
     @Autowired private GeneralJournalService journalService;
+    @Autowired private DashboardFinancialMetricsService dashboardMetricsService;
     @Autowired private AccountingReportService reportService;
 
     @GetMapping("/")
@@ -41,8 +42,6 @@ public class DashboardWebController {
                         inv.getPaidAmount() == null ? BigDecimal.ZERO : inv.getPaidAmount()))
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        Map<String, Object> trialBalance = reportService.getTrialBalance();
-
         model.addAttribute("customers", customers);
         model.addAttribute("invoices", invoices);
         model.addAttribute("overdue", overdue);
@@ -50,7 +49,8 @@ public class DashboardWebController {
         model.addAttribute("postedJournals", postedJournals);
         model.addAttribute("draftJournals", draftJournals);
         model.addAttribute("openReceivable", openReceivable);
-        model.addAttribute("trialBalance", trialBalance);
+        model.addAttribute("trialBalance", reportService.getTrialBalance());
+        model.addAttribute("financialMetrics", dashboardMetricsService.getMetrics(java.time.LocalDate.now()));
         model.addAttribute("recentInvoices",
                 invoiceService.getAllInvoices().stream().limit(5).toList());
         return "dashboard";

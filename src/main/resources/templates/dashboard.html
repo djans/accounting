@@ -13,6 +13,45 @@
                 <p th:text="#{dashboard.description}">Real-time view of your billing, accounting, and Canadian tax exposure. Everything posts through the general ledger, so what you see here always ties out to your financial statements.</p>
             </div>
 
+            <h3 class="portal-card-title" th:text="#{dashboard.financial.title}">Financial overview</h3>
+            <div class="stat-grid">
+                <div class="stat-card is-accent">
+                    <div class="stat-label" th:text="#{dashboard.financial.revenue}">Revenue</div>
+                    <div class="stat-value" th:text="${#numbers.formatCurrency(financialMetrics.revenue)}">$0</div>
+                    <div class="stat-sub">
+                        <span th:text="#{dashboard.financial.period}">Fiscal year to date</span>
+                        <span th:text="${financialMetrics.periodStart}">2026-01-01</span>
+                        <span>–</span>
+                        <span th:text="${financialMetrics.asOf}">2026-12-31</span>
+                    </div>
+                </div>
+                <div class="stat-card is-success">
+                    <div class="stat-label" th:text="#{dashboard.financial.netProfit}">Net profit</div>
+                    <div class="stat-value" th:text="${#numbers.formatCurrency(financialMetrics.netProfit)}">$0</div>
+                    <div class="stat-sub" th:text="#{dashboard.financial.period}">Fiscal year to date</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label" th:text="#{dashboard.financial.cash}">Cash</div>
+                    <div class="stat-value" th:text="${#numbers.formatCurrency(financialMetrics.cash)}">$0</div>
+                    <div class="stat-sub" th:text="#{dashboard.financial.currentBalance}">Current ledger balance</div>
+                </div>
+                <div class="stat-card is-warning">
+                    <div class="stat-label" th:text="#{dashboard.financial.taxesPayable}">Taxes payable</div>
+                    <div class="stat-value" th:text="${#numbers.formatCurrency(financialMetrics.taxesPayable)}">$0</div>
+                    <div class="stat-sub" th:text="#{dashboard.financial.currentBalance}">Current ledger balance</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label" th:text="#{dashboard.financial.accountsReceivable}">Accounts receivable</div>
+                    <div class="stat-value" th:text="${#numbers.formatCurrency(financialMetrics.accountsReceivable)}">$0</div>
+                    <div class="stat-sub" th:text="#{dashboard.financial.currentBalance}">Current ledger balance</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label" th:text="#{dashboard.financial.accountsPayable}">Accounts payable</div>
+                    <div class="stat-value" th:text="${#numbers.formatCurrency(financialMetrics.accountsPayable)}">$0</div>
+                    <div class="stat-sub" th:text="#{dashboard.financial.currentBalance}">Current ledger balance</div>
+                </div>
+            </div>
+
             <div class="stat-grid">
                 <div class="stat-card">
                     <div class="stat-label" th:text="#{stat.customers}">Customers</div>
