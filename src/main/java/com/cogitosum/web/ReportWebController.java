@@ -50,11 +50,12 @@ public class ReportWebController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate asOf,
             Model model) {
         LocalDate reportDate = asOf != null ? asOf : LocalDate.now();
-        model.addAttribute("asOf", reportDate);
-        model.addAttribute("aging", billingReportService.getAgingAnalysis(reportDate));
-        model.addAttribute("agingSummary", billingReportService.getAgingSummary(reportDate));
-        model.addAttribute("active", "aging-summary");
-        return "reports/aging";
+            BillingReportService.AgingReport agingReport = billingReportService.getAgingReport(reportDate);
+            model.addAttribute("asOf", reportDate);
+            model.addAttribute("aging", agingReport.totals());
+            model.addAttribute("agingSummary", agingReport.customers());
+            model.addAttribute("active", "aging-summary");
+            return "reports/aging";
     }
 
     @GetMapping("/accounting")

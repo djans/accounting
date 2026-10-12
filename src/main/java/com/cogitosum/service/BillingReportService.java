@@ -55,52 +55,14 @@ public class BillingReportService {
     }
 
     public Map<String, Object> getAgingAnalysis(LocalDate asOf) {
-        LocalDate thirtyDaysAgo = asOf.minusDays(30);
-        LocalDate sixtyDaysAgo = asOf.minusDays(60);
-        LocalDate ninetyDaysAgo = asOf.minusDays(90);
-
-        Long companyId = companyContext.requireCompanyId();
-        List<Invoice> invoices = invoiceRepository.findByCompanyIdAndStatusOrderByInvoiceNumberDesc(companyId, InvoiceStatus.SENT);
-        invoices.addAll(invoiceRepository.findByCompanyIdAndStatusOrderByInvoiceNumberDesc(companyId, InvoiceStatus.PARTIALLY_PAID));
-        invoices.addAll(invoiceRepository.findByCompanyIdAndStatusOrderByInvoiceNumberDesc(companyId, InvoiceStatus.OVERDUE));
-
-        BigDecimal current = BigDecimal.ZERO;
-        BigDecimal days30 = BigDecimal.ZERO;
-        BigDecimal days60 = BigDecimal.ZERO;
-        BigDecimal days61To90 = BigDecimal.ZERO;
-        BigDecimal days90Plus = BigDecimal.ZERO;
-
-        for (Invoice invoice : invoices) {
-            if (invoice.getDueDate() == null) continue;
-            BigDecimal outstanding = invoice.getTotalAmount().subtract(
-                invoice.getPaidAmount() != null ? invoice.getPaidAmount() : BigDecimal.ZERO
-            );
-
-            if (invoice.getDueDate().isAfter(asOf) || invoice.getDueDate().isEqual(asOf)) {
-                current = current.add(outstanding);
-            } else if (invoice.getDueDate().isAfter(thirtyDaysAgo)) {
-                days30 = days30.add(outstanding);
-            } else if (invoice.getDueDate().isAfter(sixtyDaysAgo)) {
-                days60 = days60.add(outstanding);
-            } else if (invoice.getDueDate().isAfter(ninetyDaysAgo)) {
-                days61To90 = days61To90.add(outstanding);
-            } else {
-                days90Plus = days90Plus.add(outstanding);
-            }
-        }
-
-        Map<String, Object> agingReport = new HashMap<>();
-        agingReport.put("current", current);
-        agingReport.put("30Days", days30);
-        agingReport.put("60Days", days60);
-        agingReport.put("61To90Days", days61To90);
-        agingReport.put("90DaysPlus", days90Plus);
-        agingReport.put("totalOutstanding", current.add(days30).add(days60).add(days61To90).add(days90Plus));
-
-        return agingReport;
+        return getAgingReport(asOf).totals();
     }
 
     public List<Map<String, Object>> getAgingSummary(LocalDate asOf) {
+        return getAgingReport(asOf).customers();
+    }
+
+    public AgingReport getAgingReport(LocalDate asOf) {
         Map<Long, Map<String, Object>> byCustomer = new LinkedHashMap<>();
         Long companyId = companyContext.requireCompanyId();
         List<Invoice> invoices = new ArrayList<>(invoiceRepository.findByCompanyIdAndStatusOrderByInvoiceNumberDesc(companyId, InvoiceStatus.SENT));
@@ -129,10 +91,34 @@ public class BillingReportService {
                     : overdueDays <= 60 ? "days31To60"
                     : overdueDays <= 90 ? "days61To90"
                     : "over90";
-            row.put(bucket, ((BigDecimal) row.get(bucket)).add(outstanding));
-            row.put("total", ((BigDecimal) row.get("total")).add(outstanding));
+            addToAmount(row, bucket, outstanding);
+            addToAmount(row, "total", outstanding);
         }
-        return new ArrayList<>(byCustomer.values());
+
+        Map<String, Object> totals = new LinkedHashMap<>();
+        totals.put("current", BigDecimal.ZERO);
+        totals.put("30Days", BigDecimal.ZERO);
+        totals.put("60Days", BigDecimal.ZERO);
+        totals.put("61To90Days", BigDecimal.ZERO);
+        totals.put("90DaysPlus", BigDecimal.ZERO);
+        totals.put("totalOutstanding", BigDecimal.ZERO);
+
+        for (Map<String, Object> row : byCustomer.values()) {
+            addToAmount(totals, "current", (BigDecimal) row.get("current"));
+            addToAmount(totals, "30Days", (BigDecimal) row.get("days1To30"));
+            addToAmount(totals, "60Days", (BigDecimal) row.get("days31To60"));
+            addToAmount(totals, "61To90Days", (BigDecimal) row.get("days61To90"));
+            addToAmount(totals, "90DaysPlus", (BigDecimal) row.get("over90"));
+            addToAmount(totals, "totalOutstanding", (BigDecimal) row.get("total"));
+        }
+        return new AgingReport(totals, new ArrayList<>(byCustomer.values()));
+    }
+
+    private void addToAmount(Map<String, Object> values, String key, BigDecimal amount) {
+        values.put(key, ((BigDecimal) values.get(key)).add(amount));
+    }
+
+    public record AgingReport(Map<String, Object> totals, List<Map<String, Object>> customers) {
     }
 
     public Map<String, Object> getInvoiceStatusSummary() {

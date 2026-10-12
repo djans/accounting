@@ -94,6 +94,22 @@ to download their generated PDFs and attached PDFs together; one PDF downloads
 directly and multiple PDFs are packaged in a ZIP. The customer statement page
 shows activity for a selected customer and date range and offers a PDF download.
 
+### Invoice PDF template
+
+Invoice downloads and email attachments are rendered from
+`docs/invoice-template-example.docx`. The application fills the `{{...}}`
+placeholders and repeats the marked line-item row, then invokes LibreOffice
+Writer to produce the PDF. LibreOffice is installed in the Docker image; local
+installations need the `libreoffice` command available on `PATH`, or can set
+`APP_INVOICE_PDF_LIBREOFFICE_COMMAND` to its executable path. The DOCX must be
+rendered for each invoice because values and the number of line items vary;
+converting the unfilled template to PDF once would not populate those fields.
+Keep each placeholder intact as a single text run. The repeat markers
+`{{#lineItems}}` and `{{/lineItems}}` must stay in the same table row as the
+line-item fields. Unknown placeholders prevent PDF generation. This is the
+shared default template; per-company template upload and selection are not yet
+available.
+
 ### Docker
 
 ```bash

@@ -470,6 +470,7 @@ body {
     margin-bottom: 1.5rem;
     position: relative;
     overflow: hidden;
+    font-size: 0.90rem;
 }
 
 .hero-header h2 {
@@ -480,7 +481,7 @@ body {
 .hero-header p {
     margin: 0;
     opacity: 0.85;
-    max-width: 60ch;
+    max-width: 300ch;
 }
 
 .report-totals {

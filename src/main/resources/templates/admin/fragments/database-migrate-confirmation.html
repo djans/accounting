@@ -1,0 +1,19 @@
+<th:block xmlns:th="http://www.thymeleaf.org" th:fragment="fields">
+    <div class="alert alert-warning" role="alert" th:text="#{database.engineMigration.warning}">
+        The destination will be replaced. Back it up first and ensure no one uses the application during migration.
+    </div>
+    <div class="mb-3">
+        <label class="form-label" for="migrationConfirmation"
+               th:text="#{database.engineMigration.confirmPrompt}">Type MIGRATE to confirm</label>
+        <input class="form-control" id="migrationConfirmation" name="confirmation" type="text"
+               autocomplete="off" required/>
+    </div>
+    <div class="form-check mb-3">
+        <input class="form-check-input" id="confirmReplacement" name="confirmReplacement"
+               type="checkbox" value="true" required/>
+        <label class="form-check-label" for="confirmReplacement"
+               th:text="#{database.engineMigration.confirmCheckbox}">
+            I understand that all destination data will be replaced.
+        </label>
+    </div>
+</th:block>
