@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
         - name: accounting
-          image: djans/accounting:e51fbfd784e127a34c71ce22d291070908aeb6eb
+          image: djans/accounting:4956651dd31a00201825d1e515f25c0206cab91b
           securityContext:
             allowPrivilegeEscalation: false
             runAsNonRoot: true
