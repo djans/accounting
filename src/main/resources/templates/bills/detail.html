@@ -23,8 +23,11 @@
                             <button class="btn-portal btn-sm"><i class="bi bi-inbox"></i> Marquer comme reçue</button>
                         </form>
                         <form th:action="@{/bills/{id}/cancel(id=${bill.id})}" method="post" style="display:inline"
-                              th:if="${bill.status.name() != 'CANCELLED' and bill.status.name() != 'PAID'}">
-                            <button class="btn-portal btn-ghost btn-sm" onclick="return confirm('Annuler cette facture d\'achat ?')">
+                              th:if="${bill.status.name() != 'CANCELLED' and bill.status.name() != 'PAID' and (bill.paidAmount == null or bill.paidAmount.signum() == 0)}">
+                            <input type="text" name="reason" required maxlength="1000"
+                                   th:placeholder="#{document.cancel.reason}"
+                                   th:attr="aria-label=#{document.cancel.reason}"/>
+                            <button class="btn-portal btn-ghost btn-sm">
                                 <i class="bi bi-x-circle"></i> Annuler
                             </button>
                         </form>
@@ -97,6 +100,11 @@
                     <div class="stat-label">Notes</div>
                     <div th:text="${bill.notes}"></div>
                 </div>
+                <div th:if="${bill.cancellationReason}" style="margin-top:1.25rem">
+                    <div class="stat-label" th:text="#{document.cancel.reason}">Reason for cancellation</div>
+                    <div th:text="${bill.cancellationReason}"></div>
+                    <div class="text-muted" th:text="${bill.cancelledAt}"></div>
+                </div>
             </div>
 
             <div class="portal-card">
@@ -145,7 +153,8 @@
                 </table>
             </div>
 
-            <div class="portal-card" th:if="${bill.status.name() != 'CANCELLED' and bill.status.name() != 'PAID'}">
+            <div class="portal-card"
+                 th:if="${bill.status.name() == 'RECEIVED' or bill.status.name() == 'PARTIALLY_PAID' or bill.status.name() == 'OVERDUE'}">
                 <h3 class="portal-card-title">Enregistrer un paiement</h3>
                 <p class="text-muted">
                     Choisir un compte bancaire comptabilise l'écriture : Dr Comptes fournisseurs / Cr Banque.
@@ -218,10 +227,13 @@
             </div>
 
             <div style="text-align:right">
-                <form th:action="@{/bills/{id}/delete(id=${bill.id})}" method="post" style="display:inline">
-                    <button class="btn-portal btn-danger btn-sm"
-                            onclick="return confirm('Supprimer cette facture d\'achat ?')">
-                        <i class="bi bi-trash"></i> Supprimer la facture
+                <form th:if="${bill.status.name() == 'DRAFT'}"
+                      th:action="@{/bills/{id}/delete(id=${bill.id})}" method="post" style="display:inline"
+                      th:attr="data-confirm-message=#{document.deleteDraftConfirm}">
+                    <button type="submit" class="btn-portal btn-icon-action btn-icon-delete"
+                            th:title="#{btn.delete}" th:attr="aria-label=#{btn.delete}"
+                            onclick="return confirm(this.form.dataset.confirmMessage)">
+                        <i class="bi bi-x-lg" aria-hidden="true"></i>
                     </button>
                 </form>
             </div>

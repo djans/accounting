@@ -2,6 +2,8 @@ spring:
   thymeleaf:
     cache: false
 app:
+  security:
+    super-admin-emails: "${APP_SUPER_ADMIN_EMAILS:djans@cogitosum.com}"
   logging:
     path: "c:/accounting/logs"
 

@@ -56,6 +56,29 @@
                         </div>
                     </div>
 
+                    <div class="invoice-final-option" th:if="${!isEdit}">
+                        <label class="invoice-final-label" for="finalInvoice">
+                            <input id="finalInvoice" name="finalInvoice" type="checkbox" value="true"/>
+                            <span th:text="#{invoice.form.final}">Final invoice?</span>
+                        </label>
+                        <small class="text-muted" th:text="#{invoice.form.finalHelp}">
+                            Issuing the invoice stores a PDF snapshot and makes the invoice uneditable.
+                        </small>
+                        <div id="finalTemplateField" class="form-field" hidden>
+                            <label for="finalTemplateId" th:text="#{invoice.form.finalTemplate}">
+                                PDF template
+                            </label>
+                            <select id="finalTemplateId" name="finalTemplateId">
+                                <option th:each="template : ${finalTemplates}"
+                                        th:value="${template.id()}"
+                                        th:selected="${template.id() == suggestedFinalTemplateId}"
+                                        th:text="${template.name() + ' (' + template.languageTag() + ')'}">
+                                    Standard (en)
+                                </option>
+                            </select>
+                        </div>
+                    </div>
+
                     <h4 style="margin:1.5rem 0 .5rem;font-size:.95rem;" th:text="#{form.invoiceLines}">Line Items</h4>
                     <div class="entries-toolbar">
                         <small class="text-muted" th:text="#{form.invoiceLineHelp}">Add one row per billable item. Les taxes sont calculées selon le régime fiscal choisi.</small>
@@ -128,8 +151,15 @@
 
                     <div class="form-actions">
                         <a th:href="@{/invoices}" class="btn-portal btn-ghost" th:text="#{btn.cancel}">Cancel</a>
-                        <button type="submit" class="btn-portal">
-                            <i class="bi bi-check2"></i> <span th:text="${isEdit} ? #{form.saveChanges} : #{btn.createInvoice}">Create Invoice</span>
+                        <button id="invoiceSubmitButton" type="submit"
+                                class="btn-portal btn-icon-action btn-icon-save invoice-submit-button"
+                                th:title="#{btn.save}"
+                                th:attr="aria-label=#{btn.save},data-saving-label=#{invoice.form.saving}">
+                            <i id="invoiceSubmitIcon" class="bi bi-check-lg" aria-hidden="true"></i>
+                            <span id="invoiceSubmitSpinner" class="invoice-submit-spinner"
+                                  aria-hidden="true" hidden></span>
+                            <span id="invoiceSubmitSavingLabel" class="invoice-submit-saving-label"
+                                  th:text="#{invoice.form.saving}" hidden>Creating invoice...</span>
                         </button>
                     </div>
                 </form>
@@ -234,6 +264,34 @@ function wireLineInputs(row) {
 document.addEventListener('DOMContentLoaded', function () {
     const regimeSelect = document.getElementById('regimeSelect');
     const customerSelect = document.getElementById('customerSelect');
+    const finalInvoice = document.getElementById('finalInvoice');
+    const finalTemplateField = document.getElementById('finalTemplateField');
+    const finalTemplateSelect = document.getElementById('finalTemplateId');
+    const invoiceForm = document.getElementById('invoiceForm');
+    const submitButton = document.getElementById('invoiceSubmitButton');
+
+    if (invoiceForm && submitButton) {
+        invoiceForm.addEventListener('submit', function () {
+            if (submitButton.disabled) return;
+            submitButton.disabled = true;
+            submitButton.setAttribute('aria-busy', 'true');
+            submitButton.setAttribute('aria-label', submitButton.dataset.savingLabel);
+            submitButton.title = submitButton.dataset.savingLabel;
+            submitButton.classList.add('is-saving');
+            submitButton.querySelector('#invoiceSubmitIcon').hidden = true;
+            submitButton.querySelector('#invoiceSubmitSpinner').hidden = false;
+            submitButton.querySelector('#invoiceSubmitSavingLabel').hidden = false;
+        });
+    }
+
+    if (finalInvoice && finalTemplateField && finalTemplateSelect) {
+        const updateFinalTemplateVisibility = function () {
+            finalTemplateField.hidden = !finalInvoice.checked;
+            finalTemplateSelect.required = finalInvoice.checked;
+        };
+        finalInvoice.addEventListener('change', updateFinalTemplateVisibility);
+        updateFinalTemplateVisibility();
+    }
 
     // Restore last-used regime from localStorage
     const saved = localStorage.getItem(STORAGE_KEY);

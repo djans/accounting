@@ -25,6 +25,7 @@ class DatabaseSchemaVersionServiceTest {
         try (var connection = dataSource.getConnection();
              var statement = connection.createStatement()) {
             statement.execute("CREATE TABLE invoices (id BIGINT PRIMARY KEY)");
+            statement.execute("CREATE TABLE bills (id BIGINT PRIMARY KEY)");
             statement.execute("CREATE TABLE companies (id BIGINT PRIMARY KEY)");
             statement.execute("CREATE TABLE chart_of_accounts (id BIGINT PRIMARY KEY)");
             statement.execute("CREATE TABLE bank_transactions (id BIGINT PRIMARY KEY, company_id BIGINT)");
@@ -40,9 +41,9 @@ class DatabaseSchemaVersionServiceTest {
         DatabaseSchemaVersionService.Status status = service.getStatus();
 
         assertEquals("1.0.0", status.currentVersion());
-        assertEquals("1.4.0", status.latestVersion());
+        assertEquals("1.10.0", status.latestVersion());
         assertTrue(status.updateAvailable());
-        assertEquals(5, status.versions().size());
+        assertEquals(11, status.versions().size());
         assertEquals("1.1.0", status.pendingMigrations().get(0).version().toString());
     }
 
@@ -50,18 +51,41 @@ class DatabaseSchemaVersionServiceTest {
     void appliesEveryPendingMigrationAndAdvancesLedger() {
         DatabaseSchemaVersionService.Status status = service.applyPendingMigrations();
 
-        assertEquals("1.4.0", status.currentVersion());
+        assertEquals("1.10.0", status.currentVersion());
         assertTrue(status.upToDate());
         assertFalse(status.updateAvailable());
         try (var connection = dataSource.getConnection();
              var statement = connection.createStatement()) {
             statement.executeQuery("SELECT tax_regime FROM invoices");
+            statement.executeQuery("SELECT cancellation_reason, cancelled_at FROM invoices");
+            statement.executeQuery("SELECT cancellation_reason, cancelled_at FROM bills");
+            statement.executeQuery("SELECT logo_data, logo_content_type FROM companies");
+            statement.executeQuery("SELECT id, company_id, template_data FROM invoice_templates");
+            statement.executeQuery("SELECT invoice_id, pdf_data, created_at FROM invoice_final_pdfs");
             statement.executeQuery("SELECT fit_id, suggested_category_id, categorization_rule_id, category_reviewed "
                     + "FROM bank_transactions");
             statement.executeQuery("SELECT match_text FROM bank_categorization_rules");
+            statement.executeQuery("SELECT credit_note_number, invoice_id, status FROM credit_notes");
+            statement.executeQuery("SELECT description, quantity, unit_price FROM credit_note_line_items");
+            statement.executeQuery("SELECT amount, refund_date, bank_account_id FROM credit_note_refunds");
+            statement.executeQuery("SELECT amount, allocation_date, reversal_date, reversal_reason, "
+                    + "target_invoice_id FROM credit_note_allocations");
         } catch (java.sql.SQLException exception) {
             throw new AssertionError(exception);
         }
+    }
+
+    @Test
+    void ensuresCompanyColumnsAreAvailableBeforeAuthenticationWithoutAdvancingTheLedger() throws Exception {
+        service.ensureCompanyProfileColumnsBeforeAuthentication();
+
+        try (var connection = dataSource.getConnection();
+             var statement = connection.createStatement()) {
+            statement.executeQuery("SELECT logo_data, logo_content_type FROM companies");
+            statement.executeQuery("SELECT cancellation_reason, cancelled_at FROM invoices");
+            statement.executeQuery("SELECT cancellation_reason, cancelled_at FROM bills");
+        }
+        assertEquals("1.0.0", service.getStatus().currentVersion());
     }
 
     @Test
@@ -77,7 +101,7 @@ class DatabaseSchemaVersionServiceTest {
 
         DatabaseSchemaVersionService.Status status = service.applyPendingMigrations();
 
-        assertEquals("1.4.0", status.currentVersion());
+        assertEquals("1.10.0", status.currentVersion());
         assertTrue(status.upToDate());
     }
 
@@ -90,6 +114,7 @@ class DatabaseSchemaVersionServiceTest {
             try (var connection = sqliteDataSource.getConnection();
                  var statement = connection.createStatement()) {
                 statement.execute("CREATE TABLE invoices (id INTEGER PRIMARY KEY)");
+                statement.execute("CREATE TABLE bills (id INTEGER PRIMARY KEY)");
                 statement.execute("CREATE TABLE companies (id INTEGER PRIMARY KEY)");
                 statement.execute("CREATE TABLE chart_of_accounts (id INTEGER PRIMARY KEY)");
                 statement.execute("CREATE TABLE bank_transactions (id INTEGER PRIMARY KEY, company_id BIGINT)");
@@ -101,13 +126,20 @@ class DatabaseSchemaVersionServiceTest {
             DatabaseSchemaVersionService sqliteService = new DatabaseSchemaVersionService(sqliteDataSource);
             DatabaseSchemaVersionService.Status status = sqliteService.applyPendingMigrations();
 
-            assertEquals("1.4.0", status.currentVersion());
+            assertEquals("1.10.0", status.currentVersion());
             assertTrue(status.upToDate());
             try (var connection = sqliteDataSource.getConnection();
                  var statement = connection.createStatement()) {
                 statement.executeQuery("SELECT tax_regime FROM invoices");
+                statement.executeQuery("SELECT cancellation_reason, cancelled_at FROM invoices");
+                statement.executeQuery("SELECT cancellation_reason, cancelled_at FROM bills");
+                statement.executeQuery("SELECT logo_data, logo_content_type FROM companies");
+                statement.executeQuery("SELECT id, company_id, template_data FROM invoice_templates");
+                statement.executeQuery("SELECT invoice_id, pdf_data, created_at FROM invoice_final_pdfs");
                 statement.executeQuery("SELECT fit_id, suggested_category_id, categorization_rule_id, category_reviewed "
                         + "FROM bank_transactions");
+                statement.executeQuery("SELECT credit_note_number, invoice_id, status FROM credit_notes");
+                statement.executeQuery("SELECT description, quantity, unit_price FROM credit_note_line_items");
             }
         } finally {
             Files.deleteIfExists(database);
@@ -125,7 +157,7 @@ class DatabaseSchemaVersionServiceTest {
 
         DatabaseSchemaVersionService.Status status = service.applyPendingMigrations();
 
-        assertEquals("1.4.0", status.currentVersion());
+        assertEquals("1.10.0", status.currentVersion());
         try (var connection = dataSource.getConnection();
              var statement = connection.createStatement();
              var results = statement.executeQuery(
@@ -153,7 +185,7 @@ class DatabaseSchemaVersionServiceTest {
 
         DatabaseSchemaVersionService.Status status = service.applyPendingMigrations();
 
-        assertEquals("1.4.0", status.currentVersion());
+        assertEquals("1.10.0", status.currentVersion());
         try (var connection = dataSource.getConnection();
              var statement = connection.createStatement();
              var results = statement.executeQuery(

@@ -106,9 +106,9 @@
 
                     <div class="form-actions mt-4">
                         <a th:href="@{/accounts}" class="btn-portal btn-ghost" th:text="#{btn.cancel}">Annuler</a>
-                        <button type="submit" class="btn-portal">
-                            <i class="bi bi-check2"></i>
-                            <span th:text="${isNew} ? #{form.createAccount} : #{form.saveChanges}"></span>
+                        <button type="submit" class="btn-portal btn-icon-action btn-icon-save"
+                                th:title="#{btn.save}" th:attr="aria-label=#{btn.save}">
+                            <i class="bi bi-check-lg" aria-hidden="true"></i>
                         </button>
                     </div>
                 </form>

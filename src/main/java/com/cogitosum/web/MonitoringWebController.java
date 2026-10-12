@@ -35,7 +35,7 @@ public class MonitoringWebController {
 
     @GetMapping
     public String page(Authentication authentication, Model model) {
-        requireAdmin(authentication);
+        requireSuperAdmin(authentication);
 
         HealthDescriptor health = healthEndpoint.health();
         List<HealthComponent> components = new ArrayList<>();
@@ -83,10 +83,10 @@ public class MonitoringWebController {
         components.add(new HealthComponent(parent, descriptor.getStatus().getCode()));
     }
 
-    private void requireAdmin(Authentication authentication) {
+    private void requireSuperAdmin(Authentication authentication) {
         if (authentication == null || !authentication.isAuthenticated()
-                || !authentication.getAuthorities().contains(new SimpleGrantedAuthority("ROLE_ADMIN"))) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Administrator role required");
+                || !authentication.getAuthorities().contains(new SimpleGrantedAuthority("ROLE_SUPER_ADMIN"))) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Super administrator role required");
         }
     }
 

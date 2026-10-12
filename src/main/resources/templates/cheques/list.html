@@ -126,20 +126,20 @@
                             </a>
                             <a th:if="${p.status.name() == 'DRAFT'}"
                                th:href="@{/cheques/{id}/edit(id=${p.id})}"
-                               class="btn-portal btn-ghost btn-sm icon-action"
+                               class="btn-portal btn-icon-action btn-icon-edit icon-action"
                                data-bs-toggle="tooltip" data-bs-placement="top"
                                th:title="#{cheques.edit}" th:attr="aria-label=#{cheques.edit}">
-                                <i class="bi bi-pencil-square" aria-hidden="true"></i>
+                                <i class="bi bi-pencil" aria-hidden="true"></i>
                             </a>
                             <form th:if="${p.status.name() == 'DRAFT'}"
                                   th:action="@{/cheques/{id}/delete(id=${p.id})}" method="post">
-                                <button class="btn-portal btn-ghost btn-sm icon-action" type="submit"
+                                <button class="btn-portal btn-icon-action btn-icon-delete icon-action" type="submit"
                                         data-bs-toggle="tooltip" data-bs-placement="top"
                                         th:title="#{cheques.deleteDraft}"
                                         th:attr="aria-label=#{cheques.deleteDraft}, data-confirm-message=${#messages.msg('cheques.confirmDeleteDraft')}"
                                         onclick="return confirm(this.dataset.confirmMessage)"
                                         >
-                                    <i class="bi bi-trash" aria-hidden="true"></i>
+                                    <i class="bi bi-x-lg" aria-hidden="true"></i>
                                 </button>
                             </form>
                             <form th:if="${p.status.name() == 'DRAFT'}"
@@ -193,7 +193,7 @@
     .cheque-new-action { margin-bottom: 1rem; }
     .cheque-actions { white-space: nowrap; }
     .cheque-actions form { display: inline-flex; align-items: center; margin: 0; }
-    .icon-action { width: 2.25rem; height: 2.25rem; justify-content: center; padding: 0.25rem; }
+    .icon-action { width: 2.35rem; height: 2.35rem; justify-content: center; padding: 0; }
     .btn-portal.icon-action i { margin: 0; }
 </style>
 <script>

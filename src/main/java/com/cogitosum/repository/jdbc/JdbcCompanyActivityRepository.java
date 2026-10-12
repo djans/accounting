@@ -15,6 +15,7 @@ public abstract class JdbcCompanyActivityRepository implements CompanyActivityRe
     public ActivityCounts findActivityCounts(Long companyId) {
         return new ActivityCounts(
                 count("invoices", companyId),
+                count("credit_notes", companyId),
                 count("payments", companyId),
                 count("bills", companyId),
                 count("bill_payments", companyId),
@@ -42,6 +43,7 @@ public abstract class JdbcCompanyActivityRepository implements CompanyActivityRe
         jdbcTemplate.update("UPDATE credit_card_charges SET reissue_of_id = NULL WHERE company_id = ?", companyId);
         jdbcTemplate.update("DELETE FROM payments WHERE company_id = ?", companyId);
         jdbcTemplate.update("DELETE FROM bill_payments WHERE company_id = ?", companyId);
+        jdbcTemplate.update("DELETE FROM credit_notes WHERE company_id = ?", companyId);
         jdbcTemplate.update("DELETE FROM invoices WHERE company_id = ?", companyId);
         jdbcTemplate.update("DELETE FROM bills WHERE company_id = ?", companyId);
         jdbcTemplate.update("""

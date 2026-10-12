@@ -111,12 +111,14 @@ public class BillController {
     }
 
     @PutMapping("/{id}/cancel")
-    public ResponseEntity<Bill> cancelBill(@PathVariable Long id) {
+    public ResponseEntity<Bill> cancelBill(@PathVariable Long id, @RequestParam String reason) {
         try {
-            Bill bill = billService.cancelBill(id);
+            Bill bill = billService.cancelBill(id, reason);
             return bill != null
                     ? new ResponseEntity<>(bill, HttpStatus.OK)
                     : ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            return ResponseEntity.badRequest().build();
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }

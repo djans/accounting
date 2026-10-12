@@ -47,7 +47,8 @@
                         </td>
                         <td>
                             <div class="d-flex gap-1">
-                                <button class="btn btn-sm btn-outline-primary edit-tax-code"
+                                <button type="button" class="btn-portal btn-icon-action btn-icon-edit edit-tax-code"
+                                        th:title="#{btn.edit}" th:attr="aria-label=#{btn.edit}"
                                         th:data-id="${c.id}"
                                         th:data-code="${c.code}"
                                         th:data-name="${c.name}"
@@ -56,11 +57,12 @@
                                         th:data-active="${c.active}">
                                     <i class="bi bi-pencil"></i>
                                 </button>
-                                <button type="button" class="btn btn-sm btn-outline-danger"
+                                <button type="button" class="btn-portal btn-icon-action btn-icon-delete"
+                                        th:title="#{btn.delete}" th:attr="aria-label=#{btn.delete}"
                                         th:if="${c.active}"
                                         data-deactivation-type="code"
                                         th:data-deactivation-id="${c.id}">
-                                    <i class="bi bi-trash"></i>
+                                    <i class="bi bi-x-lg" aria-hidden="true"></i>
                                 </button>
                             </div>
                         </td>
@@ -100,7 +102,8 @@
                         </td>
                         <td>
                             <div class="d-flex gap-1">
-                                <button class="btn btn-sm btn-outline-primary edit-group"
+                                <button type="button" class="btn-portal btn-icon-action btn-icon-edit edit-group"
+                                        th:title="#{btn.edit}" th:attr="aria-label=#{btn.edit}"
                                         th:data-id="${g.id}"
                                         th:data-code="${g.code}"
                                         th:data-name="${g.name}"
@@ -108,11 +111,12 @@
                                         th:data-active="${g.active}">
                                     <i class="bi bi-pencil"></i>
                                 </button>
-                                <button type="button" class="btn btn-sm btn-outline-danger"
+                                <button type="button" class="btn-portal btn-icon-action btn-icon-delete"
+                                        th:title="#{btn.delete}" th:attr="aria-label=#{btn.delete}"
                                         th:if="${g.active}"
                                         data-deactivation-type="group"
                                         th:data-deactivation-id="${g.id}">
-                                    <i class="bi bi-trash"></i>
+                                    <i class="bi bi-x-lg" aria-hidden="true"></i>
                                 </button>
                             </div>
                         </td>
@@ -160,7 +164,8 @@
                         <td><i th:if="${i.forPurchases}" class="bi bi-check-circle text-success"></i></td>
                         <td>
                             <div class="d-flex gap-1">
-                                <button class="btn btn-sm btn-outline-primary edit-item"
+                                <button type="button" class="btn-portal btn-icon-action btn-icon-edit edit-item"
+                                        th:title="#{btn.edit}" th:attr="aria-label=#{btn.edit}"
                                         th:data-id="${i.id}"
                                         th:data-code="${i.code}"
                                         th:data-name="${i.name}"
@@ -175,11 +180,12 @@
                                         th:data-active="${i.active}">
                                     <i class="bi bi-pencil"></i>
                                 </button>
-                                <button type="button" class="btn btn-sm btn-outline-danger"
+                                <button type="button" class="btn-portal btn-icon-action btn-icon-delete"
+                                        th:title="#{btn.delete}" th:attr="aria-label=#{btn.delete}"
                                         th:if="${i.active}"
                                         data-deactivation-type="item"
                                         th:data-deactivation-id="${i.id}">
-                                    <i class="bi bi-trash"></i>
+                                    <i class="bi bi-x-lg" aria-hidden="true"></i>
                                 </button>
                             </div>
                         </td>

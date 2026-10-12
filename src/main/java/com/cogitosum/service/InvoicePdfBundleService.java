@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
@@ -17,7 +18,7 @@ import java.util.zip.ZipOutputStream;
 @Service
 public class InvoicePdfBundleService {
 
-    private static final int MAX_INVOICES = 100;
+    public static final int MAX_INVOICES_PER_DOWNLOAD = 100;
     private static final int MAX_PDF_FILES = 250;
     private static final long MAX_UNCOMPRESSED_BYTES = 100L * 1024 * 1024;
 
@@ -31,19 +32,33 @@ public class InvoicePdfBundleService {
     }
 
     public Download download(List<Long> requestedInvoiceIds) {
+        return download(requestedInvoiceIds, InvoiceTemplateService.STANDARD_TEMPLATE_ID);
+    }
+
+    public Download download(List<Long> requestedInvoiceIds, String templateId) {
         if (requestedInvoiceIds == null || requestedInvoiceIds.isEmpty()) {
             throw new IllegalArgumentException("Select at least one invoice");
         }
+        if (requestedInvoiceIds.size() > MAX_INVOICES_PER_DOWNLOAD
+                || requestedInvoiceIds.stream().anyMatch(java.util.Objects::isNull)) {
+            throw new IllegalArgumentException("Select no more than "
+                    + MAX_INVOICES_PER_DOWNLOAD + " valid invoices");
+        }
         Set<Long> invoiceIds = new LinkedHashSet<>(requestedInvoiceIds);
-        if (invoiceIds.size() > MAX_INVOICES) {
-            throw new IllegalArgumentException("Select no more than " + MAX_INVOICES + " invoices");
+        if (invoiceIds.size() > MAX_INVOICES_PER_DOWNLOAD) {
+            throw new IllegalArgumentException("Select no more than "
+                    + MAX_INVOICES_PER_DOWNLOAD + " invoices");
         }
 
         List<PdfFile> files = new ArrayList<>();
         long totalBytes = 0;
         Set<String> entryNames = new HashSet<>();
         for (Long invoiceId : invoiceIds) {
-            InvoicePdfService.InvoicePdf invoicePdf = invoicePdfService.downloadInvoice(invoiceId)
+            Optional<InvoicePdfService.InvoicePdf> generatedPdf =
+                    InvoiceTemplateService.STANDARD_TEMPLATE_ID.equals(templateId)
+                            ? invoicePdfService.downloadInvoice(invoiceId)
+                            : invoicePdfService.downloadInvoice(invoiceId, templateId);
+            InvoicePdfService.InvoicePdf invoicePdf = generatedPdf
                     .orElseThrow(() -> new IllegalArgumentException(
                             "One or more selected invoices are unavailable"));
             totalBytes = addFile(files, entryNames, invoicePdf.filename(), invoicePdf.content(), totalBytes);

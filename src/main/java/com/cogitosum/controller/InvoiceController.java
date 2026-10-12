@@ -112,6 +112,8 @@ public class InvoiceController {
             } else {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
             }
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            return ResponseEntity.badRequest().build();
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
         }
@@ -146,9 +148,9 @@ public class InvoiceController {
     }
     
     @PutMapping("/{id}/cancel")
-    public ResponseEntity<Invoice> cancelInvoice(@PathVariable Long id) {
+    public ResponseEntity<Invoice> cancelInvoice(@PathVariable Long id, @RequestParam String reason) {
         try {
-            Invoice invoice = invoiceService.cancelInvoice(id);
+            Invoice invoice = invoiceService.cancelInvoice(id, reason);
             if (invoice != null) {
                 return new ResponseEntity<>(invoice, HttpStatus.OK);
             } else {
@@ -169,4 +171,3 @@ public class InvoiceController {
         }
     }
 }
-

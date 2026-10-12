@@ -7,22 +7,26 @@ import com.cogitosum.entity.LineItem;
 import com.cogitosum.service.CustomerService;
 import com.cogitosum.service.CustomerStatementPdfService;
 import com.cogitosum.service.CustomerStatementService;
+import com.cogitosum.service.CreditNoteService;
 import com.cogitosum.service.DocumentAttachmentService;
 import com.cogitosum.service.InvoiceEmailService;
 import com.cogitosum.service.InvoicePdfBundleService;
 import com.cogitosum.service.InvoicePdfService;
 import com.cogitosum.service.InvoiceService;
+import com.cogitosum.service.InvoiceTemplateService;
 import com.cogitosum.service.PaymentService;
 import com.cogitosum.service.TaxFilingService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.CacheControl;
 import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.math.BigDecimal;
@@ -44,8 +48,10 @@ public class InvoiceWebController {
     @Autowired private DocumentAttachmentService attachmentService;
     @Autowired private TaxFilingService taxFilingService;
     @Autowired private InvoicePdfBundleService invoicePdfBundleService;
+    @Autowired private InvoiceTemplateService invoiceTemplateService;
     @Autowired private CustomerStatementService customerStatementService;
     @Autowired private CustomerStatementPdfService customerStatementPdfService;
+    @Autowired private CreditNoteService creditNoteService;
 
     @GetMapping
     public String list(@RequestParam(required = false) InvoiceStatus status, Model model) {
@@ -109,11 +115,30 @@ public class InvoiceWebController {
         }
     }
 
-    @PostMapping("/pdf-download")
+    @PostMapping(value = "/pdf-download", params = "!templateId")
+    public String selectTemplateForPdfs(
+            @RequestParam(value = "invoiceIds", required = false) List<Long> invoiceIds,
+            Model model) {
+        if (invoiceIds == null || invoiceIds.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Select at least one invoice");
+        }
+        if (invoiceIds.size() > InvoicePdfBundleService.MAX_INVOICES_PER_DOWNLOAD
+                || invoiceIds.stream().anyMatch(java.util.Objects::isNull)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid invoice selection");
+        }
+        if (invoiceIds.stream().anyMatch(id -> invoiceService.getInvoiceById(id).isEmpty())) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "One or more invoices are unavailable");
+        }
+        addTemplateChoice(model, true, null, invoiceIds);
+        return "invoices/pdf-template-choice";
+    }
+
+    @PostMapping(value = "/pdf-download", params = "templateId")
     public ResponseEntity<byte[]> downloadSelectedPdfs(
-            @RequestParam(value = "invoiceIds", required = false) List<Long> invoiceIds) {
+            @RequestParam(value = "invoiceIds", required = false) List<Long> invoiceIds,
+            @RequestParam String templateId) {
         try {
-            InvoicePdfBundleService.Download download = invoicePdfBundleService.download(invoiceIds);
+            InvoicePdfBundleService.Download download = invoicePdfBundleService.download(invoiceIds, templateId);
             return ResponseEntity.ok()
                     .contentType(MediaType.parseMediaType(download.contentType()))
                     .cacheControl(CacheControl.noStore().cachePrivate())
@@ -132,6 +157,12 @@ public class InvoiceWebController {
     public String newForm(Model model) {
         model.addAttribute("customers", customerService.getAllCustomers());
         model.addAttribute("regimes", invoiceService.getRegimes());
+        List<InvoiceTemplateService.TemplateOption> finalTemplates =
+                invoiceTemplateService.getCurrentCompanyOptions();
+        model.addAttribute("finalTemplates", finalTemplates);
+        model.addAttribute("suggestedFinalTemplateId",
+                invoiceTemplateService.suggestedTemplateId(finalTemplates,
+                        org.springframework.context.i18n.LocaleContextHolder.getLocale()));
         model.addAttribute("invoice", new Invoice());
         model.addAttribute("suggestedNumber", invoiceService.suggestNextInvoiceNumber());
         model.addAttribute("isEdit", false);
@@ -148,6 +179,8 @@ public class InvoiceWebController {
                          @RequestParam(required = false) List<String> descriptions,
                          @RequestParam(required = false) List<BigDecimal> quantities,
                          @RequestParam(required = false) List<BigDecimal> unitPrices,
+                         @RequestParam(defaultValue = "false") boolean finalInvoice,
+                         @RequestParam(required = false) String finalTemplateId,
                          RedirectAttributes ra) {
         try {
             Customer customer = customerService.getCustomerById(customerId)
@@ -179,7 +212,7 @@ public class InvoiceWebController {
             }
             invoice.setLineItems(items);
 
-            Invoice saved = invoiceService.createInvoice(invoice, taxRegime);
+            Invoice saved = invoiceService.createInvoice(invoice, taxRegime, finalInvoice, finalTemplateId);
             ra.addFlashAttribute("flashSuccess", "Invoice " + saved.getInvoiceNumber() + " created");
             return "redirect:/invoices/" + saved.getId();
         } catch (Exception e) {
@@ -269,6 +302,23 @@ public class InvoiceWebController {
                     model.addAttribute("invoice", inv);
                     model.addAttribute("payments", paymentService.getPaymentsByInvoiceId(id));
                     model.addAttribute("attachments", attachmentService.listInvoiceAttachments(id));
+                    model.addAttribute("creditNotes", creditNoteService.getInvoiceCreditNotes(id));
+                    if (inv.getStatus() == InvoiceStatus.DRAFT) {
+                        List<InvoiceTemplateService.TemplateOption> finalTemplates =
+                                invoiceTemplateService.getCurrentCompanyOptions();
+                        model.addAttribute("finalTemplates", finalTemplates);
+                        model.addAttribute("suggestedFinalTemplateId",
+                                invoiceTemplateService.suggestedTemplateId(finalTemplates,
+                                        org.springframework.context.i18n.LocaleContextHolder.getLocale()));
+                    }
+                    BigDecimal remainingCreditableAmount =
+                            creditNoteService.getRemainingCreditableAmount(inv);
+                    model.addAttribute("remainingCreditableAmount", remainingCreditableAmount);
+                    model.addAttribute("canCreateCreditNote", creditNoteService.canCredit(inv)
+                            && remainingCreditableAmount.signum() > 0);
+                    model.addAttribute("issuedCreditAmount",
+                            inv.getTotalAmount().subtract(remainingCreditableAmount));
+                    model.addAttribute("outstandingAmount", invoiceService.getOutstandingAmount(inv));
                     return "invoices/detail";
                 })
                 .orElseGet(() -> {
@@ -284,18 +334,52 @@ public class InvoiceWebController {
         return "redirect:/invoices/" + id;
     }
 
-    @GetMapping("/{id}/pdf")
-    public ResponseEntity<byte[]> pdf(@PathVariable Long id) {
-        return invoicePdfService.downloadInvoice(id)
-                .map(pdf -> ResponseEntity.ok()
-                        .contentType(MediaType.APPLICATION_PDF)
-                        .cacheControl(CacheControl.noStore().cachePrivate())
-                        .header("X-Content-Type-Options", "nosniff")
-                        .header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.attachment()
-                                .filename(pdf.filename(), StandardCharsets.UTF_8).build().toString())
-                        .contentLength(pdf.content().length)
-                        .body(pdf.content()))
+    @PostMapping("/{id}/finalize")
+    public String finalizeInvoice(@PathVariable Long id,
+                                 @RequestParam(defaultValue = "false") boolean finalInvoice,
+                                 @RequestParam(required = false) String finalTemplateId,
+                                 RedirectAttributes ra) {
+        try {
+            if (!finalInvoice) {
+                throw new IllegalArgumentException("Confirm that this is a final invoice before issuing it");
+            }
+            Invoice invoice = invoiceService.finalizeInvoice(id, finalTemplateId);
+            if (invoice == null) {
+                throw new IllegalArgumentException("Invoice not found");
+            }
+            ra.addFlashAttribute("flashSuccess",
+                    "Final invoice issued, posted to the ledger, locked, and PDF saved");
+        } catch (IllegalArgumentException | IllegalStateException exception) {
+            ra.addFlashAttribute("flashError", "Could not issue final invoice: " + exception.getMessage());
+        }
+        return "redirect:/invoices/" + id;
+    }
+
+    @GetMapping(value = "/{id}/pdf", params = "!templateId")
+    public Object selectTemplateForPdf(@PathVariable Long id, Model model) {
+        var invoice = invoiceService.getInvoiceById(id);
+        if (invoice.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Invoice not found");
+        }
+        var storedPdf = invoicePdfService.downloadStoredInvoice(id);
+        if (storedPdf.isPresent()) {
+            return pdfResponse(storedPdf.get());
+        }
+        model.addAttribute("invoice", invoice.get());
+        addTemplateChoice(model, false, id, List.of(id));
+        return "invoices/pdf-template-choice";
+    }
+
+    @GetMapping(value = "/{id}/pdf", params = "templateId")
+    public ResponseEntity<byte[]> pdf(@PathVariable Long id, @RequestParam String templateId) {
+        try {
+            return invoicePdfService.downloadInvoice(id, templateId)
+                .map(this::pdfResponse)
                 .orElseGet(() -> ResponseEntity.notFound().build());
+        } catch (IllegalArgumentException exception) {
+            return ResponseEntity.badRequest().contentType(MediaType.TEXT_PLAIN)
+                    .body("Invalid invoice template selection".getBytes(StandardCharsets.UTF_8));
+        }
     }
 
     @PostMapping("/{id}/email")
@@ -311,9 +395,13 @@ public class InvoiceWebController {
     }
 
     @PostMapping("/{id}/cancel")
-    public String cancel(@PathVariable Long id, RedirectAttributes ra) {
-        invoiceService.cancelInvoice(id);
-        ra.addFlashAttribute("flashSuccess", "Invoice cancelled");
+    public String cancel(@PathVariable Long id, @RequestParam String reason, RedirectAttributes ra) {
+        try {
+            invoiceService.cancelInvoice(id, reason);
+            ra.addFlashAttribute("flashSuccess", "Invoice cancelled");
+        } catch (Exception exception) {
+            ra.addFlashAttribute("flashError", "Could not cancel invoice: " + exception.getMessage());
+        }
         return "redirect:/invoices/" + id;
     }
 
@@ -326,5 +414,28 @@ public class InvoiceWebController {
             ra.addFlashAttribute("flashError", "Could not delete invoice: " + e.getMessage());
         }
         return "redirect:/invoices";
+    }
+
+    private void addTemplateChoice(Model model, boolean bulk, Long invoiceId, List<Long> invoiceIds) {
+        List<InvoiceTemplateService.TemplateOption> templates =
+                invoiceTemplateService.getCurrentCompanyOptions();
+        model.addAttribute("templates", templates);
+        model.addAttribute("suggestedTemplateId",
+                invoiceTemplateService.suggestedTemplateId(templates,
+                        org.springframework.context.i18n.LocaleContextHolder.getLocale()));
+        model.addAttribute("bulkDownload", bulk);
+        model.addAttribute("invoiceId", invoiceId);
+        model.addAttribute("invoiceIds", invoiceIds);
+    }
+
+    private ResponseEntity<byte[]> pdfResponse(InvoicePdfService.InvoicePdf pdf) {
+        return ResponseEntity.ok()
+            .contentType(MediaType.APPLICATION_PDF)
+            .cacheControl(CacheControl.noStore().cachePrivate())
+            .header("X-Content-Type-Options", "nosniff")
+            .header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.attachment()
+                    .filename(pdf.filename(), StandardCharsets.UTF_8).build().toString())
+            .contentLength(pdf.content().length)
+            .body(pdf.content());
     }
 }

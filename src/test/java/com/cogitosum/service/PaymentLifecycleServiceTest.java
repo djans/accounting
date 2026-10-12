@@ -5,6 +5,9 @@ import com.cogitosum.entity.InvoiceStatus;
 import com.cogitosum.entity.Payment;
 import com.cogitosum.entity.PaymentStatus;
 import com.cogitosum.repository.ChartOfAccountRepository;
+import com.cogitosum.repository.CreditNoteRepository;
+import com.cogitosum.repository.CreditNoteRefundRepository;
+import com.cogitosum.repository.CreditNoteAllocationRepository;
 import com.cogitosum.repository.InvoiceRepository;
 import com.cogitosum.repository.PaymentRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -29,6 +32,9 @@ class PaymentLifecycleServiceTest {
     @Mock private InvoiceRepository invoices;
     @Mock private PaymentPostingService postings;
     @Mock private ChartOfAccountRepository accounts;
+    @Mock private CreditNoteRepository creditNotes;
+    @Mock private CreditNoteRefundRepository creditNoteRefunds;
+    @Mock private CreditNoteAllocationRepository creditNoteAllocations;
     @Mock private CurrentCompanyContext companyContext;
 
     private PaymentService service;
@@ -40,6 +46,9 @@ class PaymentLifecycleServiceTest {
         ReflectionTestUtils.setField(service, "invoiceRepository", invoices);
         ReflectionTestUtils.setField(service, "paymentPostingService", postings);
         ReflectionTestUtils.setField(service, "accountRepository", accounts);
+        ReflectionTestUtils.setField(service, "creditNoteRepository", creditNotes);
+        ReflectionTestUtils.setField(service, "creditNoteRefundRepository", creditNoteRefunds);
+        ReflectionTestUtils.setField(service, "creditNoteAllocationRepository", creditNoteAllocations);
         ReflectionTestUtils.setField(service, "companyContext", companyContext);
         when(companyContext.requireCompanyId()).thenReturn(2L);
     }
@@ -51,7 +60,7 @@ class PaymentLifecycleServiceTest {
         when(payments.findByIdAndCompanyId(7L, 2L)).thenReturn(Optional.of(payment));
         when(payments.save(payment)).thenReturn(payment);
         when(payments.findByCompanyIdAndInvoiceId(2L, 10L)).thenReturn(List.of(payment));
-        when(invoices.findByIdAndCompanyId(10L, 2L)).thenReturn(Optional.of(invoice));
+        when(invoices.findLockedByIdAndCompanyId(10L, 2L)).thenReturn(Optional.of(invoice));
         when(invoices.save(invoice)).thenReturn(invoice);
 
         Payment refunded = service.refundPayment(7L, "Payment journal was already reversed");
@@ -69,7 +78,7 @@ class PaymentLifecycleServiceTest {
         when(payments.findByIdAndCompanyId(7L, 2L)).thenReturn(Optional.of(payment));
         when(payments.save(payment)).thenReturn(payment);
         when(payments.findByCompanyIdAndInvoiceId(2L, 10L)).thenReturn(List.of(payment));
-        when(invoices.findByIdAndCompanyId(10L, 2L)).thenReturn(Optional.of(invoice));
+        when(invoices.findLockedByIdAndCompanyId(10L, 2L)).thenReturn(Optional.of(invoice));
         when(invoices.save(invoice)).thenReturn(invoice);
 
         service.markPaymentAsCompleted(7L);
@@ -87,7 +96,7 @@ class PaymentLifecycleServiceTest {
         when(payments.findByIdAndCompanyId(7L, 2L)).thenReturn(Optional.of(payment));
         when(payments.save(payment)).thenReturn(payment);
         when(payments.findByCompanyIdAndInvoiceId(2L, 10L)).thenReturn(List.of(payment));
-        when(invoices.findByIdAndCompanyId(10L, 2L)).thenReturn(Optional.of(invoice));
+        when(invoices.findLockedByIdAndCompanyId(10L, 2L)).thenReturn(Optional.of(invoice));
         when(invoices.save(invoice)).thenReturn(invoice);
 
         service.markPaymentAsCompleted(7L);

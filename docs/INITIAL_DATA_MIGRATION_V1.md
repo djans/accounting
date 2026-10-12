@@ -4,15 +4,15 @@ This is a **new-install, one-time** import format. It is not a database backup
 or restore format. The existing JSON backup/restore flow is separate and is not
 used by this feature.
 
-Only an administrator can open the initial-data import page, linked from
+Only a SuperAdmin can open the initial-data import page, linked from
 **Administration / Reset** (the route is `/database/migration`). This is an
 optional step for a new empty dataset, commonly after using **Restart from
 scratch**: restart the application, sign in again with the recreated
-administrator account, then open Reset and choose the import action. The
+administrator account with SuperAdmin access, then open Reset and choose the import action. The
 company activity reset is independent and does not need an initial-data import.
 
 The page first validates the upload and shows a row-count preview. It writes
-nothing during validation. The administrator must then type `IMPORT` to submit
+nothing during validation. The SuperAdmin must then type `IMPORT` to submit
 the short-lived, single-user validation token. A preview expires after 15
 minutes.
 
@@ -37,7 +37,7 @@ outside this format.
 The development reference-data seeders create accounts and vendors, so a new
 deployment receiving this package must start with
 `APP_SEED_REFERENCE_DATA_ENABLED=false` (or
-`app.seed.reference-data.enabled=false`). The administrator/bootstrap company
+`app.seed.reference-data.enabled=false`). The bootstrap company
 records are allowed. Keep reference seeding disabled after the import unless
 those extra records are explicitly desired.
 
@@ -46,12 +46,17 @@ those extra records are explicitly desired.
 Version 1 imports only the fields listed in its CSV headers; it is not a
 field-for-field export of the current database schema. Fields not represented
 in those headers are not restored. In particular, the package excludes
-companies, users, tax setup, payment transactions and other cash activity,
+companies, users, company logos, invoice templates, stored final invoice PDFs,
+cancellation reasons and timestamps, tax
+setup, payment transactions and other cash activity,
+credit notes and their line items,
 account category/hierarchy/opening-balance metadata, extended customer/vendor
 profiles, `bills.tax_regime`, and customer/vendor/tax references on journal
 lines. Invoice `tax_regime` is included. The generated general-ledger balances
 come from imported `POSTED` and `REVERSED` journal lines, so represent opening
 account balances in journal entries.
+Version 1 rejects invoices with the `CREDITED` status because the matching
+credit-note documents and accounting entries are not represented in its files.
 
 The invoice `tax_regime` column is part of schema version `1.2.0`. Existing
 installations must apply pending schema updates at `/database/schema` before
@@ -69,7 +74,7 @@ versions.
 
 ## Downloadable example package
 
-Administrators can download `initial-data-migration-v1-example.zip` from the
+SuperAdmins can download `initial-data-migration-v1-example.zip` from the
 import page or this documentation page. It contains the manifest and all nine
 CSV files, with five fictional data rows in each CSV except
 `journal_lines.csv`, which has ten rows to provide two balanced lines for each

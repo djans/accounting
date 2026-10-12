@@ -3,6 +3,11 @@ package com.cogitosum.service;
 import com.cogitosum.entity.Invoice;
 import com.cogitosum.entity.InvoiceStatus;
 import com.cogitosum.repository.InvoiceRepository;
+import com.cogitosum.repository.CreditNoteRepository;
+import com.cogitosum.repository.CreditNoteRefundRepository;
+import com.cogitosum.repository.CreditNoteAllocationRepository;
+import com.cogitosum.entity.CreditNote;
+import com.cogitosum.entity.CreditNoteStatus;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -23,6 +28,15 @@ public class BillingReportService {
     @Autowired
     private CurrentCompanyContext companyContext;
 
+    @Autowired
+    private CreditNoteRepository creditNoteRepository;
+
+    @Autowired
+    private CreditNoteRefundRepository creditNoteRefundRepository;
+
+    @Autowired
+    private CreditNoteAllocationRepository creditNoteAllocationRepository;
+
     public Map<String, BigDecimal> getRevenueReport(LocalDate startDate, LocalDate endDate) {
         List<Invoice> invoices = invoiceRepository.findByCompanyIdAndInvoiceDateBetweenOrderByInvoiceDateDesc(
                 companyContext.requireCompanyId(), startDate, endDate);
@@ -35,10 +49,28 @@ public class BillingReportService {
             if (invoice.getStatus() != InvoiceStatus.CANCELLED) {
                 totalRevenue = totalRevenue.add(invoice.getTotalAmount());
                 totalPaid = totalPaid.add(invoice.getPaidAmount() != null ? invoice.getPaidAmount() : BigDecimal.ZERO);
+                BigDecimal creditAmount = creditNoteRepository.sumTotalByCompanyIdAndInvoiceIdAndStatusBeforeDate(
+                        companyContext.requireCompanyId(), invoice.getId(), CreditNoteStatus.ISSUED, endDate);
+                BigDecimal refunds = creditNoteRefundRepository.sumByCompanyIdAndInvoiceIdBeforeDate(
+                        companyContext.requireCompanyId(), invoice.getId(), endDate);
+                BigDecimal allocatedFrom = creditNoteAllocationRepository
+                        .sumByCompanyIdAndSourceInvoiceIdBeforeDate(
+                                companyContext.requireCompanyId(), invoice.getId(), endDate);
+                BigDecimal allocatedTo = creditNoteAllocationRepository
+                        .sumByCompanyIdAndTargetInvoiceIdBeforeDate(
+                                companyContext.requireCompanyId(), invoice.getId(), endDate);
                 totalOutstanding = totalOutstanding.add(
-                    invoice.getTotalAmount().subtract(invoice.getPaidAmount() != null ? invoice.getPaidAmount() : BigDecimal.ZERO)
+                    invoice.getTotalAmount()
+                            .subtract(invoice.getPaidAmount() != null ? invoice.getPaidAmount() : BigDecimal.ZERO)
+                            .subtract(creditAmount == null ? BigDecimal.ZERO : creditAmount)
+                            .add(refunds == null ? BigDecimal.ZERO : refunds)
+                            .add(allocatedFrom == null ? BigDecimal.ZERO : allocatedFrom)
+                            .subtract(allocatedTo == null ? BigDecimal.ZERO : allocatedTo)
                 );
             }
+        }
+        for (CreditNote note : issuedCreditNotes(startDate, endDate)) {
+            totalRevenue = totalRevenue.subtract(note.getTotalAmount());
         }
 
         Map<String, BigDecimal> report = new HashMap<>();
@@ -73,6 +105,21 @@ public class BillingReportService {
             if (invoice.getCustomer() == null || invoice.getDueDate() == null) continue;
             BigDecimal outstanding = invoice.getTotalAmount().subtract(
                     invoice.getPaidAmount() == null ? BigDecimal.ZERO : invoice.getPaidAmount());
+            BigDecimal credits = creditNoteRepository.sumTotalByCompanyIdAndInvoiceIdAndStatusBeforeDate(
+                    companyId, invoice.getId(), CreditNoteStatus.ISSUED, asOf);
+            BigDecimal refunds = creditNoteRefundRepository.sumByCompanyIdAndInvoiceIdBeforeDate(
+                    companyId, invoice.getId(), asOf);
+            BigDecimal allocatedFrom = creditNoteAllocationRepository
+                    .sumByCompanyIdAndSourceInvoiceIdBeforeDate(companyId, invoice.getId(), asOf);
+            BigDecimal allocatedTo = creditNoteAllocationRepository
+                    .sumByCompanyIdAndTargetInvoiceIdBeforeDate(companyId, invoice.getId(), asOf);
+            outstanding = outstanding.subtract(credits == null ? BigDecimal.ZERO : credits)
+                    .add(refunds == null ? BigDecimal.ZERO : refunds)
+                    .add(allocatedFrom == null ? BigDecimal.ZERO : allocatedFrom)
+                    .subtract(allocatedTo == null ? BigDecimal.ZERO : allocatedTo);
+            if (outstanding.signum() <= 0) {
+                continue;
+            }
             Map<String, Object> row = byCustomer.computeIfAbsent(invoice.getCustomer().getId(), id -> {
                 Map<String, Object> values = new LinkedHashMap<>();
                 values.put("customerName", invoice.getCustomer().getBusinessName());
@@ -130,6 +177,7 @@ public class BillingReportService {
         summary.put("viewed", invoiceRepository.findByCompanyIdAndStatusOrderByInvoiceNumberDesc(companyId, InvoiceStatus.VIEWED).size());
         summary.put("partiallyPaid", invoiceRepository.findByCompanyIdAndStatusOrderByInvoiceNumberDesc(companyId, InvoiceStatus.PARTIALLY_PAID).size());
         summary.put("paid", invoiceRepository.findByCompanyIdAndStatusOrderByInvoiceNumberDesc(companyId, InvoiceStatus.PAID).size());
+        summary.put("credited", invoiceRepository.findByCompanyIdAndStatusOrderByInvoiceNumberDesc(companyId, InvoiceStatus.CREDITED).size());
         summary.put("overdue", invoiceRepository.findByCompanyIdAndStatusOrderByInvoiceNumberDesc(companyId, InvoiceStatus.OVERDUE).size());
         summary.put("cancelled", invoiceRepository.findByCompanyIdAndStatusOrderByInvoiceNumberDesc(companyId, InvoiceStatus.CANCELLED).size());
         summary.put("refunded", invoiceRepository.findByCompanyIdAndStatusOrderByInvoiceNumberDesc(companyId, InvoiceStatus.REFUNDED).size());
@@ -152,6 +200,11 @@ public class BillingReportService {
                 totalQst = totalQst.add(invoice.getQstAmount() != null ? invoice.getQstAmount() : BigDecimal.ZERO);
             }
         }
+        for (CreditNote note : issuedCreditNotes(startDate, endDate)) {
+            totalGst = totalGst.subtract(zero(note.getGstAmount()));
+            totalHst = totalHst.subtract(zero(note.getHstAmount()));
+            totalQst = totalQst.subtract(zero(note.getQstAmount()));
+        }
 
         Map<String, BigDecimal> taxReport = new HashMap<>();
         taxReport.put("totalGst", totalGst);
@@ -160,5 +213,14 @@ public class BillingReportService {
         taxReport.put("totalTax", totalGst.add(totalHst).add(totalQst));
 
         return taxReport;
+    }
+
+    private List<CreditNote> issuedCreditNotes(LocalDate startDate, LocalDate endDate) {
+        return creditNoteRepository.findByCompanyIdAndStatusAndCreditNoteDateBetweenOrderByCreditNoteDateDescIdDesc(
+                companyContext.requireCompanyId(), CreditNoteStatus.ISSUED, startDate, endDate);
+    }
+
+    private BigDecimal zero(BigDecimal value) {
+        return value == null ? BigDecimal.ZERO : value;
     }
 }

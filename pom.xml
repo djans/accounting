@@ -122,7 +122,7 @@
                 <directory>${project.basedir}/docs</directory>
                 <targetPath>invoice-templates</targetPath>
                 <includes>
-                    <include>invoice-template-example.docx</include>
+                    <include>invoice-template-example_en.docx</include>
                 </includes>
             </resource>
         </resources>

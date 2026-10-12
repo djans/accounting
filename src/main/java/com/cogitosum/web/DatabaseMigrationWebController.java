@@ -62,21 +62,21 @@ public class DatabaseMigrationWebController {
 
     @GetMapping
     public String page(Model model, Authentication authentication) {
-        requireAdmin(authentication);
+        requireSuperAdmin(authentication);
         populatePage(model);
         return "database/migration";
     }
 
     @GetMapping("/documentation")
     public String documentation(Model model, Authentication authentication) {
-        requireAdmin(authentication);
+        requireSuperAdmin(authentication);
         populatePage(model);
         return "database/migration-documentation";
     }
 
     @GetMapping(value = "/example-package", produces = "application/zip")
     public ResponseEntity<byte[]> downloadExamplePackage(Authentication authentication) throws IOException {
-        requireAdmin(authentication);
+        requireSuperAdmin(authentication);
         ByteArrayOutputStream output = new ByteArrayOutputStream();
         try (ZipOutputStream zip = new ZipOutputStream(output, StandardCharsets.UTF_8)) {
             for (String filename : EXAMPLE_PACKAGE_FILES) {
@@ -97,7 +97,7 @@ public class DatabaseMigrationWebController {
 
     @PostMapping("/validate")
     public String validate(@RequestParam("file") MultipartFile file, Model model, Authentication authentication) {
-        requireAdmin(authentication);
+        requireSuperAdmin(authentication);
         populatePage(model);
         try {
             MigrationPreview preview = migrationService.preview(file.getBytes(), authentication.getName());
@@ -117,7 +117,7 @@ public class DatabaseMigrationWebController {
     public String importValidated(@RequestParam("confirmationToken") String confirmationToken,
                                   @RequestParam(value = "confirmation", required = false) String confirmation,
                                   Authentication authentication, RedirectAttributes attributes) {
-        requireAdmin(authentication);
+        requireSuperAdmin(authentication);
         if (!"IMPORT".equals(confirmation)) {
             attributes.addFlashAttribute("flashError", message("database.migration.error.confirmation"));
             return "redirect:/database/migration";
@@ -145,10 +145,10 @@ public class DatabaseMigrationWebController {
         return messageSource.getMessage(code, arguments, LocaleContextHolder.getLocale());
     }
 
-    private void requireAdmin(Authentication authentication) {
+    private void requireSuperAdmin(Authentication authentication) {
         if (authentication == null || !authentication.isAuthenticated()
-                || !authentication.getAuthorities().contains(new SimpleGrantedAuthority("ROLE_ADMIN"))) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Administrator role required");
+                || !authentication.getAuthorities().contains(new SimpleGrantedAuthority("ROLE_SUPER_ADMIN"))) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Super administrator role required");
         }
     }
 }

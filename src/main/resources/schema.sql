@@ -22,6 +22,8 @@ CREATE TABLE IF NOT EXISTS companies (
     default_tax_province    VARCHAR(2)   NOT NULL,
     fiscal_year_start_month INT          NOT NULL,
     posted_journal_editing_enabled BOOLEAN NOT NULL DEFAULT FALSE,
+    logo_data               MEDIUMBLOB   NULL,
+    logo_content_type       VARCHAR(100) NULL,
     created_at              DATETIME(6)  NOT NULL,
     updated_at              DATETIME(6)  NOT NULL,
     PRIMARY KEY (id),
@@ -133,6 +135,8 @@ CREATE TABLE IF NOT EXISTS invoices (
     paid_amount    DECIMAL(19, 2) NULL,
     opening_paid_amount DECIMAL(19, 2) NOT NULL DEFAULT 0,
     notes          VARCHAR(1000)  NULL,
+    cancellation_reason VARCHAR(1000) NULL,
+    cancelled_at   DATETIME(6)    NULL,
     created_at     DATETIME(6)    NOT NULL,
     updated_at     DATETIME(6)    NOT NULL,
     PRIMARY KEY (id),
@@ -143,6 +147,109 @@ CREATE TABLE IF NOT EXISTS invoices (
     KEY idx_invoices_date (invoice_date),
     CONSTRAINT fk_invoices_customer FOREIGN KEY (customer_id) REFERENCES customers (id),
     CONSTRAINT fk_invoices_company FOREIGN KEY (company_id) REFERENCES companies (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS invoice_final_pdfs (
+    invoice_id BIGINT NOT NULL,
+    pdf_data LONGBLOB NOT NULL,
+    created_at DATETIME(6) NOT NULL,
+    PRIMARY KEY (invoice_id),
+    CONSTRAINT fk_invoice_final_pdfs_invoice FOREIGN KEY (invoice_id)
+        REFERENCES invoices (id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Company-owned DOCX templates used to render invoice PDFs.
+CREATE TABLE IF NOT EXISTS invoice_templates (
+    id              VARCHAR(36)  NOT NULL,
+    company_id      BIGINT       NOT NULL,
+    name            VARCHAR(120) NOT NULL,
+    language_tag    VARCHAR(35)  NOT NULL,
+    original_filename VARCHAR(255) NOT NULL,
+    template_data   MEDIUMBLOB   NOT NULL,
+    created_at      DATETIME(6)  NOT NULL,
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_invoice_templates_company_language_name (company_id, language_tag, name),
+    KEY idx_invoice_templates_company (company_id),
+    CONSTRAINT fk_invoice_templates_company FOREIGN KEY (company_id) REFERENCES companies (id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS credit_notes (
+    id               BIGINT         NOT NULL AUTO_INCREMENT,
+    company_id       BIGINT         NOT NULL,
+    invoice_id       BIGINT         NOT NULL,
+    credit_note_number VARCHAR(255) NOT NULL,
+    credit_note_date DATE           NOT NULL,
+    status           VARCHAR(32)    NOT NULL,
+    reason           VARCHAR(1000)  NOT NULL,
+    subtotal         DECIMAL(19, 2) NOT NULL,
+    gst_amount       DECIMAL(19, 2) NOT NULL,
+    hst_amount       DECIMAL(19, 2) NOT NULL,
+    qst_amount       DECIMAL(19, 2) NOT NULL,
+    total_amount     DECIMAL(19, 2) NOT NULL,
+    issued_at        DATETIME(6)    NULL,
+    created_at       DATETIME(6)    NOT NULL,
+    updated_at       DATETIME(6)    NOT NULL,
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_credit_notes_company_number (company_id, credit_note_number),
+    KEY idx_credit_notes_company (company_id),
+    KEY idx_credit_notes_invoice (invoice_id),
+    CONSTRAINT fk_credit_notes_company FOREIGN KEY (company_id) REFERENCES companies (id),
+    CONSTRAINT fk_credit_notes_invoice FOREIGN KEY (invoice_id) REFERENCES invoices (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS credit_note_line_items (
+    id             BIGINT         NOT NULL AUTO_INCREMENT,
+    credit_note_id BIGINT         NOT NULL,
+    description    VARCHAR(500)   NOT NULL,
+    line_number    INTEGER        NOT NULL,
+    quantity       DECIMAL(19, 2) NOT NULL,
+    unit_price     DECIMAL(19, 2) NOT NULL,
+    total          DECIMAL(19, 2) NOT NULL,
+    PRIMARY KEY (id),
+    KEY idx_credit_note_lines_note (credit_note_id),
+    CONSTRAINT fk_credit_note_lines_note FOREIGN KEY (credit_note_id)
+        REFERENCES credit_notes (id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS credit_note_refunds (
+    id               BIGINT         NOT NULL AUTO_INCREMENT,
+    company_id       BIGINT         NOT NULL,
+    credit_note_id   BIGINT         NOT NULL,
+    bank_account_id  BIGINT         NOT NULL,
+    amount           DECIMAL(19, 2) NOT NULL,
+    refund_date      DATE           NOT NULL,
+    payment_method   VARCHAR(32)    NOT NULL,
+    transaction_id   VARCHAR(255)   NULL,
+    reason           VARCHAR(1000)  NOT NULL,
+    created_at       DATETIME(6)    NOT NULL,
+    updated_at       DATETIME(6)    NOT NULL,
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_credit_note_refunds_company_reference (company_id, transaction_id),
+    KEY idx_credit_note_refunds_note (credit_note_id),
+    KEY idx_credit_note_refunds_company_date (company_id, refund_date),
+    CONSTRAINT fk_credit_note_refunds_company FOREIGN KEY (company_id) REFERENCES companies (id),
+    CONSTRAINT fk_credit_note_refunds_note FOREIGN KEY (credit_note_id) REFERENCES credit_notes (id),
+    CONSTRAINT fk_credit_note_refunds_bank FOREIGN KEY (bank_account_id) REFERENCES chart_of_accounts (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS credit_note_allocations (
+    id                 BIGINT         NOT NULL AUTO_INCREMENT,
+    company_id         BIGINT         NOT NULL,
+    credit_note_id     BIGINT         NOT NULL,
+    target_invoice_id  BIGINT         NOT NULL,
+    amount             DECIMAL(19, 2) NOT NULL,
+    allocation_date    DATE           NOT NULL,
+    reversal_date      DATE           NULL,
+    reversal_reason    VARCHAR(1000)  NULL,
+    created_at         DATETIME(6)    NOT NULL,
+    updated_at         DATETIME(6)    NOT NULL,
+    PRIMARY KEY (id),
+    KEY idx_credit_note_allocations_note (credit_note_id),
+    KEY idx_credit_note_allocations_target (target_invoice_id),
+    KEY idx_credit_note_allocations_company_date (company_id, allocation_date),
+    CONSTRAINT fk_credit_note_allocations_company FOREIGN KEY (company_id) REFERENCES companies (id),
+    CONSTRAINT fk_credit_note_allocations_note FOREIGN KEY (credit_note_id) REFERENCES credit_notes (id),
+    CONSTRAINT fk_credit_note_allocations_target FOREIGN KEY (target_invoice_id) REFERENCES invoices (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- 7. line_items -----------------------------------------------------------
@@ -402,6 +509,8 @@ CREATE TABLE IF NOT EXISTS bills (
     total_amount DECIMAL(19, 2) NOT NULL,
     paid_amount  DECIMAL(19, 2) NULL,
     notes        VARCHAR(1000)  NULL,
+    cancellation_reason VARCHAR(1000) NULL,
+    cancelled_at DATETIME(6)    NULL,
     created_at   DATETIME(6)    NOT NULL,
     updated_at   DATETIME(6)    NOT NULL,
     PRIMARY KEY (id),

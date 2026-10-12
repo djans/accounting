@@ -1,6 +1,7 @@
 package com.cogitosum.web;
 
 import com.cogitosum.service.DatabaseBackupService;
+import com.cogitosum.service.CurrentCompanyContext;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
@@ -25,20 +26,23 @@ import java.time.LocalDate;
 public class DatabaseBackupWebController {
 
     private final DatabaseBackupService backupService;
+    private final CurrentCompanyContext companyContext;
 
-    public DatabaseBackupWebController(DatabaseBackupService backupService) {
+    public DatabaseBackupWebController(DatabaseBackupService backupService, CurrentCompanyContext companyContext) {
         this.backupService = backupService;
+        this.companyContext = companyContext;
     }
 
     @GetMapping("/backup")
     public String page(Model model) {
         requireAdmin();
+        model.addAttribute("canManageFullDatabase", companyContext.isSuperAdmin());
         return "database/backup";
     }
 
     @GetMapping("/backup/export")
     public ResponseEntity<ByteArrayResource> export() throws Exception {
-        requireAdmin();
+        requireSuperAdmin();
         byte[] content = backupService.exportDatabase();
         String filename = "accounting-backup-" + LocalDate.now() + ".json";
         return ResponseEntity.ok()
@@ -51,7 +55,7 @@ public class DatabaseBackupWebController {
 
     @PostMapping("/backup/import")
     public String importBackup(@RequestParam("file") MultipartFile file, RedirectAttributes attributes) {
-        requireAdmin();
+        requireSuperAdmin();
         try {
             if (file.isEmpty()) throw new IllegalArgumentException("Please select a backup file");
             int rows = backupService.importDatabase(file.getBytes());
@@ -68,6 +72,13 @@ public class DatabaseBackupWebController {
             || !authentication.getAuthorities().contains(new SimpleGrantedAuthority("ROLE_ADMIN"))) {
             throw new org.springframework.web.server.ResponseStatusException(
                 org.springframework.http.HttpStatus.FORBIDDEN, "Administrator role required");
+        }
+    }
+
+    private void requireSuperAdmin() {
+        if (!companyContext.isSuperAdmin()) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                org.springframework.http.HttpStatus.FORBIDDEN, "Super administrator role required");
         }
     }
 }

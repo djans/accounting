@@ -24,6 +24,8 @@ public class UserActivityLoggingInterceptor implements HandlerInterceptor {
         String method = request.getMethod();
         boolean mutation = "POST".equals(method) || "PUT".equals(method)
                 || "PATCH".equals(method) || "DELETE".equals(method);
+        boolean invoicePdfDownload = "GET".equals(method)
+                && request.getServletPath().matches("/invoices/\\d+/pdf");
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         boolean authenticated = authentication != null && authentication.isAuthenticated()
                 && !"anonymousUser".equals(authentication.getName());
@@ -34,10 +36,15 @@ public class UserActivityLoggingInterceptor implements HandlerInterceptor {
                         actor(authentication, authenticated),
                         method, request.getRequestURI(), status);
             }
-        } else if (mutation && authenticated) {
+        } else if ((mutation || invoicePdfDownload) && authenticated) {
             try (LoggingCategory.Scope ignored = LoggingCategory.open(LoggingCategory.USER_ACTIVITY)) {
-                log.info("User operation completed: actor={} method={} path={} status={}",
-                        actor(authentication, true), method, request.getRequestURI(), status);
+                if (invoicePdfDownload) {
+                    log.info("Invoice PDF downloaded: actor={} path={} status={}",
+                            actor(authentication, true), request.getRequestURI(), status);
+                } else {
+                    log.info("User operation completed: actor={} method={} path={} status={}",
+                            actor(authentication, true), method, request.getRequestURI(), status);
+                }
             }
         }
     }

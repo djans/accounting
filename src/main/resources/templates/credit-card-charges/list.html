@@ -153,20 +153,20 @@
                             </a>
                             <a th:if="${charge.status.name() == 'DRAFT'}"
                                th:href="@{/credit-card-charges/{id}/edit(id=${charge.id})}"
-                               class="btn-portal btn-ghost btn-sm icon-action"
+                               class="btn-portal btn-icon-action btn-icon-edit icon-action"
                                data-bs-toggle="tooltip" data-bs-placement="top"
                                th:title="#{creditCardCharges.edit}"
                                th:attr="aria-label=#{creditCardCharges.edit}">
-                                <i class="bi bi-pencil-square" aria-hidden="true"></i>
+                                <i class="bi bi-pencil" aria-hidden="true"></i>
                             </a>
                             <form th:if="${charge.status.name() == 'DRAFT'}"
                                   th:action="@{/credit-card-charges/{id}/delete(id=${charge.id})}" method="post">
-                                <button class="btn-portal btn-ghost btn-sm icon-action" type="submit"
+                                <button class="btn-portal btn-icon-action btn-icon-delete icon-action" type="submit"
                                         data-bs-toggle="tooltip" data-bs-placement="top"
                                         th:title="#{creditCardCharges.deleteDraft}"
                                         th:attr="aria-label=#{creditCardCharges.deleteDraft}, data-confirm-message=${#messages.msg('creditCardCharges.confirmDeleteDraft')}"
                                         onclick="return confirm(this.dataset.confirmMessage)">
-                                    <i class="bi bi-trash" aria-hidden="true"></i>
+                                    <i class="bi bi-x-lg" aria-hidden="true"></i>
                                 </button>
                             </form>
                             <form th:if="${charge.status.name() == 'DRAFT'}"
@@ -229,7 +229,7 @@
     .charge-bulk-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1rem; }
     .charge-actions { white-space: nowrap; }
     .charge-actions form { display: inline-flex; align-items: center; margin: 0; }
-    .icon-action { width: 2.25rem; height: 2.25rem; justify-content: center; padding: 0.25rem; }
+    .icon-action { width: 2.35rem; height: 2.35rem; justify-content: center; padding: 0; }
     .btn-portal.icon-action i { margin: 0; }
 </style>
 <script>

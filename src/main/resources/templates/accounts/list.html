@@ -83,12 +83,17 @@
                             </td>
                             <td class="text-end">
                                 <div class="btn-group">
-                                    <a th:href="@{/accounts/{id}/edit(id=${a.id})}" class="btn-portal btn-ghost btn-sm">
-                                        <i class="bi bi-pencil"></i>
+                                    <a th:href="@{/accounts/{id}/edit(id=${a.id})}"
+                                       class="btn-portal btn-icon-action btn-icon-edit"
+                                       th:title="#{btn.edit}" th:attr="aria-label=#{btn.edit}">
+                                        <i class="bi bi-pencil" aria-hidden="true"></i>
                                     </a>
-                                    <form th:action="@{/accounts/{id}/delete(id=${a.id})}" method="post" onsubmit="return confirm('Supprimer ce compte ?')">
-                                        <button type="submit" class="btn-portal btn-danger btn-sm ms-1">
-                                            <i class="bi bi-trash"></i>
+                                    <form th:action="@{/accounts/{id}/delete(id=${a.id})}" method="post"
+                                          th:attr="data-confirm-message=#{accounts.deleteConfirm}">
+                                        <button type="submit" class="btn-portal btn-icon-action btn-icon-delete"
+                                                th:title="#{btn.delete}" th:attr="aria-label=#{btn.delete}"
+                                                onclick="return confirm(this.form.dataset.confirmMessage)">
+                                            <i class="bi bi-x-lg" aria-hidden="true"></i>
                                         </button>
                                     </form>
                                 </div>

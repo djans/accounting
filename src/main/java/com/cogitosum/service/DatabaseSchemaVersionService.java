@@ -50,6 +50,42 @@ public class DatabaseSchemaVersionService {
                     "database.schema.version.1.4.0.title",
                     "database.schema.version.1.4.0.description",
                     "db/migration/V1_4_0__bank_import_categorization.sql",
+                    false),
+            new SchemaMigration(
+                    new SchemaVersion(1, 5, 0),
+                    "database.schema.version.1.5.0.title",
+                    "database.schema.version.1.5.0.description",
+                    "db/migration/V1_5_0__company_logos_and_document_corrections.sql",
+                    false),
+            new SchemaMigration(
+                    new SchemaVersion(1, 6, 0),
+                    "database.schema.version.1.6.0.title",
+                    "database.schema.version.1.6.0.description",
+                    "db/migration/V1_6_0__company_invoice_templates.sql",
+                    false),
+            new SchemaMigration(
+                    new SchemaVersion(1, 7, 0),
+                    "database.schema.version.1.7.0.title",
+                    "database.schema.version.1.7.0.description",
+                    "db/migration/V1_7_0__invoice_final_pdfs.sql",
+                    false),
+            new SchemaMigration(
+                    new SchemaVersion(1, 8, 0),
+                    "database.schema.version.1.8.0.title",
+                    "database.schema.version.1.8.0.description",
+                    "db/migration/V1_8_0__credit_notes.sql",
+                    false),
+            new SchemaMigration(
+                    new SchemaVersion(1, 9, 0),
+                    "database.schema.version.1.9.0.title",
+                    "database.schema.version.1.9.0.description",
+                    "db/migration/V1_9_0__credit_note_refunds.sql",
+                    false),
+            new SchemaMigration(
+                    new SchemaVersion(1, 10, 0),
+                    "database.schema.version.1.10.0.title",
+                    "database.schema.version.1.10.0.description",
+                    "db/migration/V1_10_0__credit_note_allocations.sql",
                     false));
 
     private final DataSource dataSource;
@@ -91,6 +127,18 @@ public class DatabaseSchemaVersionService {
                         applyCompanyRolesAndShortIds(connection);
                     } else if (migration.version().equals(new SchemaVersion(1, 4, 0))) {
                         applyBankImportCategorization(connection);
+                    } else if (migration.version().equals(new SchemaVersion(1, 5, 0))) {
+                        applyCompanyLogosAndDocumentCorrections(connection);
+                    } else if (migration.version().equals(new SchemaVersion(1, 6, 0))) {
+                        applyCompanyInvoiceTemplates(connection);
+                    } else if (migration.version().equals(new SchemaVersion(1, 7, 0))) {
+                        applyInvoiceFinalPdfs(connection);
+                    } else if (migration.version().equals(new SchemaVersion(1, 8, 0))) {
+                        applyCreditNotes(connection);
+                    } else if (migration.version().equals(new SchemaVersion(1, 9, 0))) {
+                        applyCreditNoteRefunds(connection);
+                    } else if (migration.version().equals(new SchemaVersion(1, 10, 0))) {
+                        applyCreditNoteAllocations(connection);
                     } else if (!migration.columnAlreadyExists() || !columnExists(
                             connection, migration.idempotencyTable(), migration.idempotencyColumn())) {
                         ClassPathResource script = new ClassPathResource(migration.resource());
@@ -105,6 +153,15 @@ public class DatabaseSchemaVersionService {
         } catch (SQLException exception) {
             throw new DataAccessResourceFailureException(
                     "Could not apply the database schema migrations.", exception);
+        }
+    }
+
+    public void ensureCompanyProfileColumnsBeforeAuthentication() {
+        try (Connection connection = dataSource.getConnection()) {
+            applyCompanyLogosAndDocumentCorrections(connection);
+        } catch (SQLException exception) {
+            throw new DataAccessResourceFailureException(
+                    "Could not ensure company profile columns are available for authentication.", exception);
         }
     }
 
@@ -257,6 +314,164 @@ public class DatabaseSchemaVersionService {
                         "bank_categorization_rules", "fk_bank_transactions_categorization_rule");
             }
         }
+    }
+
+    private void applyCompanyLogosAndDocumentCorrections(Connection connection) throws SQLException {
+        boolean sqlite = connection.getMetaData().getDatabaseProductName()
+                .toLowerCase(Locale.ROOT).contains("sqlite");
+        String binaryType = sqlite ? "BLOB" : "MEDIUMBLOB";
+        String dateTimeType = sqlite ? "DATETIME" : "DATETIME(6)";
+        addColumnIfMissing(connection, "companies", "logo_data", binaryType + " NULL");
+        addColumnIfMissing(connection, "companies", "logo_content_type", "VARCHAR(100) NULL");
+        addColumnIfMissing(connection, "invoices", "cancellation_reason", "VARCHAR(1000) NULL");
+        addColumnIfMissing(connection, "invoices", "cancelled_at", dateTimeType + " NULL");
+        addColumnIfMissing(connection, "bills", "cancellation_reason", "VARCHAR(1000) NULL");
+        addColumnIfMissing(connection, "bills", "cancelled_at", dateTimeType + " NULL");
+    }
+
+    private void applyCompanyInvoiceTemplates(Connection connection) throws SQLException {
+        String databaseProduct = connection.getMetaData().getDatabaseProductName()
+                .toLowerCase(Locale.ROOT);
+        boolean sqlite = databaseProduct.contains("sqlite");
+        String binaryType = databaseProduct.contains("mysql") ? "MEDIUMBLOB" : "BLOB";
+        String createTable = "CREATE TABLE IF NOT EXISTS invoice_templates ("
+                + "id VARCHAR(36) NOT NULL PRIMARY KEY, "
+                + "company_id BIGINT NOT NULL, "
+                + "name VARCHAR(120) NOT NULL, "
+                + "language_tag VARCHAR(35) NOT NULL, "
+                + "original_filename VARCHAR(255) NOT NULL, "
+                + "template_data " + binaryType + " NOT NULL, "
+                + "created_at " + (sqlite ? "DATETIME" : "DATETIME(6)") + " NOT NULL, "
+                + "CONSTRAINT uk_invoice_templates_company_language_name "
+                + "UNIQUE (company_id, language_tag, name), "
+                + "CONSTRAINT fk_invoice_templates_company FOREIGN KEY (company_id) "
+                + "REFERENCES companies (id) ON DELETE CASCADE)";
+        execute(connection, createTable);
+        createIndexIfMissing(connection, "idx_invoice_templates_company", "invoice_templates", "company_id");
+    }
+
+    private void applyInvoiceFinalPdfs(Connection connection) throws SQLException {
+        String databaseProduct = connection.getMetaData().getDatabaseProductName()
+                .toLowerCase(Locale.ROOT);
+        boolean sqlite = databaseProduct.contains("sqlite");
+        String invoiceIdType = sqlite ? "INTEGER" : "BIGINT";
+        String binaryType = databaseProduct.contains("mysql") ? "LONGBLOB" : "BLOB";
+        String dateTimeType = sqlite ? "DATETIME" : "DATETIME(6)";
+        execute(connection, "CREATE TABLE IF NOT EXISTS invoice_final_pdfs ("
+                + "invoice_id " + invoiceIdType + " NOT NULL PRIMARY KEY, "
+                + "pdf_data " + binaryType + " NOT NULL, "
+                + "created_at " + dateTimeType + " NOT NULL, "
+                + "CONSTRAINT fk_invoice_final_pdfs_invoice FOREIGN KEY (invoice_id) "
+                + "REFERENCES invoices (id) ON DELETE CASCADE)");
+    }
+
+    private void applyCreditNotes(Connection connection) throws SQLException {
+        String databaseProduct = connection.getMetaData().getDatabaseProductName()
+                .toLowerCase(Locale.ROOT);
+        boolean sqlite = databaseProduct.contains("sqlite");
+        String idDefinition = sqlite ? "INTEGER NOT NULL PRIMARY KEY"
+                : "BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY";
+        String dateTimeType = sqlite ? "DATETIME" : "DATETIME(6)";
+        String companyIdType = sqlite ? "INTEGER" : "BIGINT";
+        execute(connection, "CREATE TABLE IF NOT EXISTS credit_notes ("
+                + "id " + idDefinition + ", "
+                + "company_id " + companyIdType + " NOT NULL, "
+                + "invoice_id " + (sqlite ? "INTEGER" : "BIGINT") + " NOT NULL, "
+                + "credit_note_number VARCHAR(255) NOT NULL, "
+                + "credit_note_date DATE NOT NULL, "
+                + "status VARCHAR(32) NOT NULL, "
+                + "reason VARCHAR(1000) NOT NULL, "
+                + "subtotal DECIMAL(19, 2) NOT NULL, "
+                + "gst_amount DECIMAL(19, 2) NOT NULL, "
+                + "hst_amount DECIMAL(19, 2) NOT NULL, "
+                + "qst_amount DECIMAL(19, 2) NOT NULL, "
+                + "total_amount DECIMAL(19, 2) NOT NULL, "
+                + "issued_at " + dateTimeType + " NULL, "
+                + "created_at " + dateTimeType + " NOT NULL, "
+                + "updated_at " + dateTimeType + " NOT NULL, "
+                + "CONSTRAINT uk_credit_notes_company_number UNIQUE (company_id, credit_note_number), "
+                + "CONSTRAINT fk_credit_notes_company FOREIGN KEY (company_id) REFERENCES companies (id), "
+                + "CONSTRAINT fk_credit_notes_invoice FOREIGN KEY (invoice_id) REFERENCES invoices (id))");
+        execute(connection, "CREATE TABLE IF NOT EXISTS credit_note_line_items ("
+                + "id " + idDefinition + ", "
+                + "credit_note_id " + (sqlite ? "INTEGER" : "BIGINT") + " NOT NULL, "
+                + "description VARCHAR(500) NOT NULL, "
+                + "line_number INTEGER NOT NULL, "
+                + "quantity DECIMAL(19, 2) NOT NULL, "
+                + "unit_price DECIMAL(19, 2) NOT NULL, "
+                + "total DECIMAL(19, 2) NOT NULL, "
+                + "CONSTRAINT fk_credit_note_lines_note FOREIGN KEY (credit_note_id) "
+                + "REFERENCES credit_notes (id) ON DELETE CASCADE)");
+        createIndexIfMissing(connection, "idx_credit_notes_company", "credit_notes", "company_id");
+        createIndexIfMissing(connection, "idx_credit_notes_invoice", "credit_notes", "invoice_id");
+        createIndexIfMissing(connection, "idx_credit_note_lines_note", "credit_note_line_items", "credit_note_id");
+    }
+
+    private void applyCreditNoteRefunds(Connection connection) throws SQLException {
+        String databaseProduct = connection.getMetaData().getDatabaseProductName()
+                .toLowerCase(Locale.ROOT);
+        boolean sqlite = databaseProduct.contains("sqlite");
+        String idDefinition = sqlite ? "INTEGER NOT NULL PRIMARY KEY"
+                : "BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY";
+        String idType = sqlite ? "INTEGER" : "BIGINT";
+        String dateTimeType = sqlite ? "DATETIME" : "DATETIME(6)";
+        execute(connection, "CREATE TABLE IF NOT EXISTS credit_note_refunds ("
+                + "id " + idDefinition + ", "
+                + "company_id " + idType + " NOT NULL, "
+                + "credit_note_id " + idType + " NOT NULL, "
+                + "bank_account_id " + idType + " NOT NULL, "
+                + "amount DECIMAL(19, 2) NOT NULL, "
+                + "refund_date DATE NOT NULL, "
+                + "payment_method VARCHAR(32) NOT NULL, "
+                + "transaction_id VARCHAR(255) NULL, "
+                + "reason VARCHAR(1000) NOT NULL, "
+                + "created_at " + dateTimeType + " NOT NULL, "
+                + "updated_at " + dateTimeType + " NOT NULL, "
+                + "CONSTRAINT uk_credit_note_refunds_company_reference "
+                + "UNIQUE (company_id, transaction_id), "
+                + "CONSTRAINT fk_credit_note_refunds_company FOREIGN KEY (company_id) "
+                + "REFERENCES companies (id), "
+                + "CONSTRAINT fk_credit_note_refunds_note FOREIGN KEY (credit_note_id) "
+                + "REFERENCES credit_notes (id), "
+                + "CONSTRAINT fk_credit_note_refunds_bank FOREIGN KEY (bank_account_id) "
+                + "REFERENCES chart_of_accounts (id))");
+        createIndexIfMissing(connection, "idx_credit_note_refunds_note",
+                "credit_note_refunds", "credit_note_id");
+        createIndexIfMissing(connection, "idx_credit_note_refunds_company_date",
+                "credit_note_refunds", "company_id, refund_date");
+    }
+
+    private void applyCreditNoteAllocations(Connection connection) throws SQLException {
+        String databaseProduct = connection.getMetaData().getDatabaseProductName()
+                .toLowerCase(Locale.ROOT);
+        boolean sqlite = databaseProduct.contains("sqlite");
+        String idDefinition = sqlite ? "INTEGER NOT NULL PRIMARY KEY"
+                : "BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY";
+        String idType = sqlite ? "INTEGER" : "BIGINT";
+        String dateTimeType = sqlite ? "DATETIME" : "DATETIME(6)";
+        execute(connection, "CREATE TABLE IF NOT EXISTS credit_note_allocations ("
+                + "id " + idDefinition + ", "
+                + "company_id " + idType + " NOT NULL, "
+                + "credit_note_id " + idType + " NOT NULL, "
+                + "target_invoice_id " + idType + " NOT NULL, "
+                + "amount DECIMAL(19, 2) NOT NULL, "
+                + "allocation_date DATE NOT NULL, "
+                + "reversal_date DATE NULL, "
+                + "reversal_reason VARCHAR(1000) NULL, "
+                + "created_at " + dateTimeType + " NOT NULL, "
+                + "updated_at " + dateTimeType + " NOT NULL, "
+                + "CONSTRAINT fk_credit_note_allocations_company FOREIGN KEY (company_id) "
+                + "REFERENCES companies (id), "
+                + "CONSTRAINT fk_credit_note_allocations_note FOREIGN KEY (credit_note_id) "
+                + "REFERENCES credit_notes (id), "
+                + "CONSTRAINT fk_credit_note_allocations_target FOREIGN KEY (target_invoice_id) "
+                + "REFERENCES invoices (id))");
+        createIndexIfMissing(connection, "idx_credit_note_allocations_note",
+                "credit_note_allocations", "credit_note_id");
+        createIndexIfMissing(connection, "idx_credit_note_allocations_target",
+                "credit_note_allocations", "target_invoice_id");
+        createIndexIfMissing(connection, "idx_credit_note_allocations_company_date",
+                "credit_note_allocations", "company_id, allocation_date");
     }
 
     private boolean tableExists(Connection connection, String table) throws SQLException {

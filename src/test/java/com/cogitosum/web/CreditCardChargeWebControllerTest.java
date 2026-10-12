@@ -104,7 +104,7 @@ class CreditCardChargeWebControllerTest {
                 .andExpect(view().name("credit-card-charges/form"))
                 .andExpect(model().attributeExists("charge", "vendors", "expenseAccounts",
                         "cardAccounts", "regimes"))
-                .andExpect(content().string(org.hamcrest.Matchers.containsString("Save draft")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("aria-label=\"Save\"")))
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("Choose a tax type to see its breakdown.")))
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("data-gst=\"0.05\"")))
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("id=\"gstTax\"")))

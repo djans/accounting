@@ -27,7 +27,7 @@
                     <span th:text="#{database.schema.updateAvailable}">
                         A schema update is available. Back up the database before continuing.
                     </span>
-                    <a th:if="${isAdmin}" th:href="@{/database/backup/export}"
+                    <a th:if="${isSuperAdmin}" th:href="@{/database/backup/export}"
                        th:text="#{database.schema.backupLink}">Download a database backup</a>
                 </div>
                 <div th:if="${!schemaStatus.migrationPossible()}" class="alert alert-danger" role="alert">
@@ -38,7 +38,7 @@
                     <span th:text="#{database.schema.backupRequired}">
                         One or more migrations may affect existing data. A backup is required before applying them.
                     </span>
-                    <a th:if="${isAdmin}" th:href="@{/database/backup/export}"
+                    <a th:if="${isSuperAdmin}" th:href="@{/database/backup/export}"
                        th:text="#{database.schema.backupLink}">Download a database backup</a>
                 </div>
             </div>
@@ -73,7 +73,7 @@
                 </table>
             </div>
 
-            <div th:if="${schemaStatus.updateAvailable() && isAdmin}" class="portal-card">
+            <div th:if="${schemaStatus.updateAvailable() && isSuperAdmin}" class="portal-card">
                 <h3 class="portal-card-title" th:text="#{database.schema.applyTitle}">Apply available updates</h3>
                 <form th:action="@{/database/schema/apply}" method="post">
                     <label th:if="${schemaStatus.requiresBackup()}" class="d-flex align-items-center gap-2 my-3">
@@ -92,21 +92,21 @@
                     </div>
                 </form>
             </div>
-            <div th:if="${schemaStatus.updateAvailable() && !isAdmin}" class="portal-card">
-                <p th:text="#{database.schema.contactAdmin}">
-                    An administrator must approve and apply the schema update.
+            <div th:if="${schemaStatus.updateAvailable() && !isSuperAdmin}" class="portal-card">
+                <p th:text="#{database.schema.contactSuperAdmin}">
+                    A SuperAdmin must approve and apply the schema update.
                 </p>
             </div>
 
-            <div class="portal-card">
+            <div th:if="${isSuperAdmin}" class="portal-card">
                 <h3 class="portal-card-title" th:text="#{database.schema.resetTitle}">Complete database reset</h3>
                 <p th:text="#{database.schema.resetWarning}">
                     A reset permanently deletes all records and reinstalls the schema. Download a backup first.
                 </p>
                 <a th:href="@{/database/backup/export}" class="btn-portal btn-ghost"
-                   th:if="${isAdmin}" th:text="#{database.schema.backupLink}">Download a database backup</a>
+                   th:if="${isSuperAdmin}" th:text="#{database.schema.backupLink}">Download a database backup</a>
                 <a th:href="@{/admin/reset}" class="btn-portal btn-danger"
-                   th:if="${isAdmin}" th:text="#{database.schema.resetLink}">Open reset options</a>
+                   th:text="#{database.schema.resetLink}">Open reset options</a>
             </div>
         </section>
     </main>

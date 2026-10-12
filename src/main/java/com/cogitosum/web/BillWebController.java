@@ -115,9 +115,11 @@ public class BillWebController {
     }
 
     @PostMapping("/{id}/cancel")
-    public String cancel(@PathVariable Long id, RedirectAttributes ra) {
+    public String cancel(@PathVariable Long id,
+                         @RequestParam String reason,
+                         RedirectAttributes ra) {
         try {
-            billService.cancelBill(id);
+            billService.cancelBill(id, reason);
             ra.addFlashAttribute("flashSuccess", "Bill cancelled");
         } catch (Exception e) {
             ra.addFlashAttribute("flashError", "Could not cancel bill: " + e.getMessage());

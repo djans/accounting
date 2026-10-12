@@ -40,7 +40,7 @@
                     </tr>
                     </tbody></table>
                     <button type="button" class="btn-portal btn-ghost" id="addExpense" th:text="#{form.addExpense}">Add expense</button>
-                    <div class="form-actions"><a th:href="@{/cheques}" class="btn-portal btn-ghost" th:text="#{btn.cancel}">Cancel</a><button class="btn-portal" type="submit" th:text="#{cheques.saveDraft}">Save draft</button></div>
+                    <div class="form-actions"><a th:href="@{/cheques}" class="btn-portal btn-ghost" th:text="#{btn.cancel}">Cancel</a><button class="btn-portal btn-icon-action btn-icon-save" type="submit" th:title="#{btn.save}" th:attr="aria-label=#{btn.save}"><i class="bi bi-check-lg" aria-hidden="true"></i></button></div>
                 </form>
             </div>
         </section>

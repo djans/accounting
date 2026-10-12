@@ -550,6 +550,11 @@ public class InitialDataMigrationService {
             LocalDate invoiceDate = dateValue(row, "invoice_date", validation);
             LocalDate dueDate = dateValue(row, "due_date", validation);
             InvoiceStatus status = enumValue(row, "status", InvoiceStatus.class, validation);
+            if (status == InvoiceStatus.CREDITED) {
+                validation.error(row.filename, row.lineNumber,
+                    "CREDITED invoices are not supported in package version 1 because credit notes are excluded.");
+                status = null;
+            }
             BigDecimal subtotal = money(row, "subtotal", validation);
             BigDecimal gst = money(row, "gst_amount", validation);
             BigDecimal hst = money(row, "hst_amount", validation);

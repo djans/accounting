@@ -37,4 +37,20 @@ public class GlobalModelAdvice {
         return authentication != null && authentication.isAuthenticated()
                 && !"anonymousUser".equals(authentication.getName()) ? authentication : null;
     }
+
+    @ModelAttribute("isSuperAdmin")
+    public boolean isSuperAdmin() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        return authentication != null && authentication.isAuthenticated()
+                && authentication.getAuthorities().stream()
+                    .anyMatch(authority -> "ROLE_SUPER_ADMIN".equals(authority.getAuthority()));
+    }
+
+    @ModelAttribute("isCompanyAdmin")
+    public boolean isCompanyAdmin() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        return authentication != null && authentication.isAuthenticated()
+                && authentication.getAuthorities().stream()
+                    .anyMatch(authority -> "ROLE_ADMIN".equals(authority.getAuthority()));
+    }
 }

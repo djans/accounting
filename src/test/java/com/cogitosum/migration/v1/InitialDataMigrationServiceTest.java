@@ -125,7 +125,8 @@ class InitialDataMigrationServiceTest {
         DatabaseMigrationWebController controller = new DatabaseMigrationWebController(
             migrationService, org.mockito.Mockito.mock(MessageSource.class));
         UsernamePasswordAuthenticationToken administrator = new UsernamePasswordAuthenticationToken(
-            "admin@example.test", "", List.of(new SimpleGrantedAuthority("ROLE_ADMIN")));
+            "admin@example.test", "", List.of(new SimpleGrantedAuthority("ROLE_ADMIN"),
+                new SimpleGrantedAuthority("ROLE_SUPER_ADMIN")));
 
         var response = controller.downloadExamplePackage(administrator);
 
@@ -180,6 +181,20 @@ class InitialDataMigrationServiceTest {
         assertFalse(preview.isValid());
         assertTrue(preview.getErrors().stream().anyMatch(error ->
             error.fileName().equals("invoices.csv") && error.message().contains("PAID document")));
+    }
+
+    @Test
+    void versionOneImportRejectsCreditedInvoicesWithoutTheirCreditNotes() throws Exception {
+        Map<String, String> files = validFiles();
+        files.put("invoices.csv", files.get("invoices.csv")
+                .replace(",PARTIALLY_PAID,", ",CREDITED,"));
+
+        MigrationPreview preview = migrationService.preview(zip(files), "admin@example.test");
+
+        assertFalse(preview.isValid());
+        assertTrue(preview.getErrors().stream().anyMatch(error ->
+                error.fileName().equals("invoices.csv")
+                        && error.message().contains("credit notes are excluded")));
     }
 
     @Test

@@ -15,15 +15,18 @@ import org.springframework.context.MessageSource;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.ui.ExtendedModelMap;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.mvc.support.RedirectAttributesModelMap;
 
 import java.util.List;
 import java.util.Locale;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -42,7 +45,9 @@ class DatabaseSchemaVersionWebControllerTest {
     void setUp() {
         controller = new DatabaseSchemaVersionWebController(schemaVersionService, messageSource, shortIdService);
         when(authentication.isAuthenticated()).thenReturn(true);
-        doReturn(List.of(new SimpleGrantedAuthority("ROLE_ADMIN")))
+        lenient().doReturn(List.of(
+                new SimpleGrantedAuthority("ROLE_ADMIN"),
+                new SimpleGrantedAuthority("ROLE_SUPER_ADMIN")))
                 .when(authentication).getAuthorities();
     }
 
@@ -91,6 +96,17 @@ class DatabaseSchemaVersionWebControllerTest {
         assertEquals("Database schema updated", attributes.getFlashAttributes().get("flashSuccess"));
         verify(schemaVersionService).applyPendingMigrations();
         verify(shortIdService).assignMissingShortIds();
+    }
+
+    @Test
+    void companyAdministratorCannotApplyGlobalSchemaMigrations() {
+        doReturn(List.of(new SimpleGrantedAuthority("ROLE_ADMIN")))
+            .when(authentication).getAuthorities();
+
+        assertThrows(ResponseStatusException.class,
+            () -> controller.apply(false, authentication, new RedirectAttributesModelMap()));
+
+        verify(schemaVersionService, never()).applyPendingMigrations();
     }
 
     private Status status(boolean requiresBackup, boolean upToDate) {

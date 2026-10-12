@@ -6,9 +6,11 @@ import com.cogitosum.repository.ChartOfAccountRepository;
 import com.cogitosum.repository.VendorRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -45,10 +47,12 @@ public class BillService {
         return invoiceService.getRegimes();
     }
 
+    @Transactional
     public Bill createBill(Bill bill) {
         return createBill(bill, null);
     }
 
+    @Transactional
     public Bill createBill(Bill bill, String regimeCode) {
         Long companyId = companyContext.requireCompanyId();
         bill.setCompany(companyContext.requireCompany());
@@ -73,15 +77,20 @@ public class BillService {
         return saved;
     }
 
+    @Transactional
     public Bill updateBill(Long id, Bill bill) {
         return updateBill(id, bill, null);
     }
 
+    @Transactional
     public Bill updateBill(Long id, Bill bill, String regimeCode) {
         Long companyId = companyContext.requireCompanyId();
         Optional<Bill> existingBill = billRepository.findByIdAndCompanyId(id, companyId);
         if (existingBill.isPresent()) {
             Bill b = existingBill.get();
+            if (b.getStatus() != BillStatus.DRAFT) {
+                throw new IllegalStateException("Only draft bills can be edited");
+            }
             b.setVendor(vendorRepository.findByIdAndCompanyId(requiredId(bill.getVendor()), companyId)
                     .orElseThrow(() -> new IllegalArgumentException("Vendor not found")));
             b.setBillDate(bill.getBillDate());
@@ -124,21 +133,36 @@ public class BillService {
         return billRepository.findAllByCompanyIdOrderByBillNumberDesc(companyContext.requireCompanyId());
     }
 
+    @Transactional
     public Bill markBillAsReceived(Long id) {
         Optional<Bill> bill = billRepository.findByIdAndCompanyId(id, companyContext.requireCompanyId());
         if (bill.isPresent()) {
+            if (bill.get().getStatus() != BillStatus.DRAFT) {
+                throw new IllegalStateException("Only draft bills can be marked as received");
+            }
             bill.get().setStatus(BillStatus.RECEIVED);
             return billRepository.save(bill.get());
         }
         return null;
     }
 
-    public Bill cancelBill(Long id) {
+    @Transactional
+    public Bill cancelBill(Long id, String reason) {
+        String cancellationReason = requiredCancellationReason(reason);
         Optional<Bill> bill = billRepository.findByIdAndCompanyId(id, companyContext.requireCompanyId());
         if (bill.isPresent()) {
             Bill b = bill.get();
-            billPostingService.reverseBill(b, "Bill cancelled");
+            if (b.getStatus() == BillStatus.CANCELLED) {
+                throw new IllegalStateException("Bill is already cancelled");
+            }
+            if (b.getStatus() == BillStatus.PAID
+                    || b.getPaidAmount() != null && b.getPaidAmount().signum() > 0) {
+                throw new IllegalStateException("Refund or void bill payments before cancelling the bill");
+            }
+            billPostingService.reverseBill(b, "Bill cancelled: " + cancellationReason);
             b.setStatus(BillStatus.CANCELLED);
+            b.setCancellationReason(cancellationReason);
+            b.setCancelledAt(LocalDateTime.now());
             return billRepository.save(b);
         }
         return null;
@@ -208,10 +232,21 @@ public class BillService {
         return province != null && !province.isBlank() ? province : "FED";
     }
 
+    @Transactional
     public void deleteBill(Long id) {
         Optional<Bill> bill = billRepository.findByIdAndCompanyId(id, companyContext.requireCompanyId());
+        if (bill.isPresent() && bill.get().getStatus() != BillStatus.DRAFT) {
+            throw new IllegalStateException("Only draft bills can be deleted; cancel received bills with a reason");
+        }
         bill.ifPresent(b -> billPostingService.reverseBill(b, "Bill deleted"));
         bill.ifPresent(billRepository::delete);
+    }
+
+    private String requiredCancellationReason(String reason) {
+        if (reason == null || reason.isBlank() || reason.trim().length() > 1000) {
+            throw new IllegalArgumentException("A cancellation reason of up to 1000 characters is required");
+        }
+        return reason.trim();
     }
 
     private Long requiredId(Vendor vendor) {

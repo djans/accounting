@@ -4,6 +4,9 @@ import com.cogitosum.entity.Customer;
 import com.cogitosum.entity.Invoice;
 import com.cogitosum.entity.InvoiceStatus;
 import com.cogitosum.repository.InvoiceRepository;
+import com.cogitosum.repository.CreditNoteRepository;
+import com.cogitosum.repository.CreditNoteRefundRepository;
+import com.cogitosum.repository.CreditNoteAllocationRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -22,6 +25,9 @@ import static org.mockito.Mockito.when;
 class BillingReportServiceAgingTest {
 
     @Mock private InvoiceRepository invoiceRepository;
+    @Mock private CreditNoteRepository creditNoteRepository;
+    @Mock private CreditNoteRefundRepository creditNoteRefundRepository;
+    @Mock private CreditNoteAllocationRepository creditNoteAllocationRepository;
     @Mock private CurrentCompanyContext companyContext;
     @InjectMocks private BillingReportService service;
 
@@ -47,6 +53,26 @@ class BillingReportServiceAgingTest {
         assertEquals(new BigDecimal("50.00"), next.totals().get("60Days"));
         assertEquals(new BigDecimal("100.00"), customer(next, "Current Customer").get("days1To30"));
         assertEquals(new BigDecimal("50.00"), customer(next, "Overdue Customer").get("days31To60"));
+    }
+
+    @Test
+    void appliedCreditReducesTheTargetInvoiceAgingBalance() {
+        when(companyContext.requireCompanyId()).thenReturn(77L);
+        Invoice target = invoice(4L, 44L, "Allocation Customer", "100.00", LocalDate.of(2026, 1, 31));
+        when(invoiceRepository.findByCompanyIdAndStatusOrderByInvoiceNumberDesc(77L, InvoiceStatus.SENT))
+                .thenReturn(List.of(target));
+        when(creditNoteRepository.sumTotalByCompanyIdAndInvoiceIdAndStatusBeforeDate(
+                77L, 4L, com.cogitosum.entity.CreditNoteStatus.ISSUED, LocalDate.of(2026, 1, 31)))
+                .thenReturn(BigDecimal.ZERO);
+        when(creditNoteRefundRepository.sumByCompanyIdAndInvoiceIdBeforeDate(
+                77L, 4L, LocalDate.of(2026, 1, 31))).thenReturn(BigDecimal.ZERO);
+        when(creditNoteAllocationRepository.sumByCompanyIdAndTargetInvoiceIdBeforeDate(
+                77L, 4L, LocalDate.of(2026, 1, 31))).thenReturn(new BigDecimal("30.00"));
+
+        BillingReportService.AgingReport report = service.getAgingReport(LocalDate.of(2026, 1, 31));
+
+        assertEquals(new BigDecimal("70.00"), report.totals().get("current"));
+        assertEquals(new BigDecimal("70.00"), report.totals().get("totalOutstanding"));
     }
 
     private Invoice invoice(Long invoiceId, Long customerId, String customerName, String amount, LocalDate dueDate) {

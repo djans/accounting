@@ -18,30 +18,70 @@
                               th:text="${invoice.status}"></span>
                     </span>
                     <span>
-                        <a th:href="@{/invoices/{id}/pdf(id=${invoice.id})}" class="btn-portal btn-ghost btn-sm">
-                            <i class="bi bi-file-earmark-pdf"></i> <span th:text="#{invoice.pdf.download}">Download PDF</span>
+                        <a th:if="${invoice.status.name() != 'DRAFT'}"
+                           th:href="@{/invoices/{id}/pdf(id=${invoice.id})}"
+                           class="btn-portal btn-icon-action btn-icon-download"
+                           data-download-progress="fetch"
+                           data-bs-toggle="tooltip" data-bs-placement="top"
+                           th:title="#{invoice.pdf.download}"
+                           th:attr="aria-label=#{invoice.pdf.download}">
+                            <i class="bi bi-file-earmark-pdf" aria-hidden="true"></i>
+                            <span class="invoice-submit-spinner" data-download-spinner aria-hidden="true" hidden></span>
                         </a>
                         <a th:if="${invoice.status.name() == 'DRAFT'}"
-                           th:href="@{/invoices/{id}/edit(id=${invoice.id})}" class="btn-portal btn-ghost btn-sm">
-                            <i class="bi bi-pencil"></i> Edit
+                           th:href="@{/invoices/{id}/edit(id=${invoice.id})}"
+                           class="btn-portal btn-icon-action btn-icon-edit"
+                           data-bs-toggle="tooltip" data-bs-placement="top"
+                           th:title="#{btn.edit}" th:attr="aria-label=#{btn.edit}">
+                            <i class="bi bi-pencil" aria-hidden="true"></i>
                         </a>
-                        <form th:action="@{/invoices/{id}/duplicate(id=${invoice.id})}" method="post" style="display:inline">
-                            <button class="btn-portal btn-ghost btn-sm">
-                                <i class="bi bi-copy"></i> Duplicate
+                        <form th:if="${invoice.status.name() == 'DRAFT'}"
+                              th:action="@{/invoices/{id}/delete(id=${invoice.id})}" method="post"
+                              style="display:inline"
+                              th:attr="data-confirm-message=#{document.deleteDraftConfirm}">
+                            <button type="submit" class="btn-portal btn-icon-action btn-icon-delete"
+                                    data-bs-toggle="tooltip" data-bs-placement="top"
+                                    th:title="#{btn.delete}"
+                                    th:attr="aria-label=#{btn.delete}"
+                                    onclick="return confirm(this.form.dataset.confirmMessage)">
+                                <i class="bi bi-trash" aria-hidden="true"></i>
                             </button>
                         </form>
-                        <form th:action="@{/invoices/{id}/send(id=${invoice.id})}" method="post" style="display:inline"
-                              th:if="${invoice.status.name() == 'DRAFT'}">
-                            <button class="btn-portal btn-sm"><i class="bi bi-send"></i> Mark as Sent</button>
+                        <form th:action="@{/invoices/{id}/duplicate(id=${invoice.id})}" method="post" style="display:inline">
+                            <button type="submit" class="btn-portal btn-icon-action btn-icon-edit"
+                                    data-bs-toggle="tooltip" data-bs-placement="top"
+                                    th:title="#{invoice.action.duplicate}"
+                                    th:attr="aria-label=#{invoice.action.duplicate}">
+                                <i class="bi bi-copy" aria-hidden="true"></i>
+                            </button>
                         </form>
                         <form th:action="@{/invoices/{id}/cancel(id=${invoice.id})}" method="post" style="display:inline"
-                              th:if="${invoice.status.name() != 'CANCELLED' and invoice.status.name() != 'PAID'}">
-                            <button class="btn-portal btn-ghost btn-sm" onclick="return confirm('Cancel this invoice?')">
-                                <i class="bi bi-x-circle"></i> Cancel
+                              th:if="${invoice.status.name() != 'CANCELLED' and invoice.status.name() != 'PAID' and invoice.status.name() != 'CREDITED' and invoice.status.name() != 'DRAFT' and (invoice.paidAmount == null or invoice.paidAmount.signum() == 0) and #lists.isEmpty(creditNotes)}">
+                            <input type="text" name="reason" required maxlength="1000"
+                                   th:placeholder="#{document.cancel.reason}"
+                                   th:attr="aria-label=#{document.cancel.reason}"/>
+                            <button type="submit" class="btn-portal btn-icon-action btn-icon-delete"
+                                    data-bs-toggle="tooltip" data-bs-placement="top"
+                                    th:title="#{invoice.action.cancel}"
+                                    th:attr="aria-label=#{invoice.action.cancel}">
+                                <i class="bi bi-x-circle" aria-hidden="true"></i>
                             </button>
                         </form>
-                        <a th:href="@{/payments/new(invoiceId=${invoice.id})}" class="btn-portal btn-success btn-sm">
-                            <i class="bi bi-cash-coin"></i> Record Payment
+                        <a th:if="${invoice.status.name() == 'SENT' or invoice.status.name() == 'VIEWED' or invoice.status.name() == 'PARTIALLY_PAID' or invoice.status.name() == 'OVERDUE'}"
+                           th:href="@{/payments/new(invoiceId=${invoice.id})}"
+                           class="btn-portal btn-icon-action btn-icon-save"
+                           data-bs-toggle="tooltip" data-bs-placement="top"
+                           th:title="#{invoice.action.recordPayment}"
+                           th:attr="aria-label=#{invoice.action.recordPayment}">
+                            <i class="bi bi-cash-coin" aria-hidden="true"></i>
+                        </a>
+                        <a th:if="${canCreateCreditNote}"
+                           th:href="@{/credit-notes/from-invoice/{invoiceId}/new(invoiceId=${invoice.id})}"
+                           class="btn-portal btn-icon-action btn-icon-edit"
+                           data-bs-toggle="tooltip" data-bs-placement="top"
+                           th:title="#{creditNotes.create}"
+                           th:attr="aria-label=#{creditNotes.create}">
+                            <i class="bi bi-receipt-cutoff" aria-hidden="true"></i>
                         </a>
                     </span>
                 </h3>
@@ -59,6 +99,63 @@
                         <div>Due: <span th:text="${invoice.dueDate}">2026-01-31</span></div>
                     </div>
                 </div>
+                <div class="invoice-final-option" th:if="${invoice.status.name() == 'DRAFT'}">
+                    <form th:action="@{/invoices/{id}/finalize(id=${invoice.id})}" method="post">
+                        <label class="invoice-final-label" for="finalInvoice">
+                            <input id="finalInvoice" name="finalInvoice" type="checkbox" value="true"
+                                   required="required"/>
+                            <span th:text="#{invoice.form.final}">Final invoice?</span>
+                        </label>
+                        <small class="text-muted" th:text="#{invoice.form.finalHelp}">
+                            Issuing the invoice posts it, locks edits, and stores the PDF for future downloads.
+                        </small>
+                        <div class="form-field" style="margin-top:.75rem">
+                            <label for="finalTemplateId" th:text="#{invoice.form.finalTemplate}">
+                                Final PDF template
+                            </label>
+                            <select id="finalTemplateId" name="finalTemplateId">
+                                <option th:each="template : ${finalTemplates}"
+                                        th:value="${template.id()}"
+                                        th:selected="${template.id() == suggestedFinalTemplateId}"
+                                        th:text="${template.name() + ' (' + template.languageTag() + ')'}">
+                                    Standard (en)
+                                </option>
+                            </select>
+                        </div>
+                        <button type="submit" class="btn-portal btn-icon-action btn-icon-save"
+                                style="margin-top:.75rem"
+                                data-bs-toggle="tooltip" data-bs-placement="top"
+                                th:title="#{invoice.form.finalize}"
+                                th:attr="aria-label=#{invoice.form.finalize}">
+                            <i class="bi bi-send-check" aria-hidden="true"></i>
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <div class="portal-card">
+                <div class="portal-card-title">
+                    <span th:text="#{creditNotes.title}">Credit notes</span>
+                </div>
+                <div th:if="${#lists.isEmpty(creditNotes)}" class="empty-state" th:text="#{creditNotes.noneForInvoice}">
+                    No credit notes for this invoice.
+                </div>
+                <table th:if="${not #lists.isEmpty(creditNotes)}" class="table-portal">
+                    <thead><tr>
+                        <th th:text="#{creditNotes.number}">Credit note</th>
+                        <th th:text="#{creditNotes.date}">Date</th>
+                        <th th:text="#{table.status}">Status</th>
+                        <th class="num" th:text="#{table.total}">Total</th>
+                    </tr></thead>
+                    <tbody>
+                    <tr th:each="note : ${creditNotes}">
+                        <td><a th:href="@{/credit-notes/{id}(id=${note.id})}" th:text="${note.creditNoteNumber}">CN-001</a></td>
+                        <td th:text="${note.creditNoteDate}">2026-01-01</td>
+                        <td th:text="${#messages.msg('creditNote.status.' + note.status.name())}">Issued</td>
+                        <td class="num" th:text="${#numbers.formatCurrency(note.totalAmount)}">$0.00</td>
+                    </tr>
+                    </tbody>
+                </table>
             </div>
 
             <div class="portal-card">
@@ -103,12 +200,25 @@
                         <div class="stat-sub">
                             Paid <span th:text="${invoice.paidAmount != null ? #numbers.formatCurrency(invoice.paidAmount) : '$0.00'}"></span>
                         </div>
+                        <div class="stat-sub">
+                            <span th:text="#{invoice.outstandingAmount}">Balance</span>
+                            <span th:text="${#numbers.formatCurrency(outstandingAmount)}">$0.00</span>
+                        </div>
+                        <div class="stat-sub" th:if="${issuedCreditAmount.signum() > 0}">
+                            <span th:text="#{creditNotes.issuedTotal}">Issued credit notes</span>
+                            <span th:text="${#numbers.formatCurrency(issuedCreditAmount)}">$0.00</span>
+                        </div>
                     </div>
                 </div>
 
                 <div th:if="${invoice.notes}" style="margin-top:1.25rem">
                     <div class="stat-label">Notes</div>
                     <div th:text="${invoice.notes}"></div>
+                </div>
+                <div th:if="${invoice.cancellationReason}" style="margin-top:1.25rem">
+                    <div class="stat-label" th:text="#{document.cancel.reason}">Reason for cancellation</div>
+                    <div th:text="${invoice.cancellationReason}"></div>
+                    <div class="text-muted" th:text="${invoice.cancelledAt}"></div>
                 </div>
             </div>
 
@@ -125,8 +235,11 @@
                         </div>
                     </div>
                     <div class="form-actions">
-                        <button class="btn-portal btn-ghost btn-sm" type="submit">
-                            <i class="bi bi-paperclip"></i> <span th:text="#{attachments.upload}">Upload attachment</span>
+                        <button type="submit" class="btn-portal btn-icon-action btn-icon-save"
+                                data-bs-toggle="tooltip" data-bs-placement="top"
+                                th:title="#{attachments.upload}"
+                                th:attr="aria-label=#{attachments.upload}">
+                            <i class="bi bi-paperclip" aria-hidden="true"></i>
                         </button>
                     </div>
                 </form>
@@ -144,13 +257,23 @@
                         <td th:text="${attachment.filename}">document.pdf</td>
                         <td th:text="${attachment.contentLength + ' bytes'}">0 bytes</td>
                         <td>
-                            <a class="btn-portal btn-ghost btn-sm"
-                               th:href="@{/invoices/{invoiceId}/attachments/{attachmentId}(invoiceId=${invoice.id},attachmentId=${attachment.id})}"
-                               th:text="#{attachments.download}">Download</a>
+                            <a th:href="@{/invoices/{invoiceId}/attachments/{attachmentId}(invoiceId=${invoice.id},attachmentId=${attachment.id})}"
+                               class="btn-portal btn-icon-action btn-icon-download"
+                               data-download-progress="fetch"
+                               data-bs-toggle="tooltip" data-bs-placement="top"
+                               th:title="#{attachments.download}"
+                               th:attr="aria-label=#{attachments.download}">
+                                <i class="bi bi-download" aria-hidden="true"></i>
+                                <span class="invoice-submit-spinner" data-download-spinner aria-hidden="true" hidden></span>
+                            </a>
                             <form th:action="@{/invoices/{invoiceId}/attachments/{attachmentId}/delete(invoiceId=${invoice.id},attachmentId=${attachment.id})}"
                                   method="post" style="display:inline">
-                                <button type="submit" class="btn-portal btn-danger btn-sm"
-                                        th:text="#{attachments.delete}">Delete</button>
+                                <button type="submit" class="btn-portal btn-icon-action btn-icon-delete"
+                                        data-bs-toggle="tooltip" data-bs-placement="top"
+                                        th:title="#{attachments.delete}"
+                                        th:attr="aria-label=#{attachments.delete}">
+                                    <i class="bi bi-trash" aria-hidden="true"></i>
+                                </button>
                             </form>
                         </td>
                     </tr>
@@ -172,8 +295,11 @@
                         </div>
                     </div>
                     <div class="form-actions">
-                        <button class="btn-portal btn-sm" type="submit">
-                            <i class="bi bi-send"></i> <span th:text="#{invoice.email.send}">Email invoice</span>
+                        <button type="submit" class="btn-portal btn-icon-action btn-icon-save"
+                                data-bs-toggle="tooltip" data-bs-placement="top"
+                                th:title="#{invoice.email.send}"
+                                th:attr="aria-label=#{invoice.email.send}">
+                            <i class="bi bi-send" aria-hidden="true"></i>
                         </button>
                     </div>
                 </form>
@@ -210,16 +336,16 @@
                 </table>
             </div>
 
-            <div style="text-align:right">
-                <form th:action="@{/invoices/{id}/delete(id=${invoice.id})}" method="post" style="display:inline">
-                    <button class="btn-portal btn-danger btn-sm"
-                            onclick="return confirm('Delete this invoice?')">
-                        <i class="bi bi-trash"></i> Delete invoice
-                    </button>
-                </form>
-            </div>
         </section>
     </main>
 </div>
+<script th:src="@{/js/invoice-download-progress.js}"></script>
+<script>
+    document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(function (element) {
+        if (window.bootstrap && window.bootstrap.Tooltip) {
+            new window.bootstrap.Tooltip(element);
+        }
+    });
+</script>
 </body>
 </html>

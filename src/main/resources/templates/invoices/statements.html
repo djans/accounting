@@ -52,9 +52,11 @@
                         </div>
                     </div>
                     <a class="btn-portal btn-ghost btn-sm"
-                       th:href="@{/invoices/statements/{customerId}.pdf(customerId=${statement.customer.id},startDate=${startDate},endDate=${endDate})}">
+                       th:href="@{/invoices/statements/{customerId}.pdf(customerId=${statement.customer.id},startDate=${startDate},endDate=${endDate})}"
+                       data-download-progress="fetch">
                         <i class="bi bi-file-earmark-pdf"></i>
                         <span th:text="#{invoices.statement.downloadPdf}">Download PDF</span>
+                        <span class="invoice-submit-spinner" data-download-spinner aria-hidden="true" hidden></span>
                     </a>
                 </div>
                 <div class="report-totals my-3">
@@ -112,5 +114,6 @@
         </section>
     </main>
 </div>
+<script th:src="@{/js/invoice-download-progress.js}"></script>
 </body>
 </html>

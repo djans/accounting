@@ -163,6 +163,7 @@
     <div class="nav-group">
         <a th:href="@{/customers}" class="nav-link" th:classappend="${active=='customers'} ? ' active'"><i class="bi bi-people-fill nav-icon"></i> <span th:text="#{nav.customers}">Customers</span></a>
         <a th:href="@{/invoices}" class="nav-link" th:classappend="${active=='invoices'} ? ' active'"><i class="bi bi-receipt nav-icon"></i> <span th:text="#{nav.invoices}">Invoices</span></a>
+        <a th:href="@{/credit-notes}" class="nav-link" th:classappend="${active=='credit-notes'} ? ' active'"><i class="bi bi-receipt-cutoff nav-icon"></i> <span th:text="#{nav.creditNotes}">Credit notes</span></a>
         <a th:href="@{/payments}" class="nav-link" th:classappend="${active=='payments'} ? ' active'"><i class="bi bi-cash-coin nav-icon"></i> <span th:text="#{nav.payments}">Payments</span></a>
         <a th:href="@{/cheques}" class="nav-link" th:classappend="${active=='cheques'} ? ' active'"><i class="bi bi-wallet2 nav-icon"></i> <span th:text="#{nav.cheques}">Cheques</span> <span class="nav-hotkey">Ctrl+W</span></a>
         <a th:href="@{/credit-card-charges}" class="nav-link" th:classappend="${active=='credit-card-charges'} ? ' active'"><i class="bi bi-credit-card nav-icon"></i> Credit Card Charges</a>
@@ -212,13 +213,14 @@
     </div>
     <div class="nav-group">
         <a th:href="@{/companies}" class="nav-link" th:classappend="${active=='companies'} ? ' active'"><i class="bi bi-buildings nav-icon"></i> <span th:text="#{company.list.nav}">Companies</span></a>
-        <a th:href="@{/database/backup}" class="nav-link" th:classappend="${active=='database'} ? ' active'"><i class="bi bi-database-down nav-icon"></i> <span th:text="#{nav.databaseBackup}">Database backup</span></a>
-        <a th:href="@{/admin/database/migrate}" class="nav-link" th:classappend="${active=='database-engine-migration'} ? ' active'"><i class="bi bi-arrow-left-right nav-icon"></i> <span th:text="#{nav.databaseEngineMigration}">Database engine migration</span></a>
-        <a th:href="@{/database/schema}" class="nav-link" th:classappend="${active=='schema-version'} ? ' active'"><i class="bi bi-database-gear nav-icon"></i> <span th:text="#{nav.databaseSchema}">Database schema</span></a>
-        <a th:href="@{/admin/reset}" class="nav-link" th:classappend="${active=='admin-reset'} ? ' active'"><i class="bi bi-arrow-counterclockwise nav-icon"></i> <span th:text="#{nav.resetData}">Reset activities</span></a>
-        <a th:href="@{/admin/users}" class="nav-link" th:classappend="${active=='company-users'} ? ' active'"><i class="bi bi-person-gear nav-icon"></i> <span th:text="#{nav.companyUsers}">Company users</span></a>
-        <a th:href="@{/database/query}" class="nav-link" th:classappend="${active=='database-query'} ? ' active'"><i class="bi bi-database-gear nav-icon"></i> <span th:text="#{nav.databaseQuery}">Database SQL</span></a>
-        <a th:href="@{/admin/monitoring}" class="nav-link" th:classappend="${active=='admin-monitoring'} ? ' active'"><i class="bi bi-activity nav-icon"></i> <span th:text="#{nav.monitoring}">Health and metrics</span></a>
+        <a th:if="${isCompanyAdmin}" th:href="@{/database/backup}" class="nav-link" th:classappend="${active=='database'} ? ' active'"><i class="bi bi-database-down nav-icon"></i> <span th:text="#{nav.databaseBackup}">Database backup</span></a>
+        <a th:if="${isSuperAdmin}" th:href="@{/admin/database/migrate}" class="nav-link" th:classappend="${active=='database-engine-migration'} ? ' active'"><i class="bi bi-arrow-left-right nav-icon"></i> <span th:text="#{nav.databaseEngineMigration}">Database engine migration</span></a>
+        <a th:if="${isCompanyAdmin}" th:href="@{/database/schema}" class="nav-link" th:classappend="${active=='schema-version'} ? ' active'"><i class="bi bi-database-gear nav-icon"></i> <span th:text="#{nav.databaseSchema}">Database schema</span></a>
+        <a th:if="${isCompanyAdmin}" th:href="@{/admin/reset}" class="nav-link" th:classappend="${active=='admin-reset'} ? ' active'"><i class="bi bi-arrow-counterclockwise nav-icon"></i> <span th:text="#{nav.resetData}">Reset activities</span></a>
+        <a th:if="${isCompanyAdmin}" th:href="@{/admin/users}" class="nav-link" th:classappend="${active=='company-users'} ? ' active'"><i class="bi bi-person-gear nav-icon"></i> <span th:text="#{nav.companyUsers}">Company users</span></a>
+        <a th:if="${isCompanyAdmin}" th:href="@{/admin/invoice-templates}" class="nav-link" th:classappend="${active=='invoice-templates'} ? ' active'"><i class="bi bi-file-earmark-word nav-icon"></i> <span th:text="#{nav.invoiceTemplates}">Invoice templates</span></a>
+        <a th:if="${isSuperAdmin}" th:href="@{/database/query}" class="nav-link" th:classappend="${active=='database-query'} ? ' active'"><i class="bi bi-database-gear nav-icon"></i> <span th:text="#{nav.databaseQuery}">Database SQL</span></a>
+        <a th:if="${isSuperAdmin}" th:href="@{/admin/monitoring}" class="nav-link" th:classappend="${active=='admin-monitoring'} ? ' active'"><i class="bi bi-activity nav-icon"></i> <span th:text="#{nav.monitoring}">Health and metrics</span></a>
     </div>
 
 </aside>

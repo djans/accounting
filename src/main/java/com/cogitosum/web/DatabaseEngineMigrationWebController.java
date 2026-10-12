@@ -43,7 +43,7 @@ public class DatabaseEngineMigrationWebController {
 
     @GetMapping
     public String page(Authentication authentication, Model model) {
-        requireAdmin(authentication);
+        requireSuperAdmin(authentication);
         model.addAttribute("active", "database-engine-migration");
         try {
             String sourceDatabaseType = migrationService.getSourceDatabaseType();
@@ -69,7 +69,7 @@ public class DatabaseEngineMigrationWebController {
                                  @RequestParam(defaultValue = "false") boolean confirmReplacement,
                                  Authentication authentication,
                                  RedirectAttributes attributes) {
-        requireAdmin(authentication);
+        requireSuperAdmin(authentication);
         if (!confirmed(confirmation, confirmReplacement)) {
             logRejection(authentication, "mysql", "confirmation-required");
             attributes.addFlashAttribute("flashError", message("database.engineMigration.error.confirmation"));
@@ -91,7 +91,7 @@ public class DatabaseEngineMigrationWebController {
                                   @RequestParam(defaultValue = "false") boolean confirmReplacement,
                                   Authentication authentication,
                                   RedirectAttributes attributes) {
-        requireAdmin(authentication);
+        requireSuperAdmin(authentication);
         if (!confirmed(confirmation, confirmReplacement)) {
             logRejection(authentication, "sqlite", "confirmation-required");
             attributes.addFlashAttribute("flashError", message("database.engineMigration.error.confirmation"));
@@ -109,7 +109,7 @@ public class DatabaseEngineMigrationWebController {
 
     @GetMapping("/complete")
     public String complete(Authentication authentication, Model model) {
-        requireAdmin(authentication);
+        requireSuperAdmin(authentication);
         model.addAttribute("active", "database-engine-migration");
         if (!model.containsAttribute("migrationRows")) {
             return "redirect:/admin/database/migrate";
@@ -146,10 +146,10 @@ public class DatabaseEngineMigrationWebController {
         return messageSource.getMessage(code, arguments, LocaleContextHolder.getLocale());
     }
 
-    private void requireAdmin(Authentication authentication) {
+    private void requireSuperAdmin(Authentication authentication) {
         if (authentication == null || !authentication.isAuthenticated()
-                || !authentication.getAuthorities().contains(new SimpleGrantedAuthority("ROLE_ADMIN"))) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Administrator role required");
+                || !authentication.getAuthorities().contains(new SimpleGrantedAuthority("ROLE_SUPER_ADMIN"))) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Super administrator role required");
         }
     }
 }

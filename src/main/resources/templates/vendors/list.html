@@ -49,13 +49,17 @@
                         <td th:text="${v.gstNumber}">—</td>
                         <td th:text="${v.qstNumber}">—</td>
                         <td style="text-align:right; white-space:nowrap;">
-                            <a th:href="@{/vendors/{id}/edit(id=${v.id})}" class="btn-portal btn-ghost btn-sm">
-                                <i class="bi bi-pencil"></i> Modifier
+                            <a th:href="@{/vendors/{id}/edit(id=${v.id})}"
+                               class="btn-portal btn-icon-action btn-icon-edit"
+                               th:title="#{btn.edit}" th:attr="aria-label=#{btn.edit}">
+                                <i class="bi bi-pencil" aria-hidden="true"></i>
                             </a>
-                            <form th:action="@{/vendors/{id}/delete(id=${v.id})}" method="post" style="display:inline">
-                                <button type="submit" class="btn-portal btn-danger btn-sm"
-                                        onclick="return confirm('Supprimer ce fournisseur ?')">
-                                    <i class="bi bi-trash"></i>
+                            <form th:action="@{/vendors/{id}/delete(id=${v.id})}" method="post" style="display:inline"
+                                  th:attr="data-confirm-message=#{party.vendorDeleteConfirm}">
+                                <button type="submit" class="btn-portal btn-icon-action btn-icon-delete"
+                                        th:title="#{btn.delete}" th:attr="aria-label=#{btn.delete}"
+                                        onclick="return confirm(this.form.dataset.confirmMessage)">
+                                    <i class="bi bi-x-lg" aria-hidden="true"></i>
                                 </button>
                             </form>
                         </td>

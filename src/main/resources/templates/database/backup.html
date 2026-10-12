@@ -8,14 +8,19 @@
         <div th:replace="~{fragments/layout :: topbar(#{database.backup.title})}"></div>
         <section class="portal-content">
             <div th:replace="~{fragments/layout :: flash}"></div>
-            <div class="portal-card">
+            <div th:if="${!canManageFullDatabase}" class="portal-card">
+                <p class="mb-0" th:text="#{database.backup.superAdminOnly}">
+                    This backup contains data for every company. Only a SuperAdmin can export or restore it.
+                </p>
+            </div>
+            <div th:if="${canManageFullDatabase}" class="portal-card">
                 <h2 class="portal-card-title" th:text="#{database.backup.exportTitle}">Export database</h2>
                 <p class="text-muted" th:text="#{database.backup.exportHint}">Download all database content as a JSON backup.</p>
                 <a class="btn-portal" th:href="@{/database/backup/export}">
                     <i class="bi bi-download"></i> <span th:text="#{database.backup.export}">Export backup</span>
                 </a>
             </div>
-            <div class="portal-card" style="margin-top:1rem;">
+            <div th:if="${canManageFullDatabase}" class="portal-card" style="margin-top:1rem;">
                 <h2 class="portal-card-title" th:text="#{database.backup.importTitle}">Restore database</h2>
                 <p class="text-muted" th:text="#{database.backup.importWarning}">Restoring replaces the current database content.</p>
                 <form th:action="@{/database/backup/import}" method="post" enctype="multipart/form-data"

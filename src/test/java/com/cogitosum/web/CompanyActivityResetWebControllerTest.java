@@ -67,7 +67,7 @@ class CompanyActivityResetWebControllerTest {
 
     @Test
     void resetRunsForTheAdministratorAndReportsDeletedCounts() {
-        ActivityCounts counts = new ActivityCounts(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12);
+        ActivityCounts counts = new ActivityCounts(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13);
         when(resetService.resetCurrentCompany()).thenReturn(counts);
         when(companyContext.requireCompanyId()).thenReturn(27L);
         when(messageSource.getMessage(eq("admin.reset.success"), any(Object[].class), any(Locale.class)))

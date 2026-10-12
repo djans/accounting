@@ -112,8 +112,9 @@
 
                     <div class="form-actions">
                         <a th:href="@{/bills}" class="btn-portal btn-ghost" th:text="#{btn.cancel}">Annuler</a>
-                        <button type="submit" class="btn-portal">
-                            <i class="bi bi-check2"></i> <span th:text="#{btn.createBill}">Créer la facture d'achat</span>
+                        <button type="submit" class="btn-portal btn-icon-action btn-icon-save"
+                                th:title="#{btn.save}" th:attr="aria-label=#{btn.save}">
+                            <i class="bi bi-check-lg" aria-hidden="true"></i>
                         </button>
                     </div>
                 </form>

@@ -49,7 +49,7 @@ class CurrentCompanyContextTest {
         SecurityContextHolder.getContext().setAuthentication(
                 new UsernamePasswordAuthenticationToken("bookkeeper@example.test", "ignored", List.of()));
 
-        CurrentCompanyContext context = new CurrentCompanyContext(users, memberships, companies);
+        CurrentCompanyContext context = context();
 
         assertEquals(10L, context.requireCompanyId());
     }
@@ -69,7 +69,7 @@ class CurrentCompanyContextTest {
         Customer otherCompanyCustomer = new Customer();
         otherCompanyCustomer.setCompany(company(20L));
 
-        CurrentCompanyContext context = new CurrentCompanyContext(users, memberships, companies);
+        CurrentCompanyContext context = context();
 
         assertThrows(AccessDeniedException.class, () -> context.requireCurrentCompany(otherCompanyCustomer));
     }
@@ -85,7 +85,7 @@ class CurrentCompanyContextTest {
         SecurityContextHolder.getContext().setAuthentication(
             new UsernamePasswordAuthenticationToken("bookkeeper@example.test", "ignored", List.of()));
 
-        CurrentCompanyContext context = new CurrentCompanyContext(users, memberships, companies);
+        CurrentCompanyContext context = context();
 
         assertThrows(AccessDeniedException.class, () -> context.selectCompany(99L));
     }
@@ -103,7 +103,7 @@ class CurrentCompanyContextTest {
         SecurityContextHolder.getContext().setAuthentication(
             new UsernamePasswordAuthenticationToken("bookkeeper@example.test", "ignored", List.of()));
 
-        CurrentCompanyContext context = new CurrentCompanyContext(users, memberships, companies);
+        CurrentCompanyContext context = context();
 
         assertEquals(List.of(20L),
             context.getAccessibleCompanies().stream().map(Company::getId).sorted().toList());
@@ -121,7 +121,7 @@ class CurrentCompanyContextTest {
         SecurityContextHolder.getContext().setAuthentication(
             new UsernamePasswordAuthenticationToken("bookkeeper@example.test", "ignored", List.of()));
 
-        CurrentCompanyContext context = new CurrentCompanyContext(users, memberships, companies);
+        CurrentCompanyContext context = context();
 
         assertEquals(20L, context.requireCompanyId());
     }
@@ -137,9 +137,57 @@ class CurrentCompanyContextTest {
         SecurityContextHolder.getContext().setAuthentication(
             new UsernamePasswordAuthenticationToken("bookkeeper@example.test", "ignored", List.of()));
 
-        CurrentCompanyContext context = new CurrentCompanyContext(users, memberships, companies);
+        CurrentCompanyContext context = context();
 
         assertThrows(AccessDeniedException.class, context::requireCompany);
+    }
+
+    @Test
+    void superAdminCanAccessAllCompaniesWithoutMemberships() {
+        Company primary = company(10L);
+        Company other = company(20L);
+        UserAccount user = new UserAccount();
+        user.setId(7L);
+        user.setCompany(primary);
+        user.setEmail("root@example.test");
+        user.setEnabled(true);
+        when(users.findByEmail("root@example.test")).thenReturn(Optional.of(user));
+        when(companies.findAll()).thenReturn(List.of(primary, other));
+        when(companies.existsById(20L)).thenReturn(true);
+        SecurityContextHolder.getContext().setAuthentication(
+            new UsernamePasswordAuthenticationToken("root@example.test", "ignored", List.of()));
+
+        CurrentCompanyContext context = new CurrentCompanyContext(
+            users, memberships, companies, new SuperAdminAccess("ROOT@example.test"));
+
+        assertEquals(List.of(10L, 20L),
+            context.getAccessibleCompanies().stream().map(Company::getId).toList());
+        assertEquals(Optional.of(com.cogitosum.entity.UserRole.ADMIN), context.currentMembershipRole());
+        org.junit.jupiter.api.Assertions.assertTrue(context.canAccessCompany(20L));
+    }
+
+    @Test
+    void companyAdministratorCannotAdministerAnotherMembershipCompany() {
+        Company company = company(10L);
+        UserAccount user = new UserAccount();
+        user.setId(8L);
+        user.setCompany(company);
+        user.setEmail("admin@example.test");
+        user.setEnabled(true);
+        when(users.findByEmail("admin@example.test")).thenReturn(Optional.of(user));
+        when(memberships.findRole(8L, 10L)).thenReturn(Optional.of(com.cogitosum.entity.UserRole.ADMIN));
+        when(memberships.findRole(8L, 20L)).thenReturn(Optional.of(com.cogitosum.entity.UserRole.AUDITOR));
+        SecurityContextHolder.getContext().setAuthentication(
+            new UsernamePasswordAuthenticationToken("admin@example.test", "ignored", List.of()));
+
+        CurrentCompanyContext context = context();
+
+        org.junit.jupiter.api.Assertions.assertTrue(context.canAdministerCompany(10L));
+        org.junit.jupiter.api.Assertions.assertFalse(context.canAdministerCompany(20L));
+    }
+
+    private CurrentCompanyContext context() {
+        return new CurrentCompanyContext(users, memberships, companies, new SuperAdminAccess(""));
     }
 
     private Company company(Long id) {

@@ -33,14 +33,17 @@ public class CurrentCompanyContext {
     private final UserAccountRepository userAccountRepository;
     private final CompanyMembershipRepository membershipRepository;
     private final CompanyRepository companyRepository;
+    private final SuperAdminAccess superAdminAccess;
 
     public CurrentCompanyContext(
             UserAccountRepository userAccountRepository,
             CompanyMembershipRepository membershipRepository,
-            CompanyRepository companyRepository) {
+            CompanyRepository companyRepository,
+            SuperAdminAccess superAdminAccess) {
         this.userAccountRepository = userAccountRepository;
         this.membershipRepository = membershipRepository;
         this.companyRepository = companyRepository;
+        this.superAdminAccess = superAdminAccess;
     }
 
     @Transactional(readOnly = true)
@@ -52,7 +55,8 @@ public class CurrentCompanyContext {
 
     public void selectCompany(Long companyId) {
         UserAccount user = currentUser();
-        if (!membershipRepository.isMember(user.getId(), companyId)) {
+        if (!(isSuperAdmin(user) ? companyRepository.existsById(companyId)
+                : membershipRepository.isMember(user.getId(), companyId))) {
             throw new AccessDeniedException("The requested company is not available to this user");
         }
         HttpSession session = currentSession(true);
@@ -65,7 +69,7 @@ public class CurrentCompanyContext {
     public List<Company> getAccessibleCompanies() {
         UserAccount user = currentUser();
         LinkedHashMap<Long, Company> companies = new LinkedHashMap<>();
-        membershipRepository.findCompaniesByUserId(user.getId())
+        accessibleCompanies(user)
             .forEach(company -> companies.put(company.getId(), company));
         return companies.values().stream()
             .sorted(java.util.Comparator.comparing(Company::getName, String.CASE_INSENSITIVE_ORDER)
@@ -75,7 +79,27 @@ public class CurrentCompanyContext {
 
     public boolean canAccessCompany(Long companyId) {
         UserAccount user = currentUser();
-        return membershipRepository.isMember(user.getId(), companyId);
+        return isSuperAdmin(user)
+            ? companyRepository.existsById(companyId)
+            : membershipRepository.isMember(user.getId(), companyId);
+    }
+
+    public boolean isSuperAdmin() {
+        return superAdminAccess.isSuperAdmin(currentUser().getEmail());
+    }
+
+    public void requireSuperAdmin() {
+        if (!isSuperAdmin()) {
+            throw new AccessDeniedException("Super administrator role required");
+        }
+    }
+
+    public boolean canAdministerCompany(Long companyId) {
+        UserAccount user = currentUser();
+        return isSuperAdmin(user)
+            || membershipRepository.findRole(user.getId(), companyId)
+                .filter(role -> role == UserRole.ADMIN)
+                .isPresent();
     }
 
     public UserAccount currentUser() {
@@ -93,7 +117,9 @@ public class CurrentCompanyContext {
     public Optional<UserRole> currentMembershipRole() {
         UserAccount user = currentUser();
         return companyForUser(user)
-            .flatMap(company -> membershipRepository.findRole(user.getId(), company.getId()));
+            .flatMap(company -> isSuperAdmin(user)
+                ? Optional.of(UserRole.ADMIN)
+                : membershipRepository.findRole(user.getId(), company.getId()));
     }
 
     public UserRole requireCurrentRole() {
@@ -102,7 +128,7 @@ public class CurrentCompanyContext {
     }
 
     private Optional<Company> companyForUser(UserAccount user) {
-        List<Company> accessibleCompanies = membershipRepository.findCompaniesByUserId(user.getId());
+        List<Company> accessibleCompanies = accessibleCompanies(user);
         if (accessibleCompanies.isEmpty()) {
             return Optional.empty();
         }
@@ -123,6 +149,16 @@ public class CurrentCompanyContext {
             .filter(company -> company.getId().equals(user.getCompany().getId()))
             .findFirst()
             .or(() -> accessibleCompanies.stream().findFirst());
+    }
+
+    private List<Company> accessibleCompanies(UserAccount user) {
+        return isSuperAdmin(user)
+            ? companyRepository.findAll()
+            : membershipRepository.findCompaniesByUserId(user.getId());
+    }
+
+    private boolean isSuperAdmin(UserAccount user) {
+        return superAdminAccess.isSuperAdmin(user.getEmail());
     }
 
     private HttpSession currentSession(boolean create) {

@@ -1,6 +1,6 @@
 # Database schema versions
 
-The installed schema version starts at `1.0.0`. The current application version is declared by the highest entry in `DatabaseSchemaVersionService.MIGRATIONS`; version `1.1.0` introduces the schema-version ledger, `1.2.0` adds the invoice `tax_regime` column, `1.3.0` moves authorization roles to company memberships and adds unique user ShortIDs, and `1.4.0` adds OFX/QFX import identity and company-scoped bank categorization.
+The installed schema version starts at `1.0.0`. The current application version is declared by the highest entry in `DatabaseSchemaVersionService.MIGRATIONS`; version `1.1.0` introduces the schema-version ledger, `1.2.0` adds the invoice `tax_regime` column, `1.3.0` moves authorization roles to company memberships and adds unique user ShortIDs, `1.4.0` adds OFX/QFX import identity and company-scoped bank categorization, `1.5.0` adds company logo storage and cancellation audit fields for invoices and bills, `1.6.0` adds company-scoped invoice template storage, `1.7.0` adds storage for final invoice PDF snapshots, `1.8.0` adds credit-note headers and line items, `1.9.0` adds customer-credit refunds, and `1.10.0` adds customer-credit allocations to other invoices.
 
 ## Keeping database schemas in sync
 
@@ -32,11 +32,11 @@ support for previously released versions.
 1. Update both engine schema files so fresh databases and a full schema reset get the latest structure.
 2. Create a forward-only SQL migration in `src/main/resources/db/migration/`, named `V<major>_<minor>_<patch>__<description>.sql`, for already-populated databases.
 3. Register its `SchemaMigration` in `DatabaseSchemaVersionService.MIGRATIONS` with a version greater than the preceding entry. Increment the minor or patch component for compatible changes; increment the major component for a breaking schema change.
-4. Set `requiresBackup` when the migration can discard, truncate, or reinterpret existing data. The update page will require the administrator to confirm that a backup was downloaded.
+4. Set `requiresBackup` when the migration can discard, truncate, or reinterpret existing data. The update page will require the SuperAdmin applying the global migration to confirm that a backup was downloaded.
 5. Keep each migration safe to retry if possible. The runner applies every registered migration after the installed version, in semantic-version order, and records each completed version. It stops at the first failure and does not mark that migration complete.
 6. Do not use the schema files or legacy startup migration runners as a substitute for versioned migrations on existing databases. New releases must wait for the administrator's approval on the schema-version page.
 
-After sign-in, accounts still using the initial credentials are first offered the credential-update page. Choosing to continue without changing them remembers that choice in the current browser, so the prompt is not shown again there. A stale or unsupported schema is shown at `/database/schema`. Administrators can download a backup, review all known versions, and apply the full pending migration sequence. Unknown database versions and missing migration scripts are blocked rather than guessed.
+After sign-in, accounts still using the initial credentials are first offered the credential-update page. Choosing to continue without changing them remembers that choice in the current browser, so the prompt is not shown again there. A stale or unsupported schema is shown at `/database/schema`. Company administrators can review known versions; only SuperAdmins can download the whole-database backup or apply the full pending migration sequence. Unknown database versions and missing migration scripts are blocked rather than guessed.
 
 Version `1.3.0` copies each existing account's legacy role to its company
 memberships (`VIEWER` becomes `AUDITOR`) and adds the account ShortID column.
@@ -51,4 +51,31 @@ company-scoped `bank_categorization_rules` table. It uses retry-safe,
 database-specific DDL for both MySQL and SQLite. Bank statement transactions
 are not part of the initial-data migration package.
 
-The **Restart from scratch** action on the Administration Reset page is destructive. It offers a backup download, drops the database tables, reinstalls the schema for the active database engine, and applies every registered migration. The reset removes user accounts. The `local` profile defaults the first administrator to `root@example.com` / `password`; `development`, `staging`, and `production` require `APP_BOOTSTRAP_ADMIN_EMAIL` and `APP_BOOTSTRAP_ADMIN_PASSWORD` when bootstrapping an empty database after reset. After restarting the application and signing in again, the administrator can optionally use the initial-data import linked from Reset; see [the package contract](INITIAL_DATA_MIGRATION_V1.md).
+Version `1.5.0` adds nullable company logo data and content type, plus
+cancellation reason and timestamp fields for invoices and supplier bills. It
+uses retry-safe, database-specific DDL for MySQL and SQLite.
+The nullable columns are also ensured by a pre-authentication compatibility
+step so Hibernate can load users and companies on installations that have not
+yet opened the schema-version page. This does not advance the version ledger;
+the SuperAdmin still applies the pending versioned migration there.
+
+Version `1.6.0` adds company-owned DOCX invoice templates and a company index.
+Template data is stored as a database binary large object and is not included
+in the initial-data migration package.
+
+Version `1.7.0` adds the `invoice_final_pdfs` table for immutable PDF snapshots
+of invoices issued as final. The snapshots are part of database backups, but
+are intentionally excluded from the initial-data migration package.
+
+Version `1.8.0` adds company-scoped credit notes and their line items. Issued
+credit notes retain a link to the source invoice and are included in database
+backups, but are intentionally excluded from initial-data migration package v1.
+
+Version `1.9.0` adds auditable cash refunds for customer credit created by
+issued credit notes. Version `1.10.0` adds auditable allocations of that
+available credit to another invoice for the same customer, including reversal
+date and reason. Credit-note refunds, allocations, and their related records
+are included in database backups, but remain intentionally excluded from
+initial-data migration package v1.
+
+The **Restart from scratch** action on the Administration Reset page is a destructive SuperAdmin operation. It offers a backup download, drops the database tables, reinstalls the schema for the active database engine, and applies every registered migration. The reset removes user accounts. The `local` profile defaults the first administrator to `root@example.com` / `password`; `development`, `staging`, and `production` require `APP_BOOTSTRAP_ADMIN_EMAIL` and `APP_BOOTSTRAP_ADMIN_PASSWORD` when bootstrapping an empty database after reset. Configure `APP_SUPER_ADMIN_EMAILS` after reset to restore global SuperAdmin access. After restarting the application and signing in again, a SuperAdmin can optionally use the initial-data import linked from Reset; see [the package contract](INITIAL_DATA_MIGRATION_V1.md).

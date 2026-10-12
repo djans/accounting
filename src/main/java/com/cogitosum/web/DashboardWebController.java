@@ -37,9 +37,9 @@ public class DashboardWebController {
         BigDecimal openReceivable = invoiceService.getAllInvoices().stream()
                 .filter(inv -> inv.getStatus() != InvoiceStatus.PAID
                         && inv.getStatus() != InvoiceStatus.CANCELLED
-                        && inv.getStatus() != InvoiceStatus.REFUNDED)
-                .map(inv -> inv.getTotalAmount().subtract(
-                        inv.getPaidAmount() == null ? BigDecimal.ZERO : inv.getPaidAmount()))
+                        && inv.getStatus() != InvoiceStatus.REFUNDED
+                        && inv.getStatus() != InvoiceStatus.DRAFT)
+                .map(invoiceService::getOutstandingAmount)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         model.addAttribute("customers", customers);

@@ -95,7 +95,7 @@ class MonitoringWebControllerTest {
     private Authentication admin() {
         Authentication admin = mock(Authentication.class);
         when(admin.isAuthenticated()).thenReturn(true);
-        doReturn(List.of(new SimpleGrantedAuthority("ROLE_ADMIN"))).when(admin).getAuthorities();
+        doReturn(List.of(new SimpleGrantedAuthority("ROLE_SUPER_ADMIN"))).when(admin).getAuthorities();
         return admin;
     }
 }

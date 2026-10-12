@@ -65,10 +65,10 @@
                             </a>
                             <a th:if="${transfer.status.name() == 'DRAFT'}"
                                th:href="@{/transfers/{id}/edit(id=${transfer.id})}"
-                               class="btn-portal btn-ghost btn-sm icon-action"
+                               class="btn-portal btn-icon-action btn-icon-edit icon-action"
                                data-bs-toggle="tooltip" data-bs-placement="top"
                                th:title="#{transfers.edit}" th:attr="aria-label=#{transfers.edit}">
-                                <i class="bi bi-pencil-square" aria-hidden="true"></i>
+                                <i class="bi bi-pencil" aria-hidden="true"></i>
                             </a>
                             <a th:if="${transfer.status.name() != 'DRAFT'}"
                                th:href="@{/transfers/{id}(id=${transfer.id})}"
@@ -79,12 +79,12 @@
                             </a>
                             <form th:if="${transfer.status.name() == 'DRAFT'}"
                                   th:action="@{/transfers/{id}/delete(id=${transfer.id})}" method="post">
-                                <button class="btn-portal btn-ghost btn-sm icon-action" type="submit"
+                                <button class="btn-portal btn-icon-action btn-icon-delete icon-action" type="submit"
                                         data-bs-toggle="tooltip" data-bs-placement="top"
                                         th:title="#{transfers.deleteDraft}"
                                         th:attr="aria-label=#{transfers.deleteDraft}, data-confirm-message=${#messages.msg('transfers.confirmDeleteDraft')}"
                                         onclick="return confirm(this.dataset.confirmMessage)">
-                                    <i class="bi bi-trash" aria-hidden="true"></i>
+                                    <i class="bi bi-x-lg" aria-hidden="true"></i>
                                 </button>
                             </form>
                             <form th:if="${transfer.status.name() == 'DRAFT'}"
@@ -133,7 +133,7 @@
     .transfer-actions { white-space: nowrap; }
     .transfer-actions form { display: inline-flex; align-items: center; margin: 0; }
     .transfer-actions form input { width: 12rem; }
-    .icon-action { width: 2.25rem; height: 2.25rem; justify-content: center; padding: 0.25rem; }
+    .icon-action { width: 2.35rem; height: 2.35rem; justify-content: center; padding: 0; }
     .btn-portal.icon-action i { margin: 0; }
 </style>
 <script>

@@ -46,7 +46,7 @@ public class DatabaseQueryWebController {
     @GetMapping
     public String page(@RequestParam(required = false) String table,
                        Authentication authentication, Model model) throws SQLException {
-        requireAdmin(authentication);
+        requireSuperAdmin(authentication);
         List<String> tables = queryService.getApplicationTables();
         String selectedTable = table != null && tables.contains(table)
                 ? table
@@ -61,7 +61,7 @@ public class DatabaseQueryWebController {
                           @RequestParam String sql,
                           @RequestParam(defaultValue = "false") boolean confirmChanges,
                           Authentication authentication, Model model) throws SQLException {
-        requireAdmin(authentication);
+        requireSuperAdmin(authentication);
         List<String> tables = queryService.getApplicationTables();
         populatePage(model, tables, table, sql);
         model.addAttribute("requiresConfirmation", queryService.requiresConfirmation(sql));
@@ -109,10 +109,10 @@ public class DatabaseQueryWebController {
         model.addAttribute("active", "database-query");
     }
 
-    private void requireAdmin(Authentication authentication) {
+    private void requireSuperAdmin(Authentication authentication) {
         if (authentication == null || !authentication.isAuthenticated()
-                || !authentication.getAuthorities().contains(new SimpleGrantedAuthority("ROLE_ADMIN"))) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Administrator role required");
+                || !authentication.getAuthorities().contains(new SimpleGrantedAuthority("ROLE_SUPER_ADMIN"))) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Super administrator role required");
         }
     }
 

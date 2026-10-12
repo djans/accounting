@@ -15,10 +15,26 @@
     <label class="vendor-inactive"><input type="checkbox" th:field="*{inactive}"> <span th:text="#{party.inactiveCustomer}">Client inactif</span></label>
 </div>
 <nav class="vendor-tabs" role="tablist">
-    <button type="button" class="vendor-tab active" data-tab="address" th:text="#{party.addressContact}">Adresse & Contact</button>
-    <button type="button" class="vendor-tab" data-tab="payment" th:text="#{party.paymentBilling}">Paiement & Facturation</button>
-    <button type="button" class="vendor-tab" data-tab="tax" th:text="#{party.salesTaxes}">Taxes de vente</button>
-    <button type="button" class="vendor-tab" data-tab="additional" th:text="#{party.notesInfo}">Notes & Info</button>
+    <button type="button" class="vendor-tab active" data-tab="address"
+            data-bs-toggle="tooltip" data-bs-placement="top"
+            th:title="#{party.addressContact}" th:attr="aria-label=#{party.addressContact}">
+        <i class="bi bi-geo-alt" aria-hidden="true"></i>
+    </button>
+    <button type="button" class="vendor-tab" data-tab="payment"
+            data-bs-toggle="tooltip" data-bs-placement="top"
+            th:title="#{party.paymentBilling}" th:attr="aria-label=#{party.paymentBilling}">
+        <i class="bi bi-credit-card" aria-hidden="true"></i>
+    </button>
+    <button type="button" class="vendor-tab" data-tab="tax"
+            data-bs-toggle="tooltip" data-bs-placement="top"
+            th:title="#{party.salesTaxes}" th:attr="aria-label=#{party.salesTaxes}">
+        <i class="bi bi-percent" aria-hidden="true"></i>
+    </button>
+    <button type="button" class="vendor-tab" data-tab="additional"
+            data-bs-toggle="tooltip" data-bs-placement="top"
+            th:title="#{party.notesInfo}" th:attr="aria-label=#{party.notesInfo}">
+        <i class="bi bi-journal-text" aria-hidden="true"></i>
+    </button>
 </nav>
 
 <!-- Onglet Adresse & Contact -->
@@ -102,10 +118,15 @@
 </div>
 
 <div class="form-actions">
-    <a th:href="@{/customers}" class="btn-portal btn-ghost" th:text="#{btn.cancel}">Annuler</a>
-    <button type="submit" class="btn-portal">
-        <i class="bi bi-check2"></i> 
-        <span th:text="${isNew} ? #{party.createCustomer} : #{form.saveChanges}">Enregistrer</span>
+    <a th:href="@{/customers}" class="btn-portal btn-icon-action btn-ghost"
+       data-bs-toggle="tooltip" data-bs-placement="top"
+       th:title="#{btn.cancel}" th:attr="aria-label=#{btn.cancel}">
+        <i class="bi bi-x-lg" aria-hidden="true"></i>
+    </a>
+    <button type="submit" class="btn-portal btn-icon-action btn-icon-save"
+            data-bs-toggle="tooltip" data-bs-placement="top"
+            th:title="#{btn.save}" th:attr="aria-label=#{btn.save}">
+        <i class="bi bi-check-lg" aria-hidden="true"></i>
     </button>
 </div>
 </form>
@@ -118,10 +139,12 @@
 .vendor-form-header{display:flex;gap:1rem;align-items:end;flex-wrap:wrap;margin-bottom:1rem}
 .vendor-form-header label{display:flex;flex-direction:column;gap:.3rem;font-weight:600}
 .vendor-form-header input{min-width:220px}
-.vendor-inactive{font-weight:400!important}
+.vendor-form-header .vendor-inactive{display:flex;flex-direction:row;align-items:center;gap:.5rem;font-weight:400!important}
+.vendor-form-header .vendor-inactive input[type="checkbox"]{width:auto;min-width:0;margin:0}
 .vendor-tabs{display:flex;flex-wrap:wrap;gap:.25rem;border-bottom:1px solid var(--portal-border);margin:0 -1rem 1rem;padding:0 1rem}
 .vendor-tab{border:0;background:#e5e7eb;padding:.7rem 1rem;cursor:pointer;border-radius:6px 6px 0 0}
 .vendor-tab.active{background:var(--portal-primary);color:#fff}
+.vendor-tab i{font-size:1rem}
 .vendor-panel{display:none;min-height:300px}
 .vendor-panel.active{display:block}
 .vendor-panel h3{margin-top:0}
@@ -138,6 +161,11 @@ document.querySelectorAll('.vendor-tab').forEach(function(tab){
         tab.classList.add('active');
         document.getElementById('tab-'+tab.dataset.tab).classList.add('active')
     })
+});
+</script>
+<script>
+document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(function(element){
+    if(window.bootstrap&&window.bootstrap.Tooltip){new window.bootstrap.Tooltip(element)}
 });
 </script>
 </body>

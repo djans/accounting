@@ -25,6 +25,13 @@ Before completing a change, verify that both language bundles still contain the 
 - Remove Markdown documents that are obsolete or redundant instead of leaving stale instructions or implementation snapshots in the repository. Preserve historical material only when it is explicitly labeled as historical and remains useful.
 - Prefer one current reference per topic. Do not describe old implementation details, unsupported database engines, completed roadmap items, or endpoint lists as current.
 
+## Action buttons
+
+- Whenever a page is added or modified, make every action button and button-styled link on that page icon-only; do not leave visible button text.
+- Choose an icon and semantic color appropriate to the action (for example, green for issue/save, blue for edit/download, and red for delete/cancel).
+- Give every icon action a localized `title` tooltip and a matching `aria-label`; add the stable key to both English and French bundles.
+- Initialize Bootstrap tooltips on pages that use `data-bs-toggle="tooltip"`.
+
 ## Initial-data migration packages
 
 - When changing `schema.sql`, an entity, or persistence rules for data handled by `InitialDataMigrationService`, review the package contract and its validation/import path in the same change.

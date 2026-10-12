@@ -48,7 +48,7 @@ class DatabaseEngineMigrationWebControllerTest {
                         "jdbc:mysql://db.example.test:3306/accounting", "acct_admin", "super-secret"));
         Authentication admin = org.mockito.Mockito.mock(Authentication.class);
         when(admin.isAuthenticated()).thenReturn(true);
-        doReturn(java.util.List.of(new SimpleGrantedAuthority("ROLE_ADMIN"))).when(admin).getAuthorities();
+        doReturn(java.util.List.of(new SimpleGrantedAuthority("ROLE_SUPER_ADMIN"))).when(admin).getAuthorities();
 
         mockMvc.perform(get("/admin/database/migrate").principal(admin))
                 .andExpect(status().isOk())
@@ -70,7 +70,7 @@ class DatabaseEngineMigrationWebControllerTest {
         when(migrationService.getSourceDatabaseType()).thenReturn("sqlite");
         Authentication admin = org.mockito.Mockito.mock(Authentication.class);
         when(admin.isAuthenticated()).thenReturn(true);
-        doReturn(java.util.List.of(new SimpleGrantedAuthority("ROLE_ADMIN"))).when(admin).getAuthorities();
+        doReturn(java.util.List.of(new SimpleGrantedAuthority("ROLE_SUPER_ADMIN"))).when(admin).getAuthorities();
 
         mockMvc.perform(get("/admin/database/migrate").principal(admin))
                 .andExpect(status().isOk())
@@ -160,7 +160,7 @@ class DatabaseEngineMigrationWebControllerTest {
         Authentication admin = org.mockito.Mockito.mock(Authentication.class);
         when(admin.isAuthenticated()).thenReturn(true);
         when(admin.getName()).thenReturn(username);
-        doReturn(List.of(new SimpleGrantedAuthority("ROLE_ADMIN"))).when(admin).getAuthorities();
+        doReturn(List.of(new SimpleGrantedAuthority("ROLE_SUPER_ADMIN"))).when(admin).getAuthorities();
         return admin;
     }
 }

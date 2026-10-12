@@ -29,8 +29,8 @@ creates a new database file. The saved settings are stored outside the
 repository at `${user.home}/.accounting/database.properties` by default.
 Override the file location with `APP_DATABASE_CONFIG_PATH`. Oracle and DB2 are
 not supported. Changing the engine during first-run setup does not migrate
-existing data. After setup, an administrator can use **Administration /
-Database engine migration** to copy all application data between MySQL and
+existing data. After setup, a SuperAdmin can use **Administration / Database
+engine migration** to copy all application data between MySQL and
 SQLite in either direction. The destination schema is recreated, so all
 destination data is replaced; back up both databases and stop other application
 users and instances from using the installation during the copy. MySQL
@@ -40,7 +40,7 @@ writable file path on the application host. The destination connection is
 saved to the runtime configuration, and the application must be restarted
 immediately after a successful migration.
 When MySQL is the current source, the migration page shows its active JDBC URL
-and username plus its password in a masked, read-only field for administrators.
+and username plus its password in a masked, read-only field for SuperAdmins.
 
 Keep this file readable only by the account running the application. Setup
 creates it with owner-only POSIX permissions where supported; on Windows it
@@ -68,6 +68,16 @@ Development, staging, and production profiles do not use the default
 bootstrap credentials. Set `APP_BOOTSTRAP_ADMIN_EMAIL` and
 `APP_BOOTSTRAP_ADMIN_PASSWORD` before first initialization or after a full
 database reset; existing installations with an administrator do not need them.
+Set `APP_SUPER_ADMIN_EMAILS` to one or more comma-separated account emails to
+designate global SuperAdmins. Company administrators are authorized only for
+companies where they hold an administrator membership. Only SuperAdmins can
+export or restore the whole-database backup, apply global schema migrations,
+restart the database, or access database-wide diagnostics and migration tools.
+The local profile defaults this setting to `root@example.com`; all other
+profiles require it to be configured explicitly. See
+[Company user access and roles](USER_ACCESS.md) for the per-company scopes.
+For a new or reset database, include the bootstrap administrator's email in
+`APP_SUPER_ADMIN_EMAILS` if that account must perform global operations.
 
 ### Optional invoice email
 
@@ -96,19 +106,84 @@ shows activity for a selected customer and date range and offers a PDF download.
 
 ### Invoice PDF template
 
-Invoice downloads and email attachments are rendered from
-`docs/invoice-template-example.docx`. The application fills the `{{...}}`
-placeholders and repeats the marked line-item row, then invokes LibreOffice
-Writer to produce the PDF. LibreOffice is installed in the Docker image; local
-installations need the `libreoffice` command available on `PATH`, or can set
-`APP_INVOICE_PDF_LIBREOFFICE_COMMAND` to its executable path. The DOCX must be
-rendered for each invoice because values and the number of line items vary;
-converting the unfilled template to PDF once would not populate those fields.
-Keep each placeholder intact as a single text run. The repeat markers
-`{{#lineItems}}` and `{{/lineItems}}` must stay in the same table row as the
-line-item fields. Unknown placeholders prevent PDF generation. This is the
-shared default template; per-company template upload and selection are not yet
-available.
+Invoice PDFs are rendered from a DOCX template, populated with invoice data,
+then converted by LibreOffice Writer. Before downloading a single invoice or a
+selection, choose a template. Company administrators manage company-specific
+templates under **Administration / Invoice templates**, where they can upload,
+download, and delete their company's DOCX files. Each upload has a name and
+language tag; the matching language is suggested when downloading an invoice.
+The built-in template remains available, and email attachments continue to use
+it. The static wording in a custom DOCX must be translated in that document.
+When creating an invoice, **Final invoice?** issues and posts the invoice,
+locks it against edits, and saves a PDF snapshot using the selected template.
+The same finalization option is available on a draft invoice below the customer
+details. A draft can also be deleted; its invoice number is released for reuse.
+Later downloads of a finalized invoice use its saved PDF instead of rendering
+the invoice again. Emailing a draft also issues it and stores a final PDF
+snapshot after the email is successfully sent.
+
+Use `docs/invoice-template-example_en.docx` or
+`docs/invoice-template-example_fr.docx` as references for supported
+placeholders. The repeat markers `{{#lineItems}}` and `{{/lineItems}}` must stay
+in the same table row as the line-item fields. Place `{{company.logo}}` where the logo should
+appear; it is optional and scaled to fit within 2 by 0.7 inches. Company
+profiles accept PNG or JPEG logos up to
+1 MiB. Unknown placeholders prevent PDF generation. Uploaded templates must
+be valid DOCX files no larger than 5 MiB. The DOCX must be rendered for each
+invoice because values and line-item counts vary; converting an empty template
+to PDF once would not populate those fields.
+
+Use `{{company.address_1}}` for the company's street address and
+`{{company.address_2}}` for postal code, city, province, and country. Use
+`{{customer.address_1}}` and `{{customer.address_2}}` for the corresponding
+customer fields. The previous `{{company.address}}` and
+`{{customer.address}}` placeholders remain supported for existing templates.
+
+LibreOffice is installed in the Docker image; local installations need
+LibreOffice installed. On Windows, the application checks the standard Program
+Files locations for `soffice.exe`; on Linux it looks for `libreoffice` or
+`soffice` on `PATH`. Set `APP_INVOICE_PDF_LIBREOFFICE_COMMAND` to the
+executable path if LibreOffice is installed elsewhere.
+
+### Invoice and supplier-bill corrections
+
+Invoices and supplier bills can be edited or deleted only while they are
+drafts. Once an invoice is issued or a supplier bill is received, preserve the
+original record. Correct an issued invoice with a credit note rather than
+editing or cancelling it; supplier bills can be cancelled with a reason after
+reversing any payments. The cancellation reason and time remain on the
+cancelled record. This application workflow is not a substitute for
+professional accounting or legal advice about required documents or tax
+reporting.
+
+### Credit notes
+
+From an issued invoice, choose **Create credit note** to open a draft linked to
+that invoice. Adjust its original invoice lines, enter a reason and date, then
+issue it from the credit-note detail page. A draft has no accounting or tax
+effect. Issuing rechecks the remaining uncredited invoice value while locking
+the invoice, calculates GST/HST/QST proportionally from the tax amounts saved
+on the original invoice, and posts the reversing journal entry. Issued notes
+reduce the customer's balance, appear as credits on customer statements, and
+reduce sales and tax totals in the filing period of their issue date. A fully
+settled invoice that has been credited is marked **Credited**. A credit note
+may be issued even when an invoice has been paid. If it creates a customer
+credit beyond the amount still due on its source invoice, the credit-note
+detail page can either refund that surplus or apply it to another open invoice
+for the same customer. Applications may be partial, are recorded with their
+date and target invoice, and can be reversed with an audit reason. They reduce the target invoice's balance without
+creating another payment, credit note, tax adjustment, or general-ledger
+entry. The credit note's existing revenue and tax reversal remains the sole
+accounting entry for the credit; allocation only settles the customer's
+receivable subledger. Refunding and applying credit both reduce the same
+available amount, so the surplus cannot be used twice. Each cash refund is
+recorded separately against an active bank account and posts a debit to
+accounts receivable and a credit to the bank account; it does not reverse the
+original customer payment. Use **Print / Save as PDF** on the credit-note
+detail page to print or save a copy from the browser.
+Supplier payments affect the bill's paid total once when recorded. Marking a
+payment completed does not add it again; refunds and voids reverse the total
+while retaining the payment record.
 
 ### Docker
 
@@ -126,6 +201,9 @@ initializing an empty database.
 ## Application features
 
 - Company-scoped customer, invoice, payment, vendor, bill, and bill-payment workflows.
+- Invoice credit notes with linked source documents, reversing ledger entries,
+  auditable customer refunds, and applications to other invoices for the same
+  customer.
 - Company-scoped user access and role management for administrators (see [`USER_ACCESS.md`](USER_ACCESS.md)).
 - Double-entry journals, a general ledger, fiscal years, and filtered accounting
   reports with before- and after-closing trial balances and PDF downloads.
@@ -137,7 +215,7 @@ initializing an empty database.
 - CSV and OFX/QFX bank statement import with company-specific categorization suggestions (see [`BANK_RECONCILIATION.md`](BANK_RECONCILIATION.md)).
 - Invoice and bill attachments, PDF generation, optional invoice email, and database backup/restore.
 - MySQL and SQLite persistence.
-- Categorized operational, error, and internal-process logs, with an administrator monitoring page and protected Spring Actuator health and metrics endpoints.
+- Categorized operational, error, and internal-process logs, with a SuperAdmin monitoring page and protected Spring Actuator health and metrics endpoints.
 
 The Administration **Reset** page combines a current-company activity reset
 with a separate **Restart from scratch** option that deletes and recreates the
@@ -236,4 +314,4 @@ curl -X POST http://localhost:8080/api/invoices \
 
 - **Port 8080 is already in use:** configure another `server.port`.
 - **Database setup cannot connect:** verify the MySQL URL and privileges, or that the SQLite path is writable.
-- **Database schema needs an update:** sign in as an administrator and use `/database/schema`; see the schema-versioning guide.
+- **Database schema needs an update:** sign in as a company administrator to review `/database/schema`; a SuperAdmin must apply global updates. See the schema-versioning guide.

@@ -2,7 +2,11 @@ package com.cogitosum.repository;
 
 import com.cogitosum.entity.Invoice;
 import com.cogitosum.entity.InvoiceStatus;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
@@ -20,6 +24,9 @@ public interface InvoiceRepository extends JpaRepository<Invoice, Long> {
     List<Invoice> findByCustomerIdAndStatusOrderByInvoiceNumberDesc(Long customerId, InvoiceStatus status);
     Long countByTaxRegime(String taxRegime);
     Optional<Invoice> findByIdAndCompanyId(Long id, Long companyId);
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select invoice from Invoice invoice where invoice.id = :id and invoice.company.id = :companyId")
+    Optional<Invoice> findLockedByIdAndCompanyId(@Param("id") Long id, @Param("companyId") Long companyId);
     List<Invoice> findAllByCompanyIdOrderByInvoiceNumberDesc(Long companyId);
     Optional<Invoice> findByCompanyIdAndInvoiceNumber(Long companyId, String invoiceNumber);
     Optional<Invoice> findTopByCompanyIdOrderByIdDesc(Long companyId);

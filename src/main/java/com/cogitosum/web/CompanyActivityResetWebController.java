@@ -48,10 +48,13 @@ public class CompanyActivityResetWebController {
     public String page(@RequestParam(defaultValue = "activity") String operation,
                        Authentication authentication, Model model) {
         requireAdmin(authentication);
+        boolean superAdmin = isSuperAdmin(authentication);
         model.addAttribute("counts", resetService.getCurrentCompanyCounts());
         model.addAttribute("company", companyContext.requireCompany());
         model.addAttribute("active", "admin-reset");
-        model.addAttribute("resetOperation", "restart".equals(operation) ? "restart" : "activity");
+        model.addAttribute("isSuperAdmin", superAdmin);
+        model.addAttribute("resetOperation",
+                superAdmin && "restart".equals(operation) ? "restart" : "activity");
         return "admin/reset";
     }
 
@@ -114,5 +117,10 @@ public class CompanyActivityResetWebController {
                 || !authentication.getAuthorities().contains(new SimpleGrantedAuthority("ROLE_ADMIN"))) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Administrator role required");
         }
+    }
+
+    private boolean isSuperAdmin(Authentication authentication) {
+        return authentication != null && authentication.isAuthenticated()
+                && authentication.getAuthorities().contains(new SimpleGrantedAuthority("ROLE_SUPER_ADMIN"));
     }
 }

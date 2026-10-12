@@ -13,8 +13,11 @@
                 <h3 class="portal-card-title" th:text="#{admin.reset.workflowTitle}">
                     Choose your reset and import path
                 </h3>
-                <p th:text="#{admin.reset.workflowIntro}">
+                <p th:if="${isSuperAdmin}" th:text="#{admin.reset.workflowIntro}">
                     Choose a company activity reset, or follow the full restart workflow and optionally import an initial data package afterward.
+                </p>
+                <p th:unless="${isSuperAdmin}" th:text="#{admin.reset.companyAdminIntro}">
+                    Reset operations here affect the selected company only. Database restart and import operations are reserved for SuperAdmins.
                 </p>
                 <div class="row g-3">
                     <div class="col-md-4">
@@ -26,7 +29,7 @@
                             </p>
                         </div>
                     </div>
-                    <div class="col-md-8">
+                    <div th:if="${isSuperAdmin}" class="col-md-8">
                         <div class="border rounded p-3 h-100">
                             <h4 class="h6" th:text="#{admin.reset.workflow.fullTitle}">Full restart workflow</h4>
                             <ol class="mb-0">
@@ -43,7 +46,7 @@
                         </div>
                     </div>
                 </div>
-                <fieldset class="mt-3" data-reset-operation-selector>
+                <fieldset th:if="${isSuperAdmin}" class="mt-3" data-reset-operation-selector>
                     <legend class="form-label" th:text="#{admin.reset.optionSelectorTitle}">
                         Select one operation
                     </legend>
@@ -75,7 +78,7 @@
                 <div class="alert alert-danger" role="alert">
                     <strong th:text="#{admin.reset.warningTitle}">Irreversible operation</strong>
                     <span th:text="#{admin.reset.warning}">A backup is strongly recommended before continuing.</span>
-                    <a th:href="@{/database/backup/export}" th:text="#{admin.reset.backupLink}">Download a database backup</a>
+                    <a th:href="@{/database/backup}" th:text="#{admin.reset.backupLink}">Review database backup options</a>
                 </div>
                 <p class="text-muted" th:text="#{admin.reset.preserved}">
                     Customers, vendors, tax setup and bank opening balances are preserved; bank imports and reconciliation sessions are deleted.
@@ -87,6 +90,7 @@
                 <table class="table-portal">
                     <tbody>
                     <tr><td th:text="#{admin.reset.invoices}">Sales invoices</td><td class="num" th:text="${counts.invoices()}">0</td></tr>
+                    <tr><td th:text="#{admin.reset.creditNotes}">Credit notes</td><td class="num" th:text="${counts.creditNotes()}">0</td></tr>
                     <tr><td th:text="#{admin.reset.customerPayments}">Customer payments</td><td class="num" th:text="${counts.customerPayments()}">0</td></tr>
                     <tr><td th:text="#{admin.reset.bills}">Purchase invoices</td><td class="num" th:text="${counts.bills()}">0</td></tr>
                     <tr><td th:text="#{admin.reset.vendorPayments}">Supplier payments</td><td class="num" th:text="${counts.vendorPayments()}">0</td></tr>
@@ -153,7 +157,8 @@
             </div>
             </div>
 
-            <div id="restart-from-scratch-option" class="reset-operation-panel" data-reset-operation-panel="restart"
+            <div th:if="${isSuperAdmin}" id="restart-from-scratch-option"
+                 class="reset-operation-panel" data-reset-operation-panel="restart"
                  th:hidden="${resetOperation != 'restart'}">
             <div class="portal-card">
                 <h3 class="portal-card-title" th:text="#{admin.schemaReset.title}">Restart from scratch</h3>

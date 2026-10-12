@@ -24,14 +24,16 @@
                             <span th:text="#{journal.copyDraft}">Copy to a new draft</span>
                         </a>
                         <a th:if="${journal.status.name() == 'DRAFT'}"
-                           th:href="@{/journals/{id}/edit(id=${journal.id})}" class="btn-portal btn-ghost btn-sm">
-                            <i class="bi bi-pencil-square"></i>
-                            <span th:text="#{journal.editDraft}">Edit draft</span>
+                           th:href="@{/journals/{id}/edit(id=${journal.id})}"
+                           class="btn-portal btn-icon-action btn-icon-edit"
+                           th:title="#{btn.edit}" th:attr="aria-label=#{btn.edit}">
+                            <i class="bi bi-pencil" aria-hidden="true"></i>
                         </a>
                         <a th:if="${journal.status.name() == 'POSTED' and postedJournalEditingEnabled}"
-                           th:href="@{/journals/{id}/edit(id=${journal.id})}" class="btn-portal btn-danger btn-sm">
-                            <i class="bi bi-pencil-square"></i>
-                            <span th:text="#{journal.editPosted}">Edit posted journal</span>
+                           th:href="@{/journals/{id}/edit(id=${journal.id})}"
+                           class="btn-portal btn-icon-action btn-icon-edit"
+                           th:title="#{journal.editPosted}" th:attr="aria-label=#{journal.editPosted}">
+                            <i class="bi bi-pencil" aria-hidden="true"></i>
                         </a>
                         <form th:if="${journal.status.name() == 'DRAFT'}"
                               th:action="@{/journals/{id}/post(id=${journal.id})}" method="post" style="display:inline">
@@ -47,10 +49,12 @@
                             <i class="bi bi-arrow-counterclockwise"></i> Reverse
                         </button>
                         <form th:if="${journal.status.name() == 'DRAFT'}"
-                              th:action="@{/journals/{id}/delete(id=${journal.id})}" method="post" style="display:inline">
-                            <button class="btn-portal btn-danger btn-sm"
-                                    onclick="return confirm('Delete this draft?')">
-                                <i class="bi bi-trash"></i>
+                              th:action="@{/journals/{id}/delete(id=${journal.id})}" method="post" style="display:inline"
+                              th:attr="data-confirm-message=#{document.deleteDraftConfirm}">
+                            <button type="submit" class="btn-portal btn-icon-action btn-icon-delete"
+                                    th:title="#{btn.delete}" th:attr="aria-label=#{btn.delete}"
+                                    onclick="return confirm(this.form.dataset.confirmMessage)">
+                                <i class="bi bi-x-lg" aria-hidden="true"></i>
                             </button>
                         </form>
                     </span>

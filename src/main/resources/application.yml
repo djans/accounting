@@ -52,6 +52,8 @@ app:
     admin:
       email: "${APP_BOOTSTRAP_ADMIN_EMAIL:root@example.com}"
       password: "${APP_BOOTSTRAP_ADMIN_PASSWORD:password}"
+  security:
+    super-admin-emails: "${APP_SUPER_ADMIN_EMAILS:djans@cogitosum.com}"
 
 management:
   health:

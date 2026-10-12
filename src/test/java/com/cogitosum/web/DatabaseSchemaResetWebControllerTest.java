@@ -39,16 +39,16 @@ class DatabaseSchemaResetWebControllerTest {
     void setUp() {
         controller = new DatabaseSchemaResetWebController(resetService, messageSource, shortIdService);
         when(authentication.isAuthenticated()).thenReturn(true);
-        doReturn(List.of(new SimpleGrantedAuthority("ROLE_ADMIN")))
+        doReturn(List.of(new SimpleGrantedAuthority("ROLE_SUPER_ADMIN")))
                 .when(authentication).getAuthorities();
     }
 
     @Test
-    void legacyPageRedirectsToUnifiedResetUiAndRemainsAdminOnly() {
+    void legacyPageRedirectsToUnifiedResetUiAndRemainsSuperAdminOnly() {
         String view = controller.page(authentication);
 
         assertEquals("redirect:/admin/reset", view);
-        doReturn(List.of()).when(authentication).getAuthorities();
+        doReturn(List.of(new SimpleGrantedAuthority("ROLE_ADMIN"))).when(authentication).getAuthorities();
         assertThrows(org.springframework.web.server.ResponseStatusException.class,
                 () -> controller.page(authentication));
     }

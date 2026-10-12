@@ -20,6 +20,8 @@ CREATE TABLE IF NOT EXISTS companies (
     default_tax_province    VARCHAR(2)   NOT NULL,
     fiscal_year_start_month INT          NOT NULL,
     posted_journal_editing_enabled BOOLEAN NOT NULL DEFAULT FALSE,
+    logo_data               BLOB         NULL,
+    logo_content_type       VARCHAR(100) NULL,
     created_at              DATETIME  NOT NULL,
     updated_at              DATETIME  NOT NULL,
     PRIMARY KEY (id),
@@ -136,6 +138,8 @@ CREATE TABLE IF NOT EXISTS invoices (
     paid_amount    DECIMAL(19, 2) NULL,
     opening_paid_amount DECIMAL(19, 2) NOT NULL DEFAULT 0,
     notes          VARCHAR(1000)  NULL,
+    cancellation_reason VARCHAR(1000) NULL,
+    cancelled_at   DATETIME       NULL,
     created_at     DATETIME    NOT NULL,
     updated_at     DATETIME    NOT NULL,
     PRIMARY KEY (id),
@@ -147,6 +151,109 @@ CREATE INDEX IF NOT EXISTS idx_invoices_company ON invoices (company_id);
 CREATE INDEX IF NOT EXISTS idx_invoices_customer ON invoices (customer_id);
 CREATE INDEX IF NOT EXISTS idx_invoices_status ON invoices (status);
 CREATE INDEX IF NOT EXISTS idx_invoices_date ON invoices (invoice_date);
+
+CREATE TABLE IF NOT EXISTS invoice_final_pdfs (
+    invoice_id INTEGER NOT NULL PRIMARY KEY,
+    pdf_data BLOB NOT NULL,
+    created_at DATETIME NOT NULL,
+    CONSTRAINT fk_invoice_final_pdfs_invoice FOREIGN KEY (invoice_id)
+        REFERENCES invoices (id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS invoice_templates (
+    id                VARCHAR(36)  NOT NULL PRIMARY KEY,
+    company_id        BIGINT       NOT NULL,
+    name              VARCHAR(120) NOT NULL,
+    language_tag      VARCHAR(35)  NOT NULL,
+    original_filename VARCHAR(255) NOT NULL,
+    template_data     BLOB         NOT NULL,
+    created_at        DATETIME     NOT NULL,
+    CONSTRAINT uk_invoice_templates_company_language_name UNIQUE (company_id, language_tag, name),
+    CONSTRAINT fk_invoice_templates_company FOREIGN KEY (company_id) REFERENCES companies (id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_invoice_templates_company ON invoice_templates (company_id);
+
+CREATE TABLE IF NOT EXISTS credit_notes (
+    id                INTEGER NOT NULL,
+    company_id        BIGINT NOT NULL,
+    invoice_id        BIGINT NOT NULL,
+    credit_note_number VARCHAR(255) NOT NULL,
+    credit_note_date  DATE NOT NULL,
+    status            VARCHAR(32) NOT NULL,
+    reason            VARCHAR(1000) NOT NULL,
+    subtotal          DECIMAL(19, 2) NOT NULL,
+    gst_amount        DECIMAL(19, 2) NOT NULL,
+    hst_amount        DECIMAL(19, 2) NOT NULL,
+    qst_amount        DECIMAL(19, 2) NOT NULL,
+    total_amount      DECIMAL(19, 2) NOT NULL,
+    issued_at         DATETIME NULL,
+    created_at        DATETIME NOT NULL,
+    updated_at        DATETIME NOT NULL,
+    PRIMARY KEY (id),
+    CONSTRAINT uk_credit_notes_company_number UNIQUE (company_id, credit_note_number),
+    CONSTRAINT fk_credit_notes_company FOREIGN KEY (company_id) REFERENCES companies (id),
+    CONSTRAINT fk_credit_notes_invoice FOREIGN KEY (invoice_id) REFERENCES invoices (id)
+);
+CREATE INDEX IF NOT EXISTS idx_credit_notes_company ON credit_notes (company_id);
+CREATE INDEX IF NOT EXISTS idx_credit_notes_invoice ON credit_notes (invoice_id);
+
+CREATE TABLE IF NOT EXISTS credit_note_line_items (
+    id             INTEGER NOT NULL,
+    credit_note_id BIGINT NOT NULL,
+    description    VARCHAR(500) NOT NULL,
+    line_number    INTEGER NOT NULL,
+    quantity       DECIMAL(19, 2) NOT NULL,
+    unit_price     DECIMAL(19, 2) NOT NULL,
+    total          DECIMAL(19, 2) NOT NULL,
+    PRIMARY KEY (id),
+    CONSTRAINT fk_credit_note_lines_note FOREIGN KEY (credit_note_id)
+        REFERENCES credit_notes (id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_credit_note_lines_note ON credit_note_line_items (credit_note_id);
+
+CREATE TABLE IF NOT EXISTS credit_note_refunds (
+    id               INTEGER NOT NULL,
+    company_id       BIGINT NOT NULL,
+    credit_note_id   BIGINT NOT NULL,
+    bank_account_id  BIGINT NOT NULL,
+    amount           DECIMAL(19, 2) NOT NULL,
+    refund_date      DATE NOT NULL,
+    payment_method   VARCHAR(32) NOT NULL,
+    transaction_id   VARCHAR(255),
+    reason           VARCHAR(1000) NOT NULL,
+    created_at       DATETIME NOT NULL,
+    updated_at       DATETIME NOT NULL,
+    PRIMARY KEY (id),
+    CONSTRAINT uk_credit_note_refunds_company_reference UNIQUE (company_id, transaction_id),
+    CONSTRAINT fk_credit_note_refunds_company FOREIGN KEY (company_id) REFERENCES companies (id),
+    CONSTRAINT fk_credit_note_refunds_note FOREIGN KEY (credit_note_id) REFERENCES credit_notes (id),
+    CONSTRAINT fk_credit_note_refunds_bank FOREIGN KEY (bank_account_id) REFERENCES chart_of_accounts (id)
+);
+CREATE INDEX IF NOT EXISTS idx_credit_note_refunds_note ON credit_note_refunds (credit_note_id);
+CREATE INDEX IF NOT EXISTS idx_credit_note_refunds_company_date ON credit_note_refunds (company_id, refund_date);
+
+CREATE TABLE IF NOT EXISTS credit_note_allocations (
+    id                 INTEGER NOT NULL,
+    company_id         BIGINT NOT NULL,
+    credit_note_id     BIGINT NOT NULL,
+    target_invoice_id  BIGINT NOT NULL,
+    amount             DECIMAL(19, 2) NOT NULL,
+    allocation_date    DATE NOT NULL,
+    reversal_date      DATE,
+    reversal_reason    VARCHAR(1000),
+    created_at         DATETIME NOT NULL,
+    updated_at         DATETIME NOT NULL,
+    PRIMARY KEY (id),
+    CONSTRAINT fk_credit_note_allocations_company FOREIGN KEY (company_id) REFERENCES companies (id),
+    CONSTRAINT fk_credit_note_allocations_note FOREIGN KEY (credit_note_id) REFERENCES credit_notes (id),
+    CONSTRAINT fk_credit_note_allocations_target FOREIGN KEY (target_invoice_id) REFERENCES invoices (id)
+);
+CREATE INDEX IF NOT EXISTS idx_credit_note_allocations_note
+    ON credit_note_allocations (credit_note_id);
+CREATE INDEX IF NOT EXISTS idx_credit_note_allocations_target
+    ON credit_note_allocations (target_invoice_id);
+CREATE INDEX IF NOT EXISTS idx_credit_note_allocations_company_date
+    ON credit_note_allocations (company_id, allocation_date);
 
 CREATE TABLE IF NOT EXISTS line_items (
 
@@ -405,6 +512,8 @@ CREATE TABLE IF NOT EXISTS bills (
     total_amount DECIMAL(19, 2) NOT NULL,
     paid_amount  DECIMAL(19, 2) NULL,
     notes        VARCHAR(1000)  NULL,
+    cancellation_reason VARCHAR(1000) NULL,
+    cancelled_at DATETIME       NULL,
     created_at   DATETIME    NOT NULL,
     updated_at   DATETIME    NOT NULL,
     PRIMARY KEY (id),

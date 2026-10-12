@@ -12,6 +12,7 @@ public interface CompanyActivityRepository {
 
     record ActivityCounts(
             long invoices,
+            long creditNotes,
             long customerPayments,
             long bills,
             long vendorPayments,
@@ -25,7 +26,7 @@ public interface CompanyActivityRepository {
             long reconciliationSessions) {
 
         public long total() {
-            return invoices + customerPayments + bills + vendorPayments + cheques
+            return invoices + creditNotes + customerPayments + bills + vendorPayments + cheques
                     + creditCardCharges + transfers + journals + taxFilingPeriods + fiscalYears
                     + importedBankTransactions + reconciliationSessions;
         }

@@ -61,6 +61,7 @@ public class PaymentServiceTest {
         p.setStatus(PaymentStatus.PENDING);
         p.setTransactionId("TX-1");
         p.setCompany(companyContext.requireCompany());
+        Assertions.assertThrows(IllegalStateException.class, () -> paymentService.recordPayment(p));
         paymentRepository.save(p);
 
         var cheques = paymentService.getPaymentsByMethod(PaymentMethod.CHEQUE);

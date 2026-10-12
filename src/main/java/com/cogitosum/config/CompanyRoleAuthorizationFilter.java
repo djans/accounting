@@ -13,6 +13,7 @@ import org.springframework.security.web.authentication.WebAuthenticationDetails;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 
 public class CompanyRoleAuthorizationFilter extends OncePerRequestFilter {
@@ -31,9 +32,12 @@ public class CompanyRoleAuthorizationFilter extends OncePerRequestFilter {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication != null && authentication.isAuthenticated()
                 && !"anonymousUser".equals(authentication.getName())) {
-            List<SimpleGrantedAuthority> authorities = companyContext.currentMembershipRole()
-                .map(role -> List.of(new SimpleGrantedAuthority("ROLE_" + role.name())))
-                .orElseGet(List::of);
+            List<SimpleGrantedAuthority> authorities = new ArrayList<>();
+            companyContext.currentMembershipRole()
+                .ifPresent(role -> authorities.add(new SimpleGrantedAuthority("ROLE_" + role.name())));
+            if (companyContext.isSuperAdmin()) {
+                authorities.add(new SimpleGrantedAuthority("ROLE_SUPER_ADMIN"));
+            }
             UsernamePasswordAuthenticationToken companyAuthentication =
                 UsernamePasswordAuthenticationToken.authenticated(authentication.getPrincipal(), null, authorities);
             companyAuthentication.setDetails(authentication.getDetails() instanceof WebAuthenticationDetails details

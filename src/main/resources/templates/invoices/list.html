@@ -31,6 +31,10 @@
                         </form>
                     </div>
                     <div class="d-flex gap-2 flex-wrap">
+                        <a th:href="@{/credit-notes}" class="btn-portal btn-ghost">
+                            <i class="bi bi-receipt-cutoff"></i>
+                            <span th:text="#{nav.creditNotes}">Credit notes</span>
+                        </a>
                         <a th:href="@{/invoices/statements}" class="btn-portal btn-ghost">
                             <i class="bi bi-person-lines-fill"></i>
                             <span th:text="#{invoices.statement.open}">Customer statement</span>
@@ -107,11 +111,13 @@
                 <div id="invoiceFilterNoMatches" class="empty-state" hidden
                      th:text="#{listFilter.noMatches}">No invoices match these filters.</div>
                 <div class="d-flex justify-content-end mb-2">
-                    <form id="invoicePdfDownloadForm" th:action="@{/invoices/pdf-download}" method="post"></form>
+                    <form id="invoicePdfDownloadForm" th:action="@{/invoices/pdf-download}" method="post"
+                          data-download-progress="submit"></form>
                     <button id="invoicePdfDownloadButton" type="submit" form="invoicePdfDownloadForm"
                             class="btn-portal btn-ghost btn-sm" disabled>
                         <i class="bi bi-file-earmark-zip"></i>
                         <span th:text="#{invoices.pdf.downloadSelected}">Download selected PDFs</span>
+                        <span class="invoice-submit-spinner" data-download-spinner aria-hidden="true" hidden></span>
                     </button>
                 </div>
                 <table th:if="${not #lists.isEmpty(invoices)}" class="table-portal" data-table-totals>
@@ -178,6 +184,7 @@
 </div>
 <script th:src="@{/js/table-totals.js}"></script>
 <script th:src="@{/js/list-filters.js}"></script>
+<script th:src="@{/js/invoice-download-progress.js}"></script>
 <script>
     document.addEventListener('DOMContentLoaded', function () {
         const all = document.getElementById('invoicePdfSelectAll');

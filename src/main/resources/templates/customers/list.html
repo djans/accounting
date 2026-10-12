@@ -52,13 +52,17 @@
                             <span th:unless="${c.inactive}" class="badge bg-success">Actif</span>
                         </td>
                         <td style="text-align:right; white-space:nowrap;">
-                            <a th:href="@{/customers/{id}/edit(id=${c.id})}" class="btn-portal btn-ghost btn-sm">
-                                <i class="bi bi-pencil"></i> Modifier
+                            <a th:href="@{/customers/{id}/edit(id=${c.id})}"
+                               class="btn-portal btn-icon-action btn-icon-edit"
+                               th:title="#{btn.edit}" th:attr="aria-label=#{btn.edit}">
+                                <i class="bi bi-pencil" aria-hidden="true"></i>
                             </a>
-                            <form th:action="@{/customers/{id}/delete(id=${c.id})}" method="post" style="display:inline">
-                                <button type="submit" class="btn-portal btn-danger btn-sm"
-                                        onclick="return confirm('Supprimer ce client ?')">
-                                    <i class="bi bi-trash"></i>
+                            <form th:action="@{/customers/{id}/delete(id=${c.id})}" method="post" style="display:inline"
+                                  th:attr="data-confirm-message=#{party.customerDeleteConfirm}">
+                                <button type="submit" class="btn-portal btn-icon-action btn-icon-delete"
+                                        th:title="#{btn.delete}" th:attr="aria-label=#{btn.delete}"
+                                        onclick="return confirm(this.form.dataset.confirmMessage)">
+                                    <i class="bi bi-x-lg" aria-hidden="true"></i>
                                 </button>
                             </form>
                         </td>

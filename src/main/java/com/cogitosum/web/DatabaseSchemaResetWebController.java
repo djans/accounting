@@ -40,7 +40,7 @@ public class DatabaseSchemaResetWebController {
 
     @GetMapping
     public String page(Authentication authentication) {
-        requireAdmin(authentication);
+        requireSuperAdmin(authentication);
         return "redirect:/admin/reset";
     }
 
@@ -49,7 +49,7 @@ public class DatabaseSchemaResetWebController {
                            @RequestParam(defaultValue = "false") boolean confirmReset,
                            Authentication authentication,
                            RedirectAttributes attributes) {
-        requireAdmin(authentication);
+        requireSuperAdmin(authentication);
         if (!CONFIRMATION.equals(confirmation) || !confirmReset) {
             attributes.addFlashAttribute("flashError",
                     messageSource.getMessage("admin.schemaReset.confirmationRequired",
@@ -65,10 +65,10 @@ public class DatabaseSchemaResetWebController {
         return "admin/database-recreated";
     }
 
-    private void requireAdmin(Authentication authentication) {
+    private void requireSuperAdmin(Authentication authentication) {
         if (authentication == null || !authentication.isAuthenticated()
-                || !authentication.getAuthorities().contains(new SimpleGrantedAuthority("ROLE_ADMIN"))) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Administrator role required");
+                || !authentication.getAuthorities().contains(new SimpleGrantedAuthority("ROLE_SUPER_ADMIN"))) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Super administrator role required");
         }
     }
 }

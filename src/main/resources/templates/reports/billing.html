@@ -86,6 +86,7 @@
                     <tr><td>Viewed</td><td id="status-viewed" class="num" th:text="${statusSummary['viewed']}">0</td></tr>
                     <tr><td>Partially Paid</td><td id="status-partiallyPaid" class="num" th:text="${statusSummary['partiallyPaid']}">0</td></tr>
                     <tr><td>Paid</td><td id="status-paid" class="num" th:text="${statusSummary['paid']}">0</td></tr>
+                    <tr><td th:text="#{invoice.status.CREDITED}">Credited</td><td id="status-credited" class="num" th:text="${statusSummary['credited']}">0</td></tr>
                     <tr><td>Overdue</td><td id="status-overdue" class="num" th:text="${statusSummary['overdue']}">0</td></tr>
                     <tr><td>Cancelled</td><td id="status-cancelled" class="num" th:text="${statusSummary['cancelled']}">0</td></tr>
                     <tr><td>Refunded</td><td id="status-refunded" class="num" th:text="${statusSummary['refunded']}">0</td></tr>

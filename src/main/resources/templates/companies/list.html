@@ -41,8 +41,10 @@
                             <td th:text="${company.legalName}">Legal name</td>
                             <td th:text="${company.email}">email@example.com</td>
                             <td th:if="${canManagePostedJournalEditing}">
+                                <span th:unless="${manageableCompanyIds.contains(company.id)}">—</span>
                                 <form th:action="@{/companies/{id}/posted-journal-editing(id=${company.id})}"
-                                      method="post" data-posted-journal-editing>
+                                      method="post" data-posted-journal-editing
+                                      th:if="${manageableCompanyIds.contains(company.id)}">
                                     <div class="d-flex flex-wrap gap-3">
                                         <div class="form-check">
                                             <input class="form-check-input" type="radio" name="enabled" value="true"
@@ -68,6 +70,9 @@
                                       th:text="#{company.current}">Current</span>
                             </td>
                             <td class="text-end">
+                                <a th:if="${manageableCompanyIds.contains(company.id) and company.id == currentCompanyId}"
+                                   th:href="@{/companies/{id}/edit(id=${company.id})}"
+                                   class="btn-portal btn-ghost btn-sm" th:text="#{company.edit}">Edit</a>
                                 <form th:if="${company.id != currentCompanyId}"
                                       th:action="@{/companies/{id}/select(id=${company.id})}" method="post">
                                     <button type="submit" class="btn-portal btn-ghost btn-sm"

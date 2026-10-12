@@ -3,11 +3,15 @@ package com.cogitosum.service;
 import com.cogitosum.entity.*;
 import com.cogitosum.repository.InvoiceRepository;
 import com.cogitosum.repository.CustomerRepository;
+import com.cogitosum.repository.CreditNoteRepository;
+import com.cogitosum.repository.CreditNoteRefundRepository;
+import com.cogitosum.repository.CreditNoteAllocationRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.regex.Matcher;
@@ -30,6 +34,18 @@ public class InvoiceService {
 
     @Autowired
     private CurrentCompanyContext companyContext;
+
+    @Autowired
+    private InvoicePdfService invoicePdfService;
+
+    @Autowired
+    private CreditNoteRepository creditNoteRepository;
+
+    @Autowired
+    private CreditNoteRefundRepository creditNoteRefundRepository;
+
+    @Autowired
+    private CreditNoteAllocationRepository creditNoteAllocationRepository;
     
     // Canadian tax rates - default federal GST when no province match
     private static final BigDecimal GST_RATE = new BigDecimal("0.05");      // 5% TPS
@@ -51,11 +67,18 @@ public class InvoiceService {
         return REGIMES.stream().filter(r -> r.code().equals(code)).findFirst().orElse(null);
     }
     
+    @Transactional
     public Invoice createInvoice(Invoice invoice) {
         return createInvoice(invoice, null);
     }
 
+    @Transactional
     public Invoice createInvoice(Invoice invoice, String regimeCode) {
+        return createInvoice(invoice, regimeCode, false, null);
+    }
+
+    @Transactional
+    public Invoice createInvoice(Invoice invoice, String regimeCode, boolean finalInvoice, String finalTemplateId) {
         Long companyId = companyContext.requireCompanyId();
         invoice.setCompany(companyContext.requireCompany());
         invoice.setCustomer(customerRepository.findByIdAndCompanyId(requiredId(invoice.getCustomer(), "customer"), companyId)
@@ -73,6 +96,12 @@ public class InvoiceService {
         invoice.setTaxRegime(regimeCode != null ? regimeCode : invoice.getCustomer().getProvince());
 
         Invoice saved = invoiceRepository.save(invoice);
+        if (finalInvoice) {
+            saved = finalizeInvoice(saved.getId(), finalTemplateId);
+            if (saved == null) {
+                throw new IllegalStateException("Could not issue the final invoice");
+            }
+        }
         return saved;
     }
 
@@ -192,7 +221,13 @@ public class InvoiceService {
     
     @Transactional
     public Invoice markInvoiceAsSent(Long id) {
-        Optional<Invoice> invoice = invoiceRepository.findByIdAndCompanyId(id, companyContext.requireCompanyId());
+        return finalizeInvoice(id, InvoiceTemplateService.STANDARD_TEMPLATE_ID);
+    }
+
+    @Transactional
+    public Invoice finalizeInvoice(Long id, String finalTemplateId) {
+        Optional<Invoice> invoice = invoiceRepository.findByIdAndCompanyId(
+                id, companyContext.requireCompanyId());
         if (invoice.isPresent()) {
             Invoice inv = invoice.get();
             if (inv.getStatus() != InvoiceStatus.DRAFT) {
@@ -204,6 +239,8 @@ public class InvoiceService {
             inv.setStatus(InvoiceStatus.SENT);
             Invoice saved = invoiceRepository.save(inv);
             invoicePostingService.postInvoice(saved);
+            byte[] pdf = invoicePdfService.createInvoicePdf(saved, finalTemplateId);
+            invoicePdfService.storeFinalPdf(saved.getId(), pdf);
             return saved;
         }
         return null;
@@ -218,12 +255,32 @@ public class InvoiceService {
         return null;
     }
     
-    public Invoice cancelInvoice(Long id) {
-        Optional<Invoice> invoice = invoiceRepository.findByIdAndCompanyId(id, companyContext.requireCompanyId());
+    @Transactional
+    public Invoice cancelInvoice(Long id, String reason) {
+        String cancellationReason = requiredCancellationReason(reason);
+        Optional<Invoice> invoice = invoiceRepository.findLockedByIdAndCompanyId(
+                id, companyContext.requireCompanyId());
         if (invoice.isPresent()) {
             Invoice inv = invoice.get();
-            invoicePostingService.reverseInvoice(inv, "Invoice cancelled");
+            if (inv.getStatus() == InvoiceStatus.DRAFT || inv.getStatus() == InvoiceStatus.CANCELLED) {
+                throw new IllegalStateException("Only issued, active invoices can be cancelled");
+            }
+            if (inv.getStatus() == InvoiceStatus.PAID
+                    || inv.getPaidAmount() != null && inv.getPaidAmount().signum() > 0) {
+                throw new IllegalStateException("Refund invoice payments before cancelling the invoice");
+            }
+            if (creditNoteRepository.existsByCompanyIdAndInvoiceId(
+                    companyContext.requireCompanyId(), inv.getId())) {
+                throw new IllegalStateException("An invoice with credit notes cannot be cancelled");
+            }
+            if (creditNoteAllocationRepository.existsByCompanyIdAndTargetInvoiceIdAndReversalDateIsNull(
+                    companyContext.requireCompanyId(), inv.getId())) {
+                throw new IllegalStateException("Reverse applied credit before cancelling the invoice");
+            }
+            invoicePostingService.reverseInvoice(inv, "Invoice cancelled: " + cancellationReason);
             inv.setStatus(InvoiceStatus.CANCELLED);
+            inv.setCancellationReason(cancellationReason);
+            inv.setCancelledAt(LocalDateTime.now());
             return invoiceRepository.save(inv);
         }
         return null;
@@ -347,7 +404,23 @@ public class InvoiceService {
 
     public BigDecimal getOutstandingAmount(Invoice invoice) {
         BigDecimal paidAmount = invoice.getPaidAmount() == null ? BigDecimal.ZERO : invoice.getPaidAmount();
-        return invoice.getTotalAmount().subtract(paidAmount);
+        BigDecimal creditedAmount = invoice.getId() == null ? BigDecimal.ZERO
+                : creditNoteRepository.sumTotalByCompanyIdAndInvoiceIdAndStatus(
+                        companyContext.requireCompanyId(), invoice.getId(), CreditNoteStatus.ISSUED);
+        BigDecimal refundedAmount = invoice.getId() == null ? BigDecimal.ZERO
+                : creditNoteRefundRepository.sumByCompanyIdAndInvoiceId(
+                        companyContext.requireCompanyId(), invoice.getId());
+        BigDecimal allocatedFromInvoice = invoice.getId() == null ? BigDecimal.ZERO
+                : creditNoteAllocationRepository.sumByCompanyIdAndSourceInvoiceId(
+                        companyContext.requireCompanyId(), invoice.getId());
+        BigDecimal allocatedToInvoice = invoice.getId() == null ? BigDecimal.ZERO
+                : creditNoteAllocationRepository.sumByCompanyIdAndTargetInvoiceId(
+                        companyContext.requireCompanyId(), invoice.getId());
+        return invoice.getTotalAmount().subtract(paidAmount)
+                .subtract(creditedAmount == null ? BigDecimal.ZERO : creditedAmount)
+                .add(refundedAmount == null ? BigDecimal.ZERO : refundedAmount)
+                .add(allocatedFromInvoice == null ? BigDecimal.ZERO : allocatedFromInvoice)
+                .subtract(allocatedToInvoice == null ? BigDecimal.ZERO : allocatedToInvoice);
     }
 
     private boolean isOpenForPayment(Invoice invoice) {
@@ -361,15 +434,30 @@ public class InvoiceService {
     }
 
     public java.math.BigDecimal getCustomerBalance(Long customerId) {
-        return getUnpaidInvoicesByCustomerId(customerId).stream()
+        return getInvoicesByCustomerId(customerId).stream()
+                .filter(invoice -> invoice.getStatus() != null
+                        && invoice.getStatus() != InvoiceStatus.DRAFT
+                        && invoice.getStatus() != InvoiceStatus.CANCELLED
+                        && invoice.getStatus() != InvoiceStatus.REFUNDED)
                 .map(this::getOutstandingAmount)
                 .reduce(java.math.BigDecimal.ZERO, java.math.BigDecimal::add);
     }
 
+    @Transactional
     public void deleteInvoice(Long id) {
         Optional<Invoice> invoice = invoiceRepository.findByIdAndCompanyId(id, companyContext.requireCompanyId());
+        if (invoice.isPresent() && invoice.get().getStatus() != InvoiceStatus.DRAFT) {
+            throw new IllegalStateException("Only draft invoices can be deleted; cancel issued invoices with a reason");
+        }
         invoice.ifPresent(inv -> invoicePostingService.reverseInvoice(inv, "Invoice deleted"));
         invoice.ifPresent(invoiceRepository::delete);
+    }
+
+    private String requiredCancellationReason(String reason) {
+        if (reason == null || reason.isBlank() || reason.trim().length() > 1000) {
+            throw new IllegalArgumentException("A cancellation reason of up to 1000 characters is required");
+        }
+        return reason.trim();
     }
 
     private Long requiredId(Object related, String name) {

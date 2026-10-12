@@ -61,6 +61,9 @@
                             <a th:if="${detail.sourceType() == 'INVOICE'}"
                                th:href="@{/invoices/{id}(id=${detail.sourceId()})}"
                                th:text="${detail.documentNumber()}">INV-001</a>
+                            <a th:if="${detail.sourceType() == 'CREDIT_NOTE'}"
+                               th:href="@{/credit-notes/{id}(id=${detail.sourceId()})}"
+                               th:text="${detail.documentNumber()}">CN-001</a>
                             <a th:if="${detail.sourceType() == 'BILL'}"
                                th:href="@{/bills/{id}(id=${detail.sourceId()})}"
                                th:text="${detail.documentNumber()}">BILL-001</a>

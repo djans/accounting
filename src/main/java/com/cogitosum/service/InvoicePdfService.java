@@ -1,38 +1,101 @@
 package com.cogitosum.service;
 
 import com.cogitosum.entity.Invoice;
+import com.cogitosum.entity.InvoiceFinalPdf;
+import com.cogitosum.repository.InvoiceFinalPdfRepository;
 import com.cogitosum.repository.InvoiceRepository;
+import com.cogitosum.config.LoggingCategory;
 import java.text.Normalizer;
+import java.util.Locale;
 import java.util.Optional;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.context.i18n.LocaleContextHolder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Service
 public class InvoicePdfService {
+
+    private static final Logger log = LoggerFactory.getLogger(InvoicePdfService.class);
 
     private final InvoiceRepository invoiceRepository;
     private final CurrentCompanyContext companyContext;
     private final InvoiceDocxTemplateRenderer templateRenderer;
     private final LibreOfficePdfConverter pdfConverter;
+    private final InvoiceTemplateService invoiceTemplateService;
+    private final InvoiceFinalPdfRepository finalPdfRepository;
 
     public InvoicePdfService(InvoiceRepository invoiceRepository, CurrentCompanyContext companyContext,
-                             InvoiceDocxTemplateRenderer templateRenderer, LibreOfficePdfConverter pdfConverter) {
+                             InvoiceDocxTemplateRenderer templateRenderer, LibreOfficePdfConverter pdfConverter,
+                             InvoiceTemplateService invoiceTemplateService,
+                             InvoiceFinalPdfRepository finalPdfRepository) {
         this.invoiceRepository = invoiceRepository;
         this.companyContext = companyContext;
         this.templateRenderer = templateRenderer;
         this.pdfConverter = pdfConverter;
+        this.invoiceTemplateService = invoiceTemplateService;
+        this.finalPdfRepository = finalPdfRepository;
     }
 
     @Transactional(readOnly = true)
     public Optional<InvoicePdf> downloadInvoice(Long invoiceId) {
         return invoiceRepository.findByIdAndCompanyId(invoiceId, companyContext.requireCompanyId())
-                .map(invoice -> new InvoicePdf(createInvoicePdf(invoice), filenameFor(invoice)));
+                .map(invoice -> storedPdf(invoice)
+                        .orElseGet(() -> new InvoicePdf(createInvoicePdf(invoice), filenameFor(invoice))));
+    }
+
+    @Transactional(readOnly = true)
+    public Optional<InvoicePdf> downloadInvoice(Long invoiceId, String templateId) {
+        return invoiceRepository.findByIdAndCompanyId(invoiceId, companyContext.requireCompanyId())
+                .map(invoice -> storedPdf(invoice)
+                        .orElseGet(() -> new InvoicePdf(createInvoicePdf(invoice, templateId), filenameFor(invoice))));
+    }
+
+    @Transactional(readOnly = true)
+    public Optional<InvoicePdf> downloadStoredInvoice(Long invoiceId) {
+        return invoiceRepository.findByIdAndCompanyId(invoiceId, companyContext.requireCompanyId())
+                .flatMap(this::storedPdf);
+    }
+
+    @Transactional
+    public void storeFinalPdf(Long invoiceId, byte[] pdfData) {
+        if (invoiceId == null || pdfData == null || pdfData.length == 0) {
+            throw new IllegalArgumentException("A saved invoice and non-empty PDF are required");
+        }
+        finalPdfRepository.save(new InvoiceFinalPdf(invoiceId, pdfData));
+    }
+
+    private Optional<InvoicePdf> storedPdf(Invoice invoice) {
+        return finalPdfRepository.findById(invoice.getId())
+                .map(finalPdf -> new InvoicePdf(finalPdf.getPdfData(), filenameFor(invoice)));
     }
 
     public byte[] createInvoicePdf(Invoice invoice) {
+        long startedAt = System.nanoTime();
         byte[] docx = templateRenderer.render(invoice, LocaleContextHolder.getLocale());
-        return pdfConverter.convertToPdf(docx);
+        return convertAndLog(invoice, docx, startedAt);
+    }
+
+    public byte[] createInvoicePdf(Invoice invoice, String templateId) {
+        if (templateId == null || InvoiceTemplateService.STANDARD_TEMPLATE_ID.equals(templateId)) {
+            return createInvoicePdf(invoice);
+        }
+        InvoiceTemplateService.TemplateContent selected =
+                invoiceTemplateService.getTemplateForCompany(invoice.getCompany().getId(), templateId);
+        Locale locale = Locale.forLanguageTag(selected.languageTag());
+        long startedAt = System.nanoTime();
+        byte[] docx = templateRenderer.render(invoice, locale, selected.data());
+        return convertAndLog(invoice, docx, startedAt);
+    }
+
+    private byte[] convertAndLog(Invoice invoice, byte[] docx, long startedAt) {
+        byte[] pdf = pdfConverter.convertToPdf(docx);
+        try (LoggingCategory.Scope ignored = LoggingCategory.open(LoggingCategory.INTERNAL_PROCESS)) {
+            log.info("Invoice PDF generated: invoiceId={} bytes={} durationMs={}",
+                    invoice.getId(), pdf.length, (System.nanoTime() - startedAt) / 1_000_000);
+        }
+        return pdf;
     }
 
     public static String filenameFor(Invoice invoice) {

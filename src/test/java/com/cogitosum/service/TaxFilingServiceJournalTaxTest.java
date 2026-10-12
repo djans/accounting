@@ -6,6 +6,8 @@ import com.cogitosum.entity.ChartOfAccount;
 import com.cogitosum.entity.ChequeExpense;
 import com.cogitosum.entity.CreditCardCharge;
 import com.cogitosum.entity.CreditCardChargeStatus;
+import com.cogitosum.entity.CreditNote;
+import com.cogitosum.entity.CreditNoteStatus;
 import com.cogitosum.entity.GeneralJournal;
 import com.cogitosum.entity.JournalEntry;
 import com.cogitosum.entity.JournalStatus;
@@ -24,6 +26,7 @@ import com.cogitosum.dto.TaxReturnRowDTO;
 import com.cogitosum.repository.BillRepository;
 import com.cogitosum.repository.ChartOfAccountRepository;
 import com.cogitosum.repository.CreditCardChargeRepository;
+import com.cogitosum.repository.CreditNoteRepository;
 import com.cogitosum.repository.InvoiceRepository;
 import com.cogitosum.repository.TaxFilingPeriodRepository;
 import com.cogitosum.repository.WrittenChequeRepository;
@@ -52,6 +55,7 @@ class TaxFilingServiceJournalTaxTest {
     private TaxItem purchaseItem;
     private ChartOfAccount itcAccount;
     private InvoiceRepository invoiceRepository;
+    private CreditNoteRepository creditNoteRepository;
     private CreditCardChargeRepository creditCardChargeRepository;
     private WrittenChequeRepository chequeRepository;
     private ChartOfAccountRepository accountRepository;
@@ -90,6 +94,8 @@ class TaxFilingServiceJournalTaxTest {
         when(invoiceRepository.findByCompanyIdAndInvoiceDateBetweenOrderByInvoiceDateDesc(eq(1L), any(), any()))
                 .thenReturn(List.of());
         ReflectionTestUtils.setField(service, "invoiceRepository", invoiceRepository);
+        creditNoteRepository = mock(CreditNoteRepository.class);
+        ReflectionTestUtils.setField(service, "creditNoteRepository", creditNoteRepository);
         accountRepository = mock(ChartOfAccountRepository.class);
         ReflectionTestUtils.setField(service, "accountRepository", accountRepository);
         taxCodeService = mock(TaxCodeService.class);
@@ -180,6 +186,25 @@ class TaxFilingServiceJournalTaxTest {
         when(journalService.getJournalsByDateRange(start, end)).thenReturn(List.of(sale));
 
         assertEquals(new BigDecimal("10.00"), service.sumTaxCollected(agency, start, end));
+    }
+
+    @Test
+    void subtractsIssuedCreditNoteTaxesFromTheFilingPeriod() {
+        CreditNote note = new CreditNote();
+        note.setId(15L);
+        note.setCreditNoteNumber("CN-015");
+        note.setCreditNoteDate(start);
+        note.setStatus(CreditNoteStatus.ISSUED);
+        note.setGstAmount(new BigDecimal("3.00"));
+        note.setHstAmount(new BigDecimal("2.00"));
+        note.setQstAmount(BigDecimal.ZERO);
+        when(creditNoteRepository
+                .findByCompanyIdAndStatusAndCreditNoteDateBetweenOrderByCreditNoteDateDescIdDesc(
+                        1L, CreditNoteStatus.ISSUED, start, end))
+                .thenReturn(List.of(note));
+        when(journalService.getJournalsByDateRange(start, end)).thenReturn(List.of());
+
+        assertEquals(new BigDecimal("-5.00"), service.sumTaxCollected(agency, start, end));
     }
 
     @Test

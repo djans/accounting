@@ -6,8 +6,8 @@ public enum InvoiceStatus {
     VIEWED,
     PARTIALLY_PAID,
     PAID,
+    CREDITED,
     OVERDUE,
     CANCELLED,
     REFUNDED
 }
-

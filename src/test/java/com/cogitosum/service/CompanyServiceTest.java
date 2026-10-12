@@ -7,12 +7,16 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import tools.jackson.databind.ObjectMapper;
 
 import java.math.BigDecimal;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import javax.imageio.ImageIO;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -54,7 +58,7 @@ class CompanyServiceTest {
         UserAccount user = new UserAccount();
         user.setId(4L);
         when(context.currentUser()).thenReturn(user);
-        when(context.requireCurrentRole()).thenReturn(UserRole.ADMIN);
+        when(context.isSuperAdmin()).thenReturn(true);
         when(context.canAccessCompany(10L)).thenReturn(true);
         when(companies.findByEmailIgnoreCase("destination@example.test")).thenReturn(Optional.empty());
         when(companies.findById(10L)).thenReturn(Optional.of(source));
@@ -148,7 +152,7 @@ class CompanyServiceTest {
     void refusesCloneSourcesOutsideTheCurrentUsersAccessibleCompanies() {
         Company target = company(null, "New");
         target.setEmail("new@example.test");
-        when(context.requireCurrentRole()).thenReturn(UserRole.ADMIN);
+        when(context.isSuperAdmin()).thenReturn(true);
         when(context.canAccessCompany(77L)).thenReturn(false);
         when(companies.findByEmailIgnoreCase("new@example.test")).thenReturn(Optional.empty());
 
@@ -158,10 +162,19 @@ class CompanyServiceTest {
     }
 
     @Test
+    void companyAdministratorCannotCreateAnotherCompany() {
+        when(context.isSuperAdmin()).thenReturn(false);
+
+        assertThrows(org.springframework.security.access.AccessDeniedException.class,
+            () -> service().createCompany(company(null, "New")));
+
+        verify(companies, never()).save(any());
+    }
+
+    @Test
     void administratorCanEnablePostedJournalEditingForAnAccessibleCompany() {
         Company company = company(10L, "Company");
-        when(context.requireCurrentRole()).thenReturn(UserRole.ADMIN);
-        when(context.canAccessCompany(10L)).thenReturn(true);
+        when(context.canAdministerCompany(10L)).thenReturn(true);
         when(companies.findById(10L)).thenReturn(Optional.of(company));
         when(companies.save(company)).thenReturn(company);
 
@@ -174,13 +187,124 @@ class CompanyServiceTest {
     @Test
     void refusesPostedJournalEditingChangesForNonAdministrators() {
         Company company = company(10L, "Company");
-        when(context.requireCurrentRole()).thenReturn(UserRole.ACCOUNTANT);
+        when(context.canAdministerCompany(10L)).thenReturn(false);
 
         assertThrows(org.springframework.security.access.AccessDeniedException.class,
             () -> service().setPostedJournalEditingEnabled(10L, true));
 
         verify(companies, never()).findById(anyLong());
         verify(companies, never()).save(company);
+    }
+
+    @Test
+    void administratorCanUpdateSelectedCompanyProfileWithoutChangingItsIdentityOrAccountingSettings()
+            throws Exception {
+        Company current = company(10L, "Current");
+        current.setCurrency("USD");
+        current.setDefaultTaxProvince("QC");
+        current.setFiscalYearStartMonth(4);
+        byte[] existingLogo = pngLogo();
+        current.setLogoData(existingLogo);
+        current.setLogoContentType("image/png");
+        Company submitted = company(null, "Updated");
+        submitted.setEmail(current.getEmail());
+        submitted.setAddress("99 New Street");
+        submitted.setPhone("555-0199");
+        submitted.setBusinessNumber("123456789");
+        when(context.canAdministerCompany(10L)).thenReturn(true);
+        when(context.requireCompany()).thenReturn(current);
+        when(companies.findById(10L)).thenReturn(Optional.of(current));
+        when(companies.findByEmailIgnoreCase(current.getEmail())).thenReturn(Optional.of(current));
+        when(companies.save(current)).thenReturn(current);
+
+        Company updated = service().updateCompany(10L, submitted);
+
+        assertSame(current, updated);
+        assertEquals(10L, updated.getId());
+        assertEquals("Updated", updated.getName());
+        assertEquals("99 New Street", updated.getAddress());
+        assertEquals("555-0199", updated.getPhone());
+        assertEquals("123456789", updated.getBusinessNumber());
+        assertEquals("USD", updated.getCurrency());
+        assertEquals("QC", updated.getDefaultTaxProvince());
+        assertEquals(4, updated.getFiscalYearStartMonth());
+        assertArrayEquals(existingLogo, updated.getLogoData());
+        assertEquals("image/png", updated.getLogoContentType());
+        verify(companies).save(current);
+        verify(accounts, never()).save(any());
+        verify(agencies, never()).save(any());
+        verify(items, never()).save(any());
+        verify(groups, never()).save(any());
+        verify(codes, never()).save(any());
+    }
+
+    @Test
+    void companyProfileEditingIsRestrictedToAdministratorOfSelectedCompany() {
+        Company current = company(10L, "Current");
+        when(context.canAdministerCompany(10L)).thenReturn(false);
+
+        assertThrows(org.springframework.security.access.AccessDeniedException.class,
+                () -> service().getCompanyForEdit(10L));
+        verify(context, never()).requireCompany();
+
+        when(context.canAdministerCompany(11L)).thenReturn(true);
+        when(context.requireCompany()).thenReturn(current);
+        assertThrows(org.springframework.security.access.AccessDeniedException.class,
+                () -> service().getCompanyForEdit(11L));
+    }
+
+    @Test
+    void companyProfileUpdateRejectsEmailAlreadyUsedByAnotherCompany() {
+        Company current = company(10L, "Current");
+        Company other = company(11L, "Other");
+        Company submitted = company(null, "Current");
+        submitted.setEmail(other.getEmail());
+        when(context.canAdministerCompany(10L)).thenReturn(true);
+        when(context.requireCompany()).thenReturn(current);
+        when(companies.findById(10L)).thenReturn(Optional.of(current));
+        when(companies.findByEmailIgnoreCase(other.getEmail())).thenReturn(Optional.of(other));
+
+        assertThrows(IllegalArgumentException.class, () -> service().updateCompany(10L, submitted));
+
+        verify(companies, never()).save(any());
+    }
+
+    @Test
+    void administratorCanAddAndRemoveAValidatedCompanyLogo() throws Exception {
+        Company current = company(10L, "Current");
+        Company submitted = company(null, "Current");
+        byte[] logo = pngLogo();
+        when(context.canAdministerCompany(10L)).thenReturn(true);
+        when(context.requireCompany()).thenReturn(current);
+        when(companies.findById(10L)).thenReturn(Optional.of(current));
+        when(companies.findByEmailIgnoreCase(current.getEmail())).thenReturn(Optional.of(current));
+        when(companies.save(current)).thenReturn(current);
+
+        service().updateCompany(10L, submitted, logo, "image/png", false);
+
+        assertArrayEquals(logo, current.getLogoData());
+        assertEquals("image/png", current.getLogoContentType());
+
+        service().updateCompany(10L, submitted, null, null, true);
+
+        assertNull(current.getLogoData());
+        assertNull(current.getLogoContentType());
+    }
+
+    @Test
+    void rejectsLogoWhenDeclaredTypeDoesNotMatchTheImage() throws Exception {
+        assertThrows(IllegalArgumentException.class,
+                () -> service().updateCompany(10L, company(null, "Current"), pngLogo(), "image/jpeg", false));
+
+        verify(companies, never()).save(any());
+    }
+
+    @Test
+    void companyLogoBytesAreNotIncludedInJsonCompanyViews() throws Exception {
+        Company company = company(10L, "Current");
+        company.setLogoData(pngLogo());
+
+        assertFalse(new ObjectMapper().valueToTree(company).has("logoData"));
     }
 
     private Company company(Long id, String name) {
@@ -210,5 +334,12 @@ class CompanyServiceTest {
         account.setOpeningBalance(new BigDecimal("125.00"));
         account.setOpeningBalanceDate(LocalDate.of(2025, 1, 1));
         return account;
+    }
+
+    private byte[] pngLogo() throws Exception {
+        BufferedImage image = new BufferedImage(2, 1, BufferedImage.TYPE_INT_RGB);
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        ImageIO.write(image, "png", output);
+        return output.toByteArray();
     }
 }

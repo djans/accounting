@@ -8,6 +8,7 @@ import com.cogitosum.entity.*;
 import com.cogitosum.repository.BillRepository;
 import com.cogitosum.repository.ChartOfAccountRepository;
 import com.cogitosum.repository.CreditCardChargeRepository;
+import com.cogitosum.repository.CreditNoteRepository;
 import com.cogitosum.repository.InvoiceRepository;
 import com.cogitosum.repository.TaxAgencyRepository;
 import com.cogitosum.repository.TaxFilingPeriodRepository;
@@ -48,6 +49,9 @@ public class TaxFilingService {
 
     @Autowired
     private InvoiceRepository invoiceRepository;
+
+    @Autowired
+    private CreditNoteRepository creditNoteRepository;
 
     @Autowired
     private BillRepository billRepository;
@@ -307,6 +311,15 @@ public class TaxFilingService {
                 ));
             }
         }
+        for (CreditNote note : issuedCreditNotes(start, end)) {
+            BigDecimal contribution = taxContribution(note.getGstAmount(), note.getHstAmount(),
+                    note.getQstAmount(), agency).negate();
+            if (contribution.signum() != 0) {
+                details.add(new TaxContributionDTO(note.getId(), "CREDIT_NOTE",
+                        note.getCreditNoteNumber(), note.getCreditNoteDate(),
+                        note.getInvoice().getCustomer().getBusinessName(), contribution));
+            }
+        }
         details.addAll(journalTaxDetails(agency, start, end, false));
         details.sort(Comparator.comparing(TaxContributionDTO::getDate).reversed());
         return details;
@@ -381,6 +394,13 @@ public class TaxFilingService {
             List<TaxItem> items = taxItemsFor(taxCode, agencyItems, agency, true);
             addDocumentReturnLines(totals, "SALES", agency, items, true,
                     invoice.getSubtotal(), invoice.getGstAmount(), invoice.getHstAmount(), invoice.getQstAmount());
+        }
+        for (CreditNote note : issuedCreditNotes(period.getPeriodStart(), period.getPeriodEnd())) {
+            TaxCode taxCode = taxCodesByCode.get(note.getInvoice().getTaxRegime());
+            List<TaxItem> items = taxItemsFor(taxCode, agencyItems, agency, true);
+            addDocumentReturnLines(totals, "SALES", agency, items, true,
+                    zeroIfNull(note.getSubtotal()).negate(), zeroIfNull(note.getGstAmount()).negate(),
+                    zeroIfNull(note.getHstAmount()).negate(), zeroIfNull(note.getQstAmount()).negate());
         }
 
         for (Bill bill : billRepository.findByCompanyIdAndBillDateBetweenOrderByBillDateDesc(
@@ -559,6 +579,14 @@ public class TaxFilingService {
                     invoice.getCustomer() == null ? "" : invoice.getCustomer().getBusinessName(),
                     null, subtotal));
         }
+        for (CreditNote note : issuedCreditNotes(period.getPeriodStart(), period.getPeriodEnd())) {
+            if (note.getSubtotal() == null || note.getSubtotal().signum() == 0) {
+                continue;
+            }
+            details.add(new TaxReturnLineDetailDTO(
+                    "CREDIT_NOTE", note.getId(), note.getCreditNoteDate(), note.getCreditNoteNumber(),
+                    note.getInvoice().getCustomer().getBusinessName(), null, note.getSubtotal().negate()));
+        }
 
         for (GeneralJournal journal : journalService.getJournalsByDateRange(
                 period.getPeriodStart(), period.getPeriodEnd())) {
@@ -611,6 +639,15 @@ public class TaxFilingService {
                         invoice.getCustomer() == null ? "" : invoice.getCustomer().getBusinessName(),
                         line, agency, items, true, invoice.getSubtotal(), invoice.getGstAmount(),
                         invoice.getHstAmount(), invoice.getQstAmount());
+            }
+            for (CreditNote note : issuedCreditNotes(period.getPeriodStart(), period.getPeriodEnd())) {
+                TaxCode taxCode = taxCodesByCode.get(note.getInvoice().getTaxRegime());
+                List<TaxItem> items = taxItemsFor(taxCode, agencyItems, agency, true);
+                addDocumentTaxLineDetails(details, "CREDIT_NOTE", note.getId(), note.getCreditNoteDate(),
+                        note.getCreditNoteNumber(), note.getInvoice().getCustomer().getBusinessName(),
+                        line, agency, items, true, zeroIfNull(note.getSubtotal()).negate(),
+                        zeroIfNull(note.getGstAmount()).negate(), zeroIfNull(note.getHstAmount()).negate(),
+                        zeroIfNull(note.getQstAmount()).negate());
             }
         } else {
             for (Bill bill : billRepository.findByCompanyIdAndBillDateBetweenOrderByBillDateDesc(
@@ -855,6 +892,10 @@ public class TaxFilingService {
                 .map(Invoice::getSubtotal)
                 .filter(java.util.Objects::nonNull)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
+        total = total.subtract(issuedCreditNotes(period.getPeriodStart(), period.getPeriodEnd()).stream()
+                .map(CreditNote::getSubtotal)
+                .filter(java.util.Objects::nonNull)
+                .reduce(BigDecimal.ZERO, BigDecimal::add));
 
         for (GeneralJournal journal : journalService.getJournalsByDateRange(
                 period.getPeriodStart(), period.getPeriodEnd())) {
@@ -1123,19 +1164,33 @@ public class TaxFilingService {
             if (inv.getStatus() == InvoiceStatus.CANCELLED) continue;
             sum = sum.add(taxContribution(inv, agency));
         }
+        for (CreditNote note : issuedCreditNotes(start, end)) {
+            sum = sum.subtract(taxContribution(note.getGstAmount(), note.getHstAmount(),
+                    note.getQstAmount(), agency));
+        }
         return sum.add(sumJournalTaxContributions(agency, start, end, false));
     }
 
     private BigDecimal taxContribution(Invoice inv, TaxAgency agency) {
-        BigDecimal gst = inv.getGstAmount() == null ? BigDecimal.ZERO : inv.getGstAmount();
-        BigDecimal hst = inv.getHstAmount() == null ? BigDecimal.ZERO : inv.getHstAmount();
-        BigDecimal qst = inv.getQstAmount() == null ? BigDecimal.ZERO : inv.getQstAmount();
+        return taxContribution(inv.getGstAmount(), inv.getHstAmount(), inv.getQstAmount(), agency);
+    }
+
+    private BigDecimal taxContribution(BigDecimal gstAmount, BigDecimal hstAmount,
+                                       BigDecimal qstAmount, TaxAgency agency) {
+        BigDecimal gst = zeroIfNull(gstAmount);
+        BigDecimal hst = zeroIfNull(hstAmount);
+        BigDecimal qst = zeroIfNull(qstAmount);
         return switch (agency.getCode()) {
             case CRA_CODE -> gst.add(hst);
             case RQ_CODE -> qst;
             case MRQ2013_CODE -> gst.add(qst);
             default -> BigDecimal.ZERO;
         };
+    }
+
+    private List<CreditNote> issuedCreditNotes(LocalDate start, LocalDate end) {
+        return creditNoteRepository.findByCompanyIdAndStatusAndCreditNoteDateBetweenOrderByCreditNoteDateDescIdDesc(
+                companyContext.requireCompanyId(), CreditNoteStatus.ISSUED, start, end);
     }
 
     /**

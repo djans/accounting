@@ -1,6 +1,7 @@
 package com.cogitosum.entity;
 
 import jakarta.persistence.*;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import java.time.LocalDateTime;
 
 @Entity
@@ -43,6 +44,14 @@ public class Company {
     private String gstNumber;
 
     private String qstNumber;
+
+    @Lob
+    @Column(name = "logo_data")
+    @JsonIgnore
+    private byte[] logoData;
+
+    @Column(name = "logo_content_type", length = 100)
+    private String logoContentType;
 
     @Column(nullable = false)
     private String currency = "CAD";
@@ -184,6 +193,23 @@ public class Company {
 
     public void setQstNumber(String qstNumber) {
         this.qstNumber = qstNumber;
+    }
+
+    @JsonIgnore
+    public byte[] getLogoData() {
+        return logoData == null ? null : logoData.clone();
+    }
+
+    public void setLogoData(byte[] logoData) {
+        this.logoData = logoData == null ? null : logoData.clone();
+    }
+
+    public String getLogoContentType() {
+        return logoContentType;
+    }
+
+    public void setLogoContentType(String logoContentType) {
+        this.logoContentType = logoContentType;
     }
 
     public String getCurrency() {

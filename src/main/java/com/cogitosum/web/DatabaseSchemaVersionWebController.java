@@ -54,7 +54,7 @@ public class DatabaseSchemaVersionWebController {
                         version.applied(),
                         version.requiresBackup()))
                 .toList());
-        model.addAttribute("isAdmin", isAdmin(authentication));
+        model.addAttribute("isSuperAdmin", isSuperAdmin(authentication));
         model.addAttribute("active", "schema-version");
         return "database/schema-version";
     }
@@ -63,7 +63,7 @@ public class DatabaseSchemaVersionWebController {
     public String apply(@RequestParam(defaultValue = "false") boolean backupConfirmed,
                         Authentication authentication,
                         RedirectAttributes attributes) {
-        requireAdmin(authentication);
+        requireSuperAdmin(authentication);
         Status status = schemaVersionService.getStatus();
         if (!status.migrationPossible() || !status.updateAvailable()) {
             attributes.addFlashAttribute("flashError",
@@ -105,9 +105,9 @@ public class DatabaseSchemaVersionWebController {
             boolean requiresBackup) {
     }
 
-    private boolean isAdmin(Authentication authentication) {
+    private boolean isSuperAdmin(Authentication authentication) {
         return authentication != null && authentication.isAuthenticated()
-                && authentication.getAuthorities().contains(new SimpleGrantedAuthority("ROLE_ADMIN"));
+                && authentication.getAuthorities().contains(new SimpleGrantedAuthority("ROLE_SUPER_ADMIN"));
     }
 
     private void requireAuthenticated(Authentication authentication) {
@@ -117,9 +117,9 @@ public class DatabaseSchemaVersionWebController {
         }
     }
 
-    private void requireAdmin(Authentication authentication) {
-        if (!isAdmin(authentication)) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Administrator role required");
+    private void requireSuperAdmin(Authentication authentication) {
+        if (!isSuperAdmin(authentication)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Super administrator role required");
         }
     }
 }

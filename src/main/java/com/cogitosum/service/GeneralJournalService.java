@@ -29,7 +29,7 @@ import java.util.UUID;
 public class GeneralJournalService {
     private static final List<String> SYSTEM_REFERENCE_PREFIXES = List.of(
             "BILLPAYMENT-", "BILL-", "CHEQUE-", "CARD-CHARGE-", "FY-CLOSE-",
-            "REVERSAL OF ", "INVOICE-", "PAYMENT-", "TAX-FILING-", "TAX-PAYMENT-", "TRANSFER-");
+            "REVERSAL OF ", "INVOICE-", "CREDIT-NOTE-", "PAYMENT-", "TAX-FILING-", "TAX-PAYMENT-", "TRANSFER-");
 
     @Autowired
     private GeneralJournalRepository generalJournalRepository;
