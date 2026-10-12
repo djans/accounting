@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html th:lang="${#locale.language}" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(#{creditNotes.detail.title})}"></head>
+<body>
+<div class="portal-shell">
+    <div th:replace="~{fragments/layout :: sidebar('credit-notes')}"></div>
+    <main class="portal-main">
+        <div th:replace="~{fragments/layout :: topbar(#{creditNotes.detail.title})}"></div>
+        <section class="portal-content credit-note-print">
+            <div th:replace="~{fragments/layout :: flash}"></div>
+            <div class="portal-card">
+                <div class="portal-card-title">
+                    <span>
+                        <span th:text="#{creditNotes.number}">Credit note</span>
+                        <strong th:text="${creditNote.creditNoteNumber}">CN-001</strong>
+                        <span class="badge-pill"
+                              th:text="${#messages.msg('creditNote.status.' + creditNote.status.name())}">Draft</span>
+                    </span>
+                    <span class="credit-note-actions">
+                        <button type="button" class="btn-portal btn-ghost btn-sm icon-action"
+                                data-bs-toggle="tooltip" data-bs-placement="top"
+                                onclick="window.print()"
+                                th:title="#{creditNotes.print}"
+                                th:attr="aria-label=#{creditNotes.print}">
+                            <i class="bi bi-printer" aria-hidden="true"></i>
+                        </button>
+                        <a th:if="${canIssue}" th:href="@{/credit-notes/{id}/edit(id=${creditNote.id})}"
+                           class="btn-portal btn-icon-action btn-icon-edit"
+                           data-bs-toggle="tooltip" data-bs-placement="top"
+                           th:title="#{btn.edit}" th:attr="aria-label=#{btn.edit}">
+                            <i class="bi bi-pencil" aria-hidden="true"></i>
+                        </a>
+                        <form th:if="${canIssue}" th:action="@{/credit-notes/{id}/delete(id=${creditNote.id})}"
+                              method="post">
+                            <button type="submit" class="btn-portal btn-icon-action btn-icon-delete"
+                                    data-bs-toggle="tooltip" data-bs-placement="top"
+                                    th:title="#{btn.delete}" th:attr="aria-label=#{btn.delete}">
+                                <i class="bi bi-trash" aria-hidden="true"></i>
+                            </button>
+                        </form>
+                        <form th:if="${canIssue}" th:action="@{/credit-notes/{id}/issue(id=${creditNote.id})}"
+                              method="post">
+                            <button type="submit" class="btn-portal btn-icon-action btn-icon-save"
+                                    data-bs-toggle="tooltip" data-bs-placement="top"
+                                    th:attr="data-confirm-message=#{creditNotes.confirmIssue},
+                                             aria-label=#{creditNotes.issue}"
+                                    onclick="return confirm(this.form.dataset.confirmMessage)"
+                                    th:title="#{creditNotes.issue}">
+                                <i class="bi bi-check2-square" aria-hidden="true"></i>
+                            </button>
+                        </form>
+                    </span>
+                </div>
+                <div class="form-grid">
+                    <div>
+                        <div class="stat-label" th:text="#{creditNotes.customer}">Customer</div>
+                        <strong th:text="${creditNote.invoice.customer.businessName}">Customer</strong>
+                        <div th:text="${creditNote.invoice.customer.address}">Address</div>
+                        <div th:text="${creditNote.invoice.customer.city + ', ' + creditNote.invoice.customer.province}">City</div>
+                    </div>
+                    <div>
+                        <div class="stat-label" th:text="#{creditNotes.date}">Date</div>
+                        <div th:text="${creditNote.creditNoteDate}">2026-01-01</div>
+                        <div><span th:text="#{creditNotes.invoice}">Invoice</span>:
+                            <a th:href="@{/invoices/{id}(id=${creditNote.invoice.id})}"
+                               th:text="${creditNote.invoice.invoiceNumber}">INV-001</a></div>
+                        <div><span th:text="#{creditNotes.reason}">Reason</span>:
+                            <span th:text="${creditNote.reason}">Correction</span></div>
+                    </div>
+                </div>
+                <table class="table-portal mt-4">
+                    <thead><tr>
+                        <th th:text="#{table.description}">Description</th>
+                        <th class="num" th:text="#{table.quantity}">Quantity</th>
+                        <th class="num" th:text="#{table.unitPrice}">Unit price</th>
+                        <th class="num" th:text="#{table.total}">Total</th>
+                    </tr></thead>
+                    <tbody>
+                    <tr th:each="line : ${creditNote.lineItems}">
+                        <td th:text="${line.description}">Service</td>
+                        <td class="num" th:text="${line.quantity}">1</td>
+                        <td class="num" th:text="${#numbers.formatCurrency(line.unitPrice)}">$0.00</td>
+                        <td class="num" th:text="${#numbers.formatCurrency(line.total)}">$0.00</td>
+                    </tr>
+                    </tbody>
+                </table>
+                <div class="report-totals mt-4">
+                    <div class="stat-card"><div class="stat-label" th:text="#{table.subtotal}">Subtotal</div>
+                        <div class="stat-value" th:text="${#numbers.formatCurrency(creditNote.subtotal)}">$0.00</div></div>
+                    <div class="stat-card is-accent"><div class="stat-label" th:text="#{creditNotes.tax}">Taxes</div>
+                        <div class="stat-value" th:text="${#numbers.formatCurrency(creditNote.gstAmount.add(creditNote.hstAmount).add(creditNote.qstAmount))}">$0.00</div>
+                        <div class="stat-sub">GST <span th:text="${#numbers.formatCurrency(creditNote.gstAmount)}"></span>
+                            · HST <span th:text="${#numbers.formatCurrency(creditNote.hstAmount)}"></span>
+                            · QST <span th:text="${#numbers.formatCurrency(creditNote.qstAmount)}"></span></div></div>
+                    <div class="stat-card is-success"><div class="stat-label" th:text="#{table.total}">Total</div>
+                        <div class="stat-value" th:text="${#numbers.formatCurrency(creditNote.totalAmount)}">$0.00</div></div>
+                </div>
+                <div class="stat-card is-accent mt-3" th:if="${refundableAmount.signum() > 0}">
+                    <div class="stat-label" th:text="#{creditNotes.allocation.available}">
+                        Available credit to refund or apply
+                    </div>
+                    <div class="stat-value" th:text="${#numbers.formatCurrency(allocatableAmount)}">$0.00</div>
+                </div>
+                <p class="text-muted mt-3" th:if="${creditNote.issuedAt != null}">
+                    <span th:text="#{creditNotes.issuedAt}">Issued</span>
+                    <span th:text="${creditNote.issuedAt}">2026-01-01</span>
+                </p>
+            </div>
+            <div class="portal-card mt-3"
+                 th:if="${creditNote.status.name() == 'ISSUED' and allocatableAmount.signum() > 0}">
+                <h3 class="portal-card-title" th:text="#{creditNotes.allocation.title}">
+                    Apply credit to another invoice
+                </h3>
+                <p class="text-muted" th:text="#{creditNotes.allocation.help}">
+                    This moves available customer credit to another unpaid invoice for the same customer.
+                    It does not create a payment or a new credit note.
+                </p>
+                <p class="text-muted" th:if="${#lists.isEmpty(allocationTargets)}"
+                   th:text="#{creditNotes.allocation.noInvoices}">
+                    This customer has no other eligible invoices with an outstanding balance.
+                </p>
+                <form th:unless="${#lists.isEmpty(allocationTargets)}"
+                      th:action="@{/credit-notes/{id}/allocate(id=${creditNote.id})}" method="post">
+                    <div class="form-grid">
+                        <div class="form-field">
+                            <label for="targetInvoiceId" th:text="#{creditNotes.allocation.target}">
+                                Invoice to settle
+                            </label>
+                            <select id="targetInvoiceId" name="targetInvoiceId" required="required">
+                                <option th:each="target : ${allocationTargets}"
+                                        th:value="${target.invoice.id}"
+                                        th:text="${target.invoice.invoiceNumber + ' — '
+                                            + #numbers.formatCurrency(target.outstandingAmount)}">
+                                    INV-002 — $0.00
+                                </option>
+                            </select>
+                        </div>
+                        <div class="form-field">
+                            <label for="allocationAmount" th:text="#{creditNotes.allocation.amount}">
+                                Amount to apply
+                            </label>
+                            <input id="allocationAmount" type="number" name="amount" min="0.01" step="0.01"
+                                   th:max="${allocatableAmount}" th:value="${allocatableAmount}"
+                                   required="required"/>
+                        </div>
+                        <div class="form-field">
+                            <label for="allocationDate" th:text="#{creditNotes.allocation.date}">
+                                Allocation date
+                            </label>
+                            <input id="allocationDate" type="date" name="allocationDate"
+                                   th:value="${allocationDate}" required="required"/>
+                        </div>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn-portal btn-icon-action btn-icon-save"
+                                data-bs-toggle="tooltip" data-bs-placement="top"
+                                th:attr="data-confirm-message=#{creditNotes.allocation.confirm},
+                                         aria-label=#{creditNotes.allocation.submit}"
+                                onclick="return confirm(this.form.dataset.confirmMessage)"
+                                th:title="#{creditNotes.allocation.submit}">
+                            <i class="bi bi-arrow-left-right" aria-hidden="true"></i>
+                        </button>
+                    </div>
+                </form>
+            </div>
+            <div class="portal-card mt-3">
+                <h3 class="portal-card-title" th:text="#{creditNotes.allocation.history}">
+                    Credit application history
+                </h3>
+                <div th:if="${#lists.isEmpty(allocations)}" class="empty-state"
+                     th:text="#{creditNotes.allocation.none}">
+                    No allocations recorded for this credit note.
+                </div>
+                <div th:unless="${#lists.isEmpty(allocations)}" class="table-responsive">
+                    <table class="table-portal">
+                        <thead><tr>
+                            <th th:text="#{table.date}">Date</th>
+                            <th th:text="#{creditNotes.allocation.target}">Target invoice</th>
+                            <th class="num" th:text="#{table.amount}">Amount</th>
+                            <th th:text="#{table.status}">Status</th>
+                            <th></th>
+                        </tr></thead>
+                        <tbody>
+                        <tr th:each="allocation : ${allocations}">
+                            <td th:text="${allocation.allocationDate}">2026-01-01</td>
+                            <td>
+                                <a th:href="@{/invoices/{id}(id=${allocation.targetInvoice.id})}"
+                                   th:text="${allocation.targetInvoice.invoiceNumber}">INV-002</a>
+                            </td>
+                            <td class="num" th:text="${#numbers.formatCurrency(allocation.amount)}">$0.00</td>
+                            <td>
+                                <span th:if="${allocation.reversalDate == null}"
+                                      th:text="#{creditNotes.allocation.active}">Applied</span>
+                                <span th:unless="${allocation.reversalDate == null}"
+                                      th:text="#{creditNotes.allocation.statusReversed}">Reversed</span>
+                                <span th:if="${allocation.reversalDate != null}"
+                                      th:text="${' (' + allocation.reversalDate + ')'}"></span>
+                            </td>
+                            <td>
+                                <form th:if="${allocation.reversalDate == null}"
+                                      th:action="@{/credit-notes/{id}/allocations/{allocationId}/reverse(
+                                        id=${creditNote.id}, allocationId=${allocation.id})}"
+                                      method="post" class="credit-note-inline-reversal">
+                                    <input type="hidden" name="reversalDate" th:value="${allocationDate}"/>
+                                    <input type="text" name="reversalReason" maxlength="1000"
+                                           th:attr="aria-label=#{creditNotes.allocation.reversalReason}"
+                                           th:value="${'Correction of allocation to invoice '
+                                               + allocation.targetInvoice.invoiceNumber}" required="required"/>
+                                    <button type="submit" class="btn-portal btn-icon-action btn-icon-delete"
+                                            data-bs-toggle="tooltip" data-bs-placement="top"
+                                            th:attr="data-confirm-message=#{creditNotes.allocation.reverseConfirm},
+                                                     aria-label=#{creditNotes.allocation.reverse}"
+                                            onclick="return confirm(this.form.dataset.confirmMessage)"
+                                            th:title="#{creditNotes.allocation.reverse}">
+                                        <i class="bi bi-arrow-counterclockwise" aria-hidden="true"></i>
+                                    </button>
+                                </form>
+                                <span th:if="${allocation.reversalReason != null}"
+                                      th:text="${allocation.reversalReason}"></span>
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="portal-card mt-3"
+                 th:if="${creditNote.status.name() == 'ISSUED' and refundableAmount.signum() > 0}">
+                <h3 class="portal-card-title" th:text="#{creditNotes.refund.title}">Refund the customer credit</h3>
+                <p class="text-muted" th:if="${#lists.isEmpty(bankAccounts)}"
+                   th:text="#{creditNotes.refund.noBankAccounts}">
+                    Add an active bank account before recording a refund.
+                </p>
+                <form th:unless="${#lists.isEmpty(bankAccounts)}"
+                      th:action="@{/credit-notes/{id}/refund(id=${creditNote.id})}" method="post">
+                    <div class="form-grid">
+                        <div class="form-field">
+                            <label for="refundAmount" th:text="#{creditNotes.refund.amount}">Refund amount</label>
+                            <input id="refundAmount" type="number" name="amount" min="0.01" step="0.01"
+                                   th:max="${refundableAmount}" th:value="${refundableAmount}" required="required"/>
+                        </div>
+                        <div class="form-field">
+                            <label for="refundDate" th:text="#{creditNotes.refund.date}">Refund date</label>
+                            <input id="refundDate" type="date" name="refundDate"
+                                   th:value="${refundDate}" required="required"/>
+                        </div>
+                        <div class="form-field">
+                            <label for="refundPaymentMethod" th:text="#{creditNotes.refund.method}">
+                                Refund method
+                            </label>
+                            <select id="refundPaymentMethod" name="paymentMethod" required="required">
+                                <option th:each="method : ${paymentMethods}" th:value="${method}"
+                                        th:text="${method}">BANK_TRANSFER</option>
+                            </select>
+                        </div>
+                        <div class="form-field">
+                            <label for="refundBankAccount" th:text="#{creditNotes.refund.bank}">Bank account</label>
+                            <select id="refundBankAccount" name="bankAccountId" required="required">
+                                <option th:each="account : ${bankAccounts}" th:value="${account.id}"
+                                        th:text="${account.accountNumber + ' – ' + account.accountName}">
+                                    1000 – Bank
+                                </option>
+                            </select>
+                        </div>
+                        <div class="form-field">
+                            <label for="refundTransactionId" th:text="#{creditNotes.refund.reference}">
+                                Refund reference
+                            </label>
+                            <input id="refundTransactionId" type="text" name="transactionId" maxlength="255"/>
+                        </div>
+                        <div class="form-field">
+                            <label for="refundReason" th:text="#{creditNotes.refund.reason}">Reason for refund</label>
+                            <input id="refundReason" type="text" name="reason" maxlength="1000"
+                                   th:value="${'Refund of credit note ' + creditNote.creditNoteNumber}"
+                                   required="required"/>
+                        </div>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn-portal btn-icon-action btn-icon-save"
+                                data-bs-toggle="tooltip" data-bs-placement="top"
+                                th:attr="data-confirm-message=#{creditNotes.refund.confirm},
+                                         aria-label=#{creditNotes.refund.submit}"
+                                onclick="return confirm(this.form.dataset.confirmMessage)"
+                                th:title="#{creditNotes.refund.submit}">
+                            <i class="bi bi-cash-coin" aria-hidden="true"></i>
+                        </button>
+                    </div>
+                </form>
+            </div>
+            <div class="portal-card mt-3">
+                <h3 class="portal-card-title" th:text="#{creditNotes.refund.history}">Refund history</h3>
+                <div th:if="${#lists.isEmpty(refunds)}" class="empty-state"
+                     th:text="#{creditNotes.refund.none}">
+                    No refunds recorded for this credit note.
+                </div>
+                <div th:unless="${#lists.isEmpty(refunds)}" class="table-responsive">
+                    <table class="table-portal">
+                        <thead><tr>
+                            <th th:text="#{table.date}">Date</th>
+                            <th th:text="#{table.method}">Method</th>
+                            <th th:text="#{creditNotes.refund.reference}">Reference</th>
+                            <th th:text="#{creditNotes.refund.reason}">Reason</th>
+                            <th class="num" th:text="#{table.amount}">Amount</th>
+                        </tr></thead>
+                        <tbody>
+                        <tr th:each="refund : ${refunds}">
+                            <td th:text="${refund.refundDate}">2026-01-01</td>
+                            <td th:text="${refund.paymentMethod}">BANK_TRANSFER</td>
+                            <td th:text="${refund.transactionId ?: '—'}">REF-001</td>
+                            <td th:text="${refund.reason}">Refund</td>
+                            <td class="num" th:text="${#numbers.formatCurrency(refund.amount)}">$0.00</td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+    </main>
+</div>
+<script>
+    document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(function (element) {
+        if (window.bootstrap && window.bootstrap.Tooltip) {
+            new window.bootstrap.Tooltip(element);
+        }
+    });
+</script>
+<style>
+    .credit-note-inline-reversal { display: inline-flex; align-items: center; gap: .4rem; }
+    .credit-note-inline-reversal input { width: min(14rem, 30vw); }
+    @media print {
+        .portal-sidebar, .portal-topbar, .credit-note-actions, .flash-message { display: none !important; }
+        .portal-shell, .portal-main, .portal-content, .portal-card { display: block !important; width: 100% !important; margin: 0 !important; padding: 0 !important; box-shadow: none !important; }
+    }
+</style>
+</body>
+</html>

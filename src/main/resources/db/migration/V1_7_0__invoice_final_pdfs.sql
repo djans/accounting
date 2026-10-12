@@ -1,0 +1,1 @@
+-- Applied by DatabaseSchemaVersionService with database-specific binary column types.

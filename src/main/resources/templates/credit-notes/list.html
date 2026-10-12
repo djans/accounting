@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html th:lang="${#locale.language}" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(#{creditNotes.title})}"></head>
+<body>
+<div class="portal-shell">
+    <div th:replace="~{fragments/layout :: sidebar('credit-notes')}"></div>
+    <main class="portal-main">
+        <div th:replace="~{fragments/layout :: topbar(#{creditNotes.title})}"></div>
+        <section class="portal-content">
+            <div th:replace="~{fragments/layout :: flash}"></div>
+            <div class="portal-card">
+                <div class="portal-card-title">
+                    <span th:text="#{creditNotes.title}">Credit notes</span>
+                    <a th:href="@{/invoices}" class="btn-portal btn-ghost btn-sm icon-action"
+                       th:title="#{creditNotes.backInvoices}" th:aria-label="#{creditNotes.backInvoices}">
+                        <i class="bi bi-arrow-left" aria-hidden="true"></i>
+                    </a>
+                </div>
+                <div th:if="${#lists.isEmpty(creditNotes)}" class="empty-state"
+                     th:text="#{creditNotes.none}">No credit notes yet.</div>
+                <div th:if="${not #lists.isEmpty(creditNotes)}" class="table-responsive">
+                    <table class="table-portal credit-note-list-table">
+                        <colgroup>
+                            <col class="credit-note-number-column"/>
+                            <col class="credit-note-date-column"/>
+                            <col class="credit-note-invoice-column"/>
+                            <col class="credit-note-customer-column"/>
+                            <col class="credit-note-status-column"/>
+                            <col class="credit-note-total-column"/>
+                        </colgroup>
+                        <thead><tr>
+                            <th th:text="#{creditNotes.number}">Credit note</th>
+                            <th th:text="#{table.date}">Date</th>
+                            <th th:text="#{creditNotes.invoice}">Invoice</th>
+                            <th th:text="#{creditNotes.customer}">Customer</th>
+                            <th th:text="#{table.status}">Status</th>
+                            <th class="num" th:text="#{table.total}">Total</th>
+                        </tr></thead>
+                        <tbody>
+                        <tr th:each="note : ${creditNotes}">
+                            <td class="credit-note-nowrap"><a th:href="@{/credit-notes/{id}(id=${note.id})}"
+                                   th:text="${note.creditNoteNumber}">CN-001</a></td>
+                            <td class="credit-note-nowrap" th:text="${note.creditNoteDate}">2026-01-01</td>
+                            <td class="credit-note-nowrap"><a th:href="@{/invoices/{id}(id=${note.invoice.id})}"
+                                   th:text="${note.invoice.invoiceNumber}">INV-001</a></td>
+                            <td class="credit-note-customer"
+                                th:text="${note.invoice.customer.businessName}">Customer</td>
+                            <td class="credit-note-nowrap"
+                                th:text="${#messages.msg('creditNote.status.' + note.status.name())}">Issued</td>
+                            <td class="num credit-note-nowrap"
+                                th:text="${#numbers.formatCurrency(note.totalAmount)}">$0.00</td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+    </main>
+</div>
+</body>
+</html>

@@ -18,6 +18,13 @@
 
 Before completing a change, verify that both language bundles still contain the keys used by modified templates.
 
+## Canadian accounting and tax
+
+- Treat Canadian accounting and tax rules as the default for accounting features; preserve double-entry bookkeeping and distinguish draft documents from issued and posted documents.
+- Credit notes may contain multiple descriptive lines. Keep each line auditable against the original invoice, calculate credit and tax totals from the original invoice's applicable GST/HST/QST treatment, and never exceed the remaining creditable amount.
+- Do not double-count customer credits when applying them to invoices or issuing cash refunds. Keep the source credit note, application or refund, and related dates traceable.
+- When a rule depends on province, tax regime, or current CRA/Revenu Québec guidance, state the assumption and avoid presenting uncertain legal or tax conclusions as authoritative.
+
 ## Markdown documentation
 
 - Keep repository Markdown files (`*.md` and `*.MD`) accurate when a change affects application behavior, setup, APIs, architecture, database schemas, or developer workflows.
@@ -31,6 +38,13 @@ Before completing a change, verify that both language bundles still contain the 
 - Choose an icon and semantic color appropriate to the action (for example, green for issue/save, blue for edit/download, and red for delete/cancel).
 - Give every icon action a localized `title` tooltip and a matching `aria-label`; add the stable key to both English and French bundles.
 - Initialize Bootstrap tooltips on pages that use `data-bs-toggle="tooltip"`.
+
+## Database schema files and migrations
+
+- Keep `src/main/resources/schema.sql` (MySQL) and `src/main/resources/schema-sqlite.sql` (SQLite) synchronized with every persistent schema change and the JPA entities. These files initialize fresh database instances and are used when resetting a database.
+- In this multi-company application, adding a company to an existing database adds company data; it does not require rerunning either schema file. Use the schema files when that company has a separate, newly initialized database.
+- For existing installations, also add and register a forward-only, database-compatible schema migration. The fresh-install schema files do not replace migrations.
+- Update schema and migration tests and the relevant schema-version documentation in the same change.
 
 ## Initial-data migration packages
 

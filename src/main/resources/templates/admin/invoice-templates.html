@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en" th:lang="${#locale.language}" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(#{invoiceTemplates.title})}"></head>
+<body>
+<div class="portal-shell">
+    <div th:replace="~{fragments/layout :: sidebar(${active})}"></div>
+    <main class="portal-main">
+        <div th:replace="~{fragments/layout :: topbar(#{invoiceTemplates.title})}"></div>
+        <section class="portal-content">
+            <div th:replace="~{fragments/layout :: flash}"></div>
+
+            <div class="portal-card">
+                <h2 class="portal-card-title" th:text="#{invoiceTemplates.uploadTitle}">Upload an invoice template</h2>
+                <p class="text-muted" th:text="#{invoiceTemplates.scope(${company.name})}">
+                    Templates uploaded here are available only to this company.
+                </p>
+                <form th:action="@{/admin/invoice-templates}" method="post" enctype="multipart/form-data">
+                    <div class="form-grid">
+                        <div class="form-field">
+                            <label for="templateName" th:text="#{invoiceTemplates.name}">Template name</label>
+                            <input id="templateName" name="name" type="text" maxlength="120" required/>
+                        </div>
+                        <div class="form-field">
+                            <label for="templateLanguage" th:text="#{invoiceTemplates.language}">Language</label>
+                            <select id="templateLanguage" name="languageTag" required>
+                                <option value="en">English (en)</option>
+                                <option value="fr">Français (fr)</option>
+                                <option value="en-CA">English (Canada) (en-CA)</option>
+                                <option value="fr-CA">Français (Canada) (fr-CA)</option>
+                            </select>
+                        </div>
+                        <div class="form-field full">
+                            <label for="templateFile" th:text="#{invoiceTemplates.file}">Word template (.docx)</label>
+                            <input id="templateFile" name="file" type="file" accept=".docx"
+                                   required="required"/>
+                            <small class="text-muted" th:text="#{invoiceTemplates.fileHint}">
+                                DOCX only, maximum 5 MiB. Keep each {{...}} placeholder intact.
+                            </small>
+                        </div>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn-portal btn-icon-action btn-icon-save"
+                                th:title="#{btn.save}" th:attr="aria-label=#{btn.save}">
+                            <i class="bi bi-check-lg" aria-hidden="true"></i>
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="portal-card">
+                <h2 class="portal-card-title" th:text="#{invoiceTemplates.availableTitle}">Available templates</h2>
+                <div th:if="${#lists.isEmpty(templates)}" class="empty-state"
+                     th:text="#{invoiceTemplates.none}">No templates are available.</div>
+                <table th:if="${not #lists.isEmpty(templates)}" class="table-portal">
+                    <thead>
+                    <tr>
+                        <th th:text="#{invoiceTemplates.name}">Template</th>
+                        <th th:text="#{invoiceTemplates.language}">Language</th>
+                        <th th:text="#{invoiceTemplates.filename}">File</th>
+                        <th th:text="#{table.actions}">Actions</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="template : ${templates}">
+                        <td>
+                            <span th:text="${template.name()}">Template name</span>
+                            <span th:if="${template.standard()}" class="badge bg-secondary ms-2"
+                                  th:text="#{invoiceTemplates.standardBadge}">Built-in</span>
+                        </td>
+                        <td th:text="${template.languageTag()}">en</td>
+                        <td th:text="${template.originalFilename()}">invoice.docx</td>
+                        <td>
+                            <a th:if="${!template.standard()}"
+                               th:href="@{/admin/invoice-templates/{id}/download(id=${template.id()})}"
+                               class="btn-portal btn-icon-action btn-icon-download"
+                               th:title="#{invoiceTemplates.download}"
+                               th:attr="aria-label=#{invoiceTemplates.download}">
+                                <i class="bi bi-download" aria-hidden="true"></i>
+                            </a>
+                            <form th:if="${!template.standard()}"
+                                  th:action="@{/admin/invoice-templates/{id}/delete(id=${template.id()})}"
+                                  method="post" style="display:inline"
+                                  th:attr="data-confirm-message=#{invoiceTemplates.confirmDelete}">
+                                <button type="submit" class="btn-portal btn-icon-action btn-icon-delete"
+                                        th:title="#{btn.delete}" th:attr="aria-label=#{btn.delete}"
+                                        onclick="return confirm(this.form.dataset.confirmMessage)">
+                                    <i class="bi bi-x-lg" aria-hidden="true"></i>
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+</div>
+</body>
+</html>

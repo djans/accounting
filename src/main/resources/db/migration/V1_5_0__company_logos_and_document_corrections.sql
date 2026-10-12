@@ -1,0 +1,2 @@
+-- Applied through DatabaseSchemaVersionService to add nullable fields safely
+-- across MySQL and SQLite, including databases with partially applied changes.

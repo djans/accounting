@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html th:lang="${#locale.language}" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(#{creditNotes.form.title})}"></head>
+<body>
+<div class="portal-shell">
+    <div th:replace="~{fragments/layout :: sidebar('credit-notes')}"></div>
+    <main class="portal-main">
+        <div th:replace="~{fragments/layout :: topbar(#{creditNotes.form.title})}"></div>
+        <section class="portal-content">
+            <div th:replace="~{fragments/layout :: flash}"></div>
+            <div class="portal-card">
+                <div class="portal-card-title">
+                    <span th:text="#{creditNotes.form.title}">Credit note</span>
+                    <a th:href="@{/invoices/{id}(id=${invoice.id})}"
+                       class="btn-portal btn-icon-action btn-icon-edit"
+                       data-bs-toggle="tooltip" data-bs-placement="top"
+                       th:title="#{creditNotes.backInvoice}"
+                       th:attr="aria-label=#{creditNotes.backInvoice}">
+                        <i class="bi bi-arrow-left" aria-hidden="true"></i>
+                    </a>
+                </div>
+                <p class="text-muted">
+                    <span th:text="#{creditNotes.form.invoice}">For invoice</span>
+                    <strong th:text="${invoice.invoiceNumber}">INV-001</strong> —
+                    <span th:text="${invoice.customer.businessName}">Customer</span>.
+                    <span th:text="#{creditNotes.form.maximum}">Maximum remaining credit:</span>
+                    <strong th:text="${#numbers.formatCurrency(remainingCreditableAmount)}">$0.00</strong>
+                </p>
+                <form th:action="${isEdit} ? @{/credit-notes/{id}/edit(id=${creditNote.id})} : @{/credit-notes/from-invoice/{invoiceId}(invoiceId=${invoice.id})}"
+                      method="post">
+                    <div class="form-grid">
+                        <div class="form-field">
+                            <label for="creditNoteDate" th:text="#{creditNotes.date}">Date</label>
+                            <input id="creditNoteDate" type="date" name="creditNoteDate"
+                                   th:value="${creditNoteDate}" required="required"/>
+                        </div>
+                        <div class="form-field">
+                            <label for="creditNoteReason" th:text="#{creditNotes.reason}">Reason</label>
+                            <input id="creditNoteReason" type="text" name="reason" maxlength="1000"
+                                   th:value="${reason}" required="required"/>
+                        </div>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table-portal">
+                            <thead><tr>
+                                <th th:text="#{table.description}">Description</th>
+                                <th class="num" th:text="#{table.quantity}">Quantity</th>
+                                <th class="num" th:text="#{table.unitPrice}">Unit price</th>
+                                <th></th>
+                            </tr></thead>
+                            <tbody id="creditNoteLines">
+                            <tr th:each="line : ${lines}">
+                                <td><input type="text" name="descriptions" maxlength="500"
+                                           th:value="${line.description}" required="required"/></td>
+                                <td><input type="number" name="quantities" min="0" step="0.01"
+                                           th:value="${line.quantity}" required="required"/></td>
+                                <td><input type="number" name="unitPrices" min="0" step="0.01"
+                                           th:value="${line.unitPrice}" required="required"/></td>
+                                <td>
+                                    <button type="button" class="btn-portal btn-icon-action btn-icon-delete"
+                                            data-remove-credit-line="true"
+                                            data-bs-toggle="tooltip" data-bs-placement="top"
+                                            th:title="#{creditNotes.form.removeLine}"
+                                            th:attr="aria-label=#{creditNotes.form.removeLine}">
+                                        <i class="bi bi-trash" aria-hidden="true"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <template id="creditNoteLineTemplate">
+                        <tr>
+                            <td><input type="text" name="descriptions" maxlength="500" required="required"/></td>
+                            <td><input type="number" name="quantities" min="0" step="0.01"
+                                       value="1" required="required"/></td>
+                            <td><input type="number" name="unitPrices" min="0" step="0.01"
+                                       value="0" required="required"/></td>
+                            <td>
+                                <button type="button" class="btn-portal btn-icon-action btn-icon-delete"
+                                        data-remove-credit-line="true"
+                                        data-bs-toggle="tooltip" data-bs-placement="top"
+                                        th:title="#{creditNotes.form.removeLine}"
+                                        th:attr="aria-label=#{creditNotes.form.removeLine}">
+                                    <i class="bi bi-trash" aria-hidden="true"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    </template>
+                    <div class="form-actions">
+                        <button type="button" id="addCreditNoteLine"
+                                class="btn-portal btn-icon-action btn-icon-save"
+                                data-bs-toggle="tooltip" data-bs-placement="top"
+                                th:title="#{btn.addLine}" th:attr="aria-label=#{btn.addLine}">
+                            <i class="bi bi-plus-lg" aria-hidden="true"></i>
+                        </button>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn-portal btn-icon-action btn-icon-save"
+                                data-bs-toggle="tooltip" data-bs-placement="top"
+                                th:title="${isEdit} ? #{btn.save} : #{creditNotes.createDraft}"
+                                th:attr="aria-label=${isEdit} ? #{btn.save} : #{creditNotes.createDraft}">
+                            <i class="bi bi-check-lg" aria-hidden="true"></i>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </section>
+    </main>
+</div>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const tbody = document.getElementById('creditNoteLines');
+        const template = document.getElementById('creditNoteLineTemplate');
+        const addButton = document.getElementById('addCreditNoteLine');
+
+        function updateRemoveButtons() {
+            const buttons = tbody.querySelectorAll('[data-remove-credit-line]');
+            buttons.forEach(function (button) {
+                button.disabled = buttons.length <= 1;
+            });
+        }
+
+        function initializeTooltips(root) {
+            if (window.bootstrap && window.bootstrap.Tooltip) {
+                root.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(function (element) {
+                    new window.bootstrap.Tooltip(element);
+                });
+            }
+        }
+
+        addButton.addEventListener('click', function () {
+            tbody.appendChild(template.content.cloneNode(true));
+            updateRemoveButtons();
+            initializeTooltips(tbody.lastElementChild);
+        });
+        tbody.addEventListener('click', function (event) {
+            const target = event.target;
+            if (!(target instanceof Element)) {
+                return;
+            }
+            const removeButton = target.closest('[data-remove-credit-line]');
+            if (removeButton && tbody.querySelectorAll('tr').length > 1) {
+                removeButton.closest('tr').remove();
+                updateRemoveButtons();
+            }
+        });
+        updateRemoveButtons();
+        initializeTooltips(document);
+    });
+</script>
+</body>
+</html>

@@ -159,11 +159,13 @@ reporting.
 ### Credit notes
 
 From an issued invoice, choose **Create credit note** to open a draft linked to
-that invoice. Adjust its original invoice lines, enter a reason and date, then
-issue it from the credit-note detail page. A draft has no accounting or tax
+that invoice. A note can contain multiple descriptive lines; add, adjust, or
+remove lines to show the items being credited. The note retains its source
+invoice link, and its GST/HST/QST amounts are calculated proportionally from
+the tax amounts saved on that invoice. Enter a reason and date, then issue the
+note from the credit-note detail page. A draft has no accounting or tax
 effect. Issuing rechecks the remaining uncredited invoice value while locking
-the invoice, calculates GST/HST/QST proportionally from the tax amounts saved
-on the original invoice, and posts the reversing journal entry. Issued notes
+the invoice and posts the reversing journal entry. Issued notes
 reduce the customer's balance, appear as credits on customer statements, and
 reduce sales and tax totals in the filing period of their issue date. A fully
 settled invoice that has been credited is marked **Credited**. A credit note

@@ -183,21 +183,26 @@ public class BillingSystemIntegrationTest {
         mockMvc.perform(get("/credit-notes/from-invoice/{invoiceId}/new", invoice.getId())
                         .with(user("test-admin@example.test").roles("ADMIN")))
                 .andExpect(status().isOk())
-                .andExpect(content().string(org.hamcrest.Matchers.containsString("Create a credit note")));
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("Create a credit note")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("title=\"Add line\"")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString(
+                        "title=\"Remove credit note line\"")));
 
         mockMvc.perform(post("/credit-notes/from-invoice/{invoiceId}", invoice.getId())
                         .with(user("test-admin@example.test").roles("ADMIN"))
                         .with(SecurityMockMvcRequestPostProcessors.csrf())
                         .param("reason", "Service adjustment")
                         .param("creditNoteDate", java.time.LocalDate.now().toString())
-                        .param("descriptions", "Consulting adjustment")
-                        .param("quantities", "0.25")
-                        .param("unitPrices", "100.00"))
+                        .param("descriptions", "Consulting adjustment", "Travel adjustment")
+                        .param("quantities", "0.25", "0.50")
+                        .param("unitPrices", "100.00", "20.00"))
                 .andExpect(status().is3xxRedirection());
 
         CreditNote note = creditNoteRepository
                 .findAllByCompanyIdOrderByCreditNoteDateDescIdDesc(companyId)
                 .stream().findFirst().orElseThrow();
+        assertEquals(2, note.getLineItems().size());
+        assertEquals(new java.math.BigDecimal("35.00"), note.getSubtotal());
         mockMvc.perform(get("/credit-notes")
                         .with(user("test-admin@example.test").roles("ADMIN")))
                 .andExpect(status().isOk())

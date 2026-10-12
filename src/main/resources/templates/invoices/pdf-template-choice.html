@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en" th:lang="${#locale.language}" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(#{invoice.pdf.chooseTitle})}"></head>
+<body>
+<div class="portal-shell">
+    <div th:replace="~{fragments/layout :: sidebar('invoices')}"></div>
+    <main class="portal-main">
+        <div th:replace="~{fragments/layout :: topbar(#{invoice.pdf.chooseTitle})}"></div>
+        <section class="portal-content">
+            <div class="portal-card">
+                <h2 class="portal-card-title" th:text="#{invoice.pdf.chooseTitle}">Choose an invoice template</h2>
+                <p th:if="${!bulkDownload}" th:text="#{invoice.pdf.chooseInvoice(${invoice.invoiceNumber})}">
+                    Select a template for this invoice.
+                </p>
+                <p th:if="${bulkDownload}" th:text="#{invoice.pdf.chooseSelected(${#lists.size(invoiceIds)})}">
+                    Select a template for the selected invoices.
+                </p>
+
+                <form th:if="${bulkDownload}" th:action="@{/invoices/pdf-download}" method="post"
+                      data-download-progress="fetch">
+                    <input th:each="invoiceId : ${invoiceIds}" type="hidden" name="invoiceIds"
+                           th:value="${invoiceId}"/>
+                    <div class="form-field">
+                        <label for="bulkTemplate" th:text="#{invoice.pdf.template}">Template</label>
+                        <select id="bulkTemplate" name="templateId" required>
+                            <option th:each="template : ${templates}" th:value="${template.id()}"
+                                    th:selected="${template.id() == suggestedTemplateId}"
+                                    th:text="|${template.name()} (${template.languageTag()})|">
+                                Standard invoice (en)
+                            </option>
+                        </select>
+                    </div>
+                    <div class="form-actions">
+                        <a th:href="@{/invoices}" class="btn-portal btn-ghost" th:text="#{btn.cancel}">Cancel</a>
+                        <button type="submit" class="btn-portal">
+                            <i class="bi bi-file-earmark-pdf" aria-hidden="true"></i>
+                            <span th:text="#{invoice.pdf.download}">Download PDF</span>
+                            <span class="invoice-submit-spinner" data-download-spinner aria-hidden="true" hidden></span>
+                        </button>
+                    </div>
+                </form>
+
+                <form th:unless="${bulkDownload}" th:action="@{/invoices/{id}/pdf(id=${invoiceId})}" method="get"
+                      data-download-progress="fetch">
+                    <div class="form-field">
+                        <label for="invoiceTemplate" th:text="#{invoice.pdf.template}">Template</label>
+                        <select id="invoiceTemplate" name="templateId" required>
+                            <option th:each="template : ${templates}" th:value="${template.id()}"
+                                    th:selected="${template.id() == suggestedTemplateId}"
+                                    th:text="|${template.name()} (${template.languageTag()})|">
+                                Standard invoice (en)
+                            </option>
+                        </select>
+                    </div>
+                    <div class="form-actions">
+                        <a th:href="@{/invoices/{id}(id=${invoiceId})}" class="btn-portal btn-ghost"
+                           th:text="#{btn.cancel}">Cancel</a>
+                        <button type="submit" class="btn-portal">
+                            <i class="bi bi-file-earmark-pdf" aria-hidden="true"></i>
+                            <span th:text="#{invoice.pdf.download}">Download PDF</span>
+                            <span class="invoice-submit-spinner" data-download-spinner aria-hidden="true" hidden></span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </section>
+    </main>
+</div>
+<script th:src="@{/js/invoice-download-progress.js}"></script>
+</body>
+</html>
